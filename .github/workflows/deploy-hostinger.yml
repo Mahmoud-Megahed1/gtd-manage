@@ -1,0 +1,106 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate and Push DB
+        run: |
+          pnpm db:push
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy via SSH
+        if: ${{ secrets.HOSTINGER_SSH_KEY != '' }}
+        uses: easingthemes/ssh-deploy@v5.1.0
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          ARGS: "-rltgoDzvO --delete"
+          SOURCE: "./"
+          REMOTE_HOST: ${{ secrets.HOSTINGER_HOST }}
+          REMOTE_USER: ${{ secrets.HOSTINGER_USER }}
+          REMOTE_PORT: ${{ secrets.HOSTINGER_PORT }}
+          TARGET: ${{ secrets.HOSTINGER_TARGET }}
+          EXCLUDE: ".git*,node_modules/"
+
+      - name: Restart PM2
+        if: ${{ secrets.HOSTINGER_SSH_KEY != '' }}
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          script: |
+            cd ${{ secrets.HOSTINGER_TARGET }}
+            cat > .env << 'EOF'
+            NODE_ENV=production
+            COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}
+            WEB_ORIGIN=${{ secrets.WEB_ORIGIN }}
+            OAUTH_SERVER_URL=${{ secrets.OAUTH_SERVER_URL }}
+            VITE_OAUTH_PORTAL_URL=${{ secrets.VITE_OAUTH_PORTAL_URL }}
+            VITE_APP_ID=${{ secrets.VITE_APP_ID }}
+            VITE_SERVER_ORIGIN=${{ secrets.VITE_SERVER_ORIGIN }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            EOF
+            npm ci --omit=dev || npm i --omit=dev --legacy-peer-deps
+            NODE_ENV=production npx pm2 start dist/index.js --name manus || NODE_ENV=production npx pm2 restart manus
+      
+      - name: Deploy via FTP (optional)
+        if: ${{ secrets.HOSTINGER_FTP_PASSWORD != '' }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_HOST }}
+          username: ${{ secrets.HOSTINGER_FTP_USER }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          port: ${{ secrets.HOSTINGER_FTP_PORT }}
+          protocol: ftp
+          local-dir: "./"
+          server-dir: ${{ secrets.HOSTINGER_FTP_TARGET }}
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            **/.github/**
+            **/.vscode/**
+            **/pnpm-lock.yaml
+            **/vitest.config.*
+            **/scripts/**
+            **/*.map
+
+      - name: Health Check
+        if: ${{ secrets.HOSTINGER_DOMAIN != '' }}
+        run: |
+          DOMAIN="${{ secrets.HOSTINGER_DOMAIN }}"
+          echo "Checking https://${DOMAIN}/healthz"
+          for i in {1..10}; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "https://${DOMAIN}/healthz" || true)
+            if [ "$code" = "200" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt $i failed with code $code, retrying..."
+            sleep 3
+          done
+          echo "Health check failed"
+          exit 1

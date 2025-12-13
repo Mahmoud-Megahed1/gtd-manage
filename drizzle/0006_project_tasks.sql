@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS `projectTasks` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `description` TEXT,
+  `startDate` TIMESTAMP NULL,
+  `endDate` TIMESTAMP NULL,
+  `status` ENUM('planned','in_progress','done','cancelled') NOT NULL DEFAULT 'planned',
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

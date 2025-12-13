@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1765466222469,
+      "tag": "0000_deep_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1765466415266,
+      "tag": "0001_familiar_infant_terrible",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1765474830999,
+      "tag": "0002_bizarre_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1765483013342,
+      "tag": "0003_acoustic_demogoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1765491532582,
+      "tag": "0004_conscious_tempest",
+      "breakpoints": true
+    }
+  ]
+}

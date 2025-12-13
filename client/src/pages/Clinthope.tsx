@@ -1,0 +1,236 @@
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+
+export default function Clinthope() {
+  useAuth({ redirectOnUnauthenticated: true });
+  const [, setLocation] = useLocation();
+  const uploadFile = trpc.files.upload.useMutation({
+    onSuccess: () => toast.success("تم حفظ نسخة الصفحة"),
+    onError: () => toast.error("تعذر حفظ نسخة الصفحة"),
+  });
+  const [htmlLoaded, setHtmlLoaded] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const { data: clients } = trpc.clients.list.useQuery();
+  const { data: projects } = trpc.projects.list.useQuery();
+  const createForm = trpc.forms.create.useMutation();
+  const [target, setTarget] = useState<{ clientId?: number; projectId?: number }>({});
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const onLoad = () => setHtmlLoaded(true);
+    iframe.addEventListener("load", onLoad);
+    iframe.addEventListener("load", () => {
+      try {
+        const doc = iframe.contentDocument;
+        const win = iframe.contentWindow as any;
+        if (!doc || !win) return;
+        const extractHtml = () => doc.documentElement.outerHTML;
+        const collectImages = () => {
+          const imgs = Array.from(doc.querySelectorAll("img"));
+          return imgs
+            .map((img) => img.getAttribute("src") || "")
+            .filter((src) => src.startsWith("data:image/"))
+            .map((src) => {
+              const mime = src.substring(5, src.indexOf(";"));
+              const base64 = src.split(",")[1] || "";
+              return { mimeType: mime, fileData: base64 };
+            });
+        };
+        const saveIntoSystem = async () => {
+          const html = extractHtml();
+          const result = await createForm.mutateAsync({
+            clientId: target.clientId || 0,
+            projectId: target.projectId,
+            formType: "request",
+            formData: html,
+          });
+          const formId = (result as any)?.id;
+          if (formId) {
+            const base64 = btoa(unescape(encodeURIComponent(html)));
+            await uploadFile.mutateAsync({
+              entityType: "form",
+              entityId: formId,
+              fileName: `request-${Date.now()}.html`,
+              fileData: base64,
+              mimeType: "text/html",
+            });
+            const images = collectImages();
+            for (let i = 0; i < images.length; i++) {
+              await uploadFile.mutateAsync({
+                entityType: "form",
+                entityId: formId,
+                fileName: `img-${i + 1}.png`,
+                fileData: images[i].fileData,
+                mimeType: images[i].mimeType || "image/png",
+              });
+            }
+          }
+          toast.success("تم حفظ الاستمارة والمرفقات تلقائياً");
+          setLocation("/forms");
+        };
+        if (typeof win.saveHTML === "function") {
+          const original = win.saveHTML.bind(win);
+          win.saveHTML = async function () {
+            try {
+              await saveIntoSystem();
+            } catch (e) {}
+            return original();
+          };
+        }
+        if (typeof win.prepareAndPrint === "function") {
+          const original = win.prepareAndPrint.bind(win);
+          win.prepareAndPrint = async function () {
+            try {
+              await saveIntoSystem();
+            } catch (e) {}
+            return original();
+          };
+        }
+      } catch {}
+    });
+    return () => iframe.removeEventListener("load", onLoad);
+  }, []);
+
+  const handleSaveFileCopy = async () => {
+    try {
+      let text: string | null = null;
+      const res = await fetch("/clinthope.html");
+      if (res.ok) {
+        text = await res.text();
+      } else if (iframeRef.current?.contentDocument) {
+        text = iframeRef.current.contentDocument.documentElement.outerHTML;
+      }
+      if (!text) throw new Error("fetch_failed");
+      const base64 = btoa(unescape(encodeURIComponent(text)));
+      await uploadFile.mutateAsync({
+        entityType: "form_copy",
+        entityId: 0,
+        fileName: `clinthope-${Date.now()}.html`,
+        fileData: base64,
+        mimeType: "text/html"
+      });
+    } catch {
+      toast.error("تعذر جلب الصفحة وحفظها");
+    }
+  };
+  
+  const handleSaveAsRequestForm = async () => {
+    try {
+      const res = await fetch("/clinthope.html");
+      const text = await res.text();
+      const result = await createForm.mutateAsync({
+        clientId: target.clientId || 0,
+        projectId: target.projectId,
+        formType: "request",
+        formData: text
+      });
+      const formId = (result as any)?.id;
+      if (formId) {
+        const base64 = btoa(unescape(encodeURIComponent(text)));
+        await uploadFile.mutateAsync({
+          entityType: "form",
+          entityId: formId,
+          fileName: `request-${Date.now()}.html`,
+          fileData: base64,
+          mimeType: "text/html"
+        });
+      }
+      toast.success("تم حفظ الاستمارة");
+      setLocation("/forms");
+    } catch {
+      toast.error("تعذر حفظ الاستمارة");
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">إنشاء استمارة طلب عميل</h1>
+            <p className="text-muted-foreground">صفحة ضمنية لحفظ نسخة داخل البرنامج</p>
+          </div>
+          <Button variant="outline" onClick={() => setLocation("/forms")}>
+            العودة
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>نموذج استمارة طلب عميل (ضمني)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm">العميل</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={target.clientId ?? ""}
+                  onChange={(e) =>
+                    setTarget({
+                      ...target,
+                      clientId: e.target.value ? Number(e.target.value) : undefined,
+                    })
+                  }
+                >
+                  <option value="">بدون</option>
+                  {clients?.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm">المشروع (اختياري)</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={target.projectId ?? ""}
+                  onChange={(e) =>
+                    setTarget({
+                      ...target,
+                      projectId: e.target.value ? Number(e.target.value) : undefined,
+                    })
+                  }
+                >
+                  <option value="">بدون</option>
+                  {projects?.map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="border rounded-lg overflow-hidden">
+              <iframe
+                ref={iframeRef}
+                src="/clinthope.html"
+                className="w-full h-[70vh] bg-white"
+                title="Clinthope Page"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setLocation("/forms")}>
+                العودة
+              </Button>
+              <Button onClick={handleSaveFileCopy} disabled={uploadFile.isPending || !htmlLoaded}>
+                {uploadFile.isPending ? "جاري الحفظ..." : "حفظ نسخة في البرنامج"}
+              </Button>
+              <Button onClick={handleSaveAsRequestForm} disabled={createForm.isPending || !htmlLoaded}>
+                {createForm.isPending ? "جاري الحفظ..." : "حفظ كاستمارة طلب"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+}

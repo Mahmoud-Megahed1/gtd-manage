@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, name, startDate, endDate, projectId FROM projectTasks WHERE projectId = 2",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2giqpdsbkeXo479.root --database adzfpsm2YkJKMWSxjZr5HR --execute SELECT id, name, startDate, endDate, projectId FROM projectTasks WHERE projectId = 2",
+  "rows": [
+    {
+      "id": "30002",
+      "name": "بلي",
+      "startDate": "2025-12-23 00:00:00",
+      "endDate": "2025-12-03 00:00:00",
+      "projectId": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tstartDate\tendDate\tprojectId\n30002\tبلي\t2025-12-23 00:00:00\t2025-12-03 00:00:00\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1573
+}
