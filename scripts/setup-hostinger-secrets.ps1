@@ -14,7 +14,12 @@ param(
   [string]$ViteServerOrigin,
   [string]$CookieSecret,
   [string]$JwtSecret,
-  [string]$HostingerSshKeyContent
+  [string]$HostingerSshKeyContent,
+  [string]$HostingerFtpHost,
+  [string]$HostingerFtpUser,
+  [string]$HostingerFtpPassword,
+  [string]$HostingerFtpPort = "21",
+  [string]$HostingerFtpTarget
 )
 $ErrorActionPreference = "Stop"
 function EnsureGh {
@@ -98,6 +103,18 @@ if (-not $sshKey) {
     if ($k -and (Test-Path $k)) { $sshKey = Get-Content -Raw -Path $k }
   }
 }
+# FTP inputs
+$ftpHost = $HostingerFtpHost
+if ($null -eq $ftpHost) { $ftpHost = ReadOptional "HOSTINGER_FTP_HOST (اختياري)" }
+$ftpUser = $HostingerFtpUser
+if ($null -eq $ftpUser) { $ftpUser = ReadOptional "HOSTINGER_FTP_USER (اختياري)" }
+$ftpPassword = $HostingerFtpPassword
+if ($null -eq $ftpPassword) { $ftpPassword = ReadOptional "HOSTINGER_FTP_PASSWORD (اختياري)" }
+$ftpPort = $HostingerFtpPort
+if (-not $ftpPort) { $ftpPort = "21" }
+$ftpTarget = $HostingerFtpTarget
+if ($null -eq $ftpTarget) { $ftpTarget = ReadOptional "HOSTINGER_FTP_TARGET (اختياري، مثل /public_html)" }
+
 SetSecret $repo "HOSTINGER_HOST" $host
 SetSecret $repo "HOSTINGER_USER" $user
 SetSecret $repo "HOSTINGER_PORT" $port
@@ -112,4 +129,9 @@ SetSecret $repo "VITE_SERVER_ORIGIN" $serverOrigin
 SetSecret $repo "COOKIE_SECRET" $cookieSecret
 SetSecret $repo "JWT_SECRET" $jwtSecret
 SetSecret $repo "HOSTINGER_SSH_KEY" $sshKey
+SetSecret $repo "HOSTINGER_FTP_HOST" $ftpHost
+SetSecret $repo "HOSTINGER_FTP_USER" $ftpUser
+SetSecret $repo "HOSTINGER_FTP_PASSWORD" $ftpPassword
+SetSecret $repo "HOSTINGER_FTP_PORT" $ftpPort
+SetSecret $repo "HOSTINGER_FTP_TARGET" $ftpTarget
 Write-Host "تم ضبط الأسرار للمستودع $repo بنجاح"

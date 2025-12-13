@@ -3,6 +3,7 @@ name: Deploy to Hostinger
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -25,8 +26,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate and Push DB
-        run: |
-          pnpm db:push
+        if: ${{ secrets.DATABASE_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm db:push
 
       - name: Build
         run: pnpm build
@@ -36,11 +39,10 @@ jobs:
         uses: easingthemes/ssh-deploy@v5.1.0
         env:
           SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
-          ARGS: "-rltgoDzvO --delete"
+          ARGS: "-rltgoDzvO --delete -e \"ssh -p ${{ secrets.HOSTINGER_PORT }}\""
           SOURCE: "./"
           REMOTE_HOST: ${{ secrets.HOSTINGER_HOST }}
           REMOTE_USER: ${{ secrets.HOSTINGER_USER }}
-          REMOTE_PORT: ${{ secrets.HOSTINGER_PORT }}
           TARGET: ${{ secrets.HOSTINGER_TARGET }}
           EXCLUDE: ".git*,node_modules/"
 
@@ -76,7 +78,7 @@ jobs:
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
           port: ${{ secrets.HOSTINGER_FTP_PORT }}
           protocol: ftp
-          local-dir: "./"
+          local-dir: "dist/public"
           server-dir: ${{ secrets.HOSTINGER_FTP_TARGET }}
           exclude: |
             **/.git*
@@ -89,7 +91,7 @@ jobs:
             **/*.map
 
       - name: Health Check
-        if: ${{ secrets.HOSTINGER_DOMAIN != '' }}
+        if: ${{ secrets.HOSTINGER_DOMAIN != '' && secrets.HOSTINGER_SSH_KEY != '' }}
         run: |
           DOMAIN="${{ secrets.HOSTINGER_DOMAIN }}"
           echo "Checking https://${DOMAIN}/healthz"
