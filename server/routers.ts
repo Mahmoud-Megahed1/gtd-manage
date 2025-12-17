@@ -840,14 +840,22 @@ export const appRouter = router({
           formNumber,
           createdBy: ctx.user.id
         });
-        let formId = Number((result as any)?.insertId);
-        if (!formId || isNaN(formId)) {
+
+        // MySQL2 returns [ResultSetHeader, FieldPacket[]] - extract insertId properly
+        const resultData = Array.isArray(result) ? result[0] : result;
+        let formId = Number((resultData as any)?.insertId || (resultData as any)?.id || 0);
+
+        // Fallback: query for the form if insertId is not available
+        if (!formId || isNaN(formId) || formId <= 0) {
           const all = await db.getAllForms();
           const match = all.find((f: any) => f.formNumber === formNumber);
-          formId = Number(match?.id) || undefined as any;
+          formId = Number(match?.id) || 0;
         }
 
-        await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`);
+        // Only log audit if formId is valid
+        if (formId && !isNaN(formId) && formId > 0) {
+          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`);
+        }
 
         // Notify owner
         await notifyOwner({
@@ -855,7 +863,7 @@ export const appRouter = router({
           content: `تم إضافة استمارة جديدة رقم ${formNumber}`
         });
 
-        return { success: true, id: formId, formNumber };
+        return { success: true, id: formId || undefined, formNumber };
       }),
 
     update: protectedProcedure
