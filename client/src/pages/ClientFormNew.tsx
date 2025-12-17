@@ -110,12 +110,12 @@ export default function ClientFormNew() {
                   if (el?.tagName === "BUTTON" && /حفظ|PDF|تصدير/.test(txt)) {
                     try {
                       await saveIntoSystem();
-                    } catch {}
+                    } catch { }
                   }
                 },
                 true
               );
-            } catch {}
+            } catch { }
           };
           setTimeout(hook, 0);
         }
@@ -181,6 +181,17 @@ export default function ClientFormNew() {
               <div ref={containerRef} className="w-full" />
             )}
           </CardContent>
+          <div className="p-4 flex gap-2 border-t">
+            <Button variant="outline" onClick={() => setLocation("/forms")}>
+              العودة للقائمة
+            </Button>
+            <Button
+              onClick={handleSaveFileCopy}
+              disabled={uploadFile.isPending || loading}
+            >
+              {uploadFile.isPending ? "جاري الحفظ..." : "حفظ نسخة في البرنامج"}
+            </Button>
+          </div>
         </Card>
       </div>
     </DashboardLayout>

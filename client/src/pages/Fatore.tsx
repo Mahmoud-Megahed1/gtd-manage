@@ -209,19 +209,27 @@ export default function Fatore() {
       });
       toast.success("تم حفظ نسخة الصفحة");
       return upload;
-    } catch {
+    } catch (error) {
+      console.error("[Fatore] handleSaveFileCopy error:", error);
       toast.error("تعذر جلب الصفحة وحفظها");
     }
   };
 
   const handleSaveDraftRecord = async () => {
     try {
+      console.log("[Fatore] Fetching /fatore.HTML...");
       const res = await fetch("/fatore.HTML");
+      if (!res.ok) {
+        console.error("[Fatore] Failed to fetch:", res.status, res.statusText);
+        toast.error("تعذر جلب صفحة الفاتورة");
+        return;
+      }
       const text = await res.text();
+      console.log("[Fatore] Creating invoice draft...");
       await createInvoice.mutateAsync({
         type: docType,
-        clientId: 0,
-        projectId: undefined,
+        clientId: target.clientId || 0,
+        projectId: target.projectId,
         issueDate: new Date(),
         subtotal: 0,
         tax: 0,

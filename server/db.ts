@@ -617,13 +617,20 @@ export async function getUserPermissions(userId: number) {
 export async function setUserPermissions(userId: number, permissions: Record<string, boolean>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  console.log("[Permissions] Saving for userId:", userId, permissions);
   const json = JSON.stringify(permissions);
-  await db.insert(userPermissions).values({
-    userId,
-    permissionsJson: json
-  } as InsertUserPermissions).onDuplicateKeyUpdate({
-    set: { permissionsJson: json }
-  });
+  try {
+    await db.insert(userPermissions).values({
+      userId,
+      permissionsJson: json
+    } as InsertUserPermissions).onDuplicateKeyUpdate({
+      set: { permissionsJson: json }
+    });
+    console.log("[Permissions] Saved successfully for userId:", userId);
+  } catch (error) {
+    console.error("[Permissions] Failed to save:", error);
+    throw error;
+  }
 }
 
 // ============= PROJECT TASKS =============
