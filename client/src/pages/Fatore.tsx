@@ -240,7 +240,10 @@ export default function Fatore() {
         formData: text,
         items: []
       });
-    } catch {
+      console.log("[Fatore] Invoice draft created successfully");
+      toast.success("تم حفظ المسودة");
+    } catch (error) {
+      console.error("[Fatore] handleSaveDraftRecord error:", error);
       toast.error("تعذر حفظ المسودة");
     }
   };

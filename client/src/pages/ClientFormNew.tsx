@@ -150,7 +150,8 @@ export default function ClientFormNew() {
         mimeType: "text/html",
       });
       toast.success("تم حفظ نسخة الصفحة");
-    } catch {
+    } catch (error) {
+      console.error("[ClientFormNew] handleSaveFileCopy error:", error);
       toast.error("تعذر جلب الصفحة وحفظها");
     }
   };

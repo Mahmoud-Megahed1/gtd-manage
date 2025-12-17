@@ -1214,7 +1214,8 @@ export const appRouter = router({
         const isWebp = head.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
         const isPdf = head.toString('ascii', 0, 4) === '%PDF';
         const isZip = head.toString('ascii', 0, 2) === 'PK'; // docx/xlsx
-        const isHtml = buffer.toString('utf8', 0, 16).toLowerCase().includes('<!doctype') || buffer.toString('utf8', 0, 16).toLowerCase().includes('<html');
+        const htmlStart = buffer.toString('utf8', 0, 100).toLowerCase().trim();
+        const isHtml = htmlStart.includes('<!doctype') || htmlStart.includes('<html');
         const isText = input.mimeType === 'text/plain';
         const mimeOk =
           (input.mimeType === 'image/png' && isPng) ||
@@ -1237,6 +1238,7 @@ export const appRouter = router({
           url = `data:${input.mimeType};base64,${input.fileData}`;
         }
 
+        console.log("[files.upload] Creating attachment:", input.entityType, input.entityId, safeName);
         await db.createAttachment({
           entityType: input.entityType,
           entityId: input.entityId,
@@ -1247,7 +1249,7 @@ export const appRouter = router({
           mimeType: input.mimeType,
           uploadedBy: ctx.user.id
         });
-
+        console.log("[files.upload] Attachment created successfully");
         await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`);
 
         return { success: true, url };
