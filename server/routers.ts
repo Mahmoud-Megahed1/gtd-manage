@@ -41,6 +41,9 @@ async function logAudit(
 }
 
 async function ensurePerm(ctx: any, sectionKey: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    return;
+  }
   const role = ctx.user.role;
   const allowedByRole: Record<string, string[]> = {
     admin: ['*'],
@@ -95,12 +98,17 @@ const managerProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
-  
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      // Clear cookie by setting it to empty with immediate expiration
+      ctx.res.cookie(COOKIE_NAME, "", {
+        ...cookieOptions,
+        maxAge: 0,
+        expires: new Date(0)
+      });
       if (ctx.user) {
         logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id);
       }
@@ -114,6 +122,43 @@ export const appRouter = router({
         isProduction: process.env.NODE_ENV === "production",
       };
     }),
+    // Password-based login
+    loginWithPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1)
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'بيانات الدخول غير صحيحة' });
+        }
+        if (!user.passwordHash) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'لم يتم تعيين كلمة سر لهذا الحساب' });
+        }
+        // Use simple hash comparison (bcrypt-style)
+        const crypto = await import('crypto');
+        const hashInput = crypto.createHash('sha256').update(input.password).digest('hex');
+        if (hashInput !== user.passwordHash) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'بيانات الدخول غير صحيحة' });
+        }
+        // Create session token
+        const jwtModule = await import('jsonwebtoken');
+        const jwt = jwtModule.default || jwtModule;
+        const secret = process.env.COOKIE_SECRET || process.env.JWT_SECRET || 'fallback-secret';
+        const token = jwt.sign(
+          { openId: user.openId, appId: process.env.VITE_APP_ID || 'gtd', name: user.name || '' },
+          secret,
+          { expiresIn: '7d' }
+        );
+        // Set cookie
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
+        // Update last signed in
+        await db.updateUserLastSignedIn(user.id);
+        await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id);
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
   }),
 
   // ============= CLIENTS =============
@@ -129,13 +174,13 @@ export const appRouter = router({
         await ensurePerm(ctx, 'clients');
         const client = await db.getClientById(input.id);
         if (!client) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         const [projects, invoices, forms] = await Promise.all([
           db.getClientProjects(input.id),
           db.getClientInvoices(input.id),
           db.getClientForms(input.id)
         ]);
-        
+
         return { client, projects, invoices, forms };
       }),
 
@@ -156,7 +201,7 @@ export const appRouter = router({
           clientNumber,
           createdBy: ctx.user.id
         });
-        
+
         await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`);
         return { success: true, clientNumber };
       }),
@@ -202,14 +247,14 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         const [client, boqItems, expenses, installments] = await Promise.all([
           db.getClientById(project.clientId),
           db.getProjectBOQ(input.id),
           db.getProjectExpenses(input.id),
           db.getProjectInstallments(input.id)
         ]);
-        
+
         return { project, client, boqItems, expenses, installments };
       }),
 
@@ -231,7 +276,7 @@ export const appRouter = router({
           projectNumber,
           createdBy: ctx.user.id
         });
-        
+
         await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`);
         return { success: true, projectNumber };
       }),
@@ -270,16 +315,16 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
-        
+
         const [boq, expenses, installments] = await Promise.all([
           db.getProjectBOQ(input.id),
           db.getProjectExpenses(input.id),
           db.getProjectInstallments(input.id)
         ]);
-        
+
         return { project, boq, expenses, installments };
       }),
-    
+
     createTask: protectedProcedure
       .input(z.object({
         projectId: z.number(),
@@ -301,14 +346,14 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`);
         return { success: true };
       }),
-    
+
     listTasks: protectedProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         return await db.getProjectTasks(input.projectId);
       }),
-    
+
     deleteTask: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
@@ -581,12 +626,12 @@ export const appRouter = router({
         await ensurePerm(ctx, 'invoices');
         const invoice = await db.getInvoiceById(input.id);
         if (!invoice) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         const [client, items] = await Promise.all([
           db.getClientById(invoice.clientId),
           db.getInvoiceItems(input.id)
         ]);
-        
+
         return { invoice, client, items };
       }),
 
@@ -615,17 +660,19 @@ export const appRouter = router({
         await ensurePerm(ctx, 'invoices');
         const invoiceNumber = generateUniqueNumber(input.type === 'invoice' ? 'INV' : 'QUO');
         const { items, ...invoiceData } = input;
-        
+
         const result = await db.createInvoice({
           ...invoiceData,
           invoiceNumber,
           createdBy: ctx.user.id
         });
-        
-        const invoiceId = Number((result as any).insertId);
-        
+
+        // MySQL2 returns [ResultSetHeader, FieldPacket[]] - extract insertId properly
+        const resultData = Array.isArray(result) ? result[0] : result;
+        const invoiceId = Number((resultData as any)?.insertId || (resultData as any)?.id || 0);
+
         // Only create items if invoiceId is valid
-        if (invoiceId && !isNaN(invoiceId)) {
+        if (invoiceId && !isNaN(invoiceId) && invoiceId > 0) {
           for (let i = 0; i < items.length; i++) {
             await db.createInvoiceItem({
               invoiceId,
@@ -634,15 +681,18 @@ export const appRouter = router({
             });
           }
         }
-        
-        await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`);
-        
+
+        // Only log audit if invoiceId is valid
+        if (invoiceId && !isNaN(invoiceId) && invoiceId > 0) {
+          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`);
+        }
+
         // Notify owner
         await notifyOwner({
           title: `${input.type === 'invoice' ? 'فاتورة جديدة' : 'عرض سعر جديد'}`,
           content: `تم إنشاء ${input.type === 'invoice' ? 'فاتورة' : 'عرض سعر'} رقم ${invoiceNumber} بمبلغ ${input.total} ريال`
         });
-        
+
         // Return the full invoice object
         const createdInvoice = await db.getInvoiceById(invoiceId);
         return createdInvoice || { id: invoiceId, invoiceNumber, type: input.type, total: input.total };
@@ -770,7 +820,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'forms');
         const form = await db.getFormById(input.id);
         if (!form) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         const client = await db.getClientById(form.clientId);
         return { form, client };
       }),
@@ -790,16 +840,21 @@ export const appRouter = router({
           formNumber,
           createdBy: ctx.user.id
         });
-        const formId = Number((result as any)?.insertId) || undefined;
-        
+        let formId = Number((result as any)?.insertId);
+        if (!formId || isNaN(formId)) {
+          const all = await db.getAllForms();
+          const match = all.find((f: any) => f.formNumber === formNumber);
+          formId = Number(match?.id) || undefined as any;
+        }
+
         await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`);
-        
+
         // Notify owner
         await notifyOwner({
           title: 'استمارة عميل جديدة',
           content: `تم إضافة استمارة جديدة رقم ${formNumber}`
         });
-        
+
         return { success: true, id: formId, formNumber };
       }),
 
@@ -881,11 +936,11 @@ export const appRouter = router({
         name: z.string(),
         email: z.string().email(),
         role: z.enum([
-          'admin','accountant','finance_manager',
-          'project_manager','site_engineer','planning_engineer',
-          'procurement_officer','qa_qc','document_controller',
-          'architect','interior_designer','sales_manager',
-          'hr_manager','storekeeper','designer','viewer'
+          'admin', 'accountant', 'finance_manager',
+          'project_manager', 'site_engineer', 'planning_engineer',
+          'procurement_officer', 'qa_qc', 'document_controller',
+          'architect', 'interior_designer', 'sales_manager',
+          'hr_manager', 'storekeeper', 'designer', 'viewer'
         ]).default('designer')
       }))
       .mutation(async ({ input, ctx }) => {
@@ -909,11 +964,11 @@ export const appRouter = router({
       .input(z.object({
         userId: z.number(),
         role: z.enum([
-          'admin','accountant','finance_manager',
-          'project_manager','site_engineer','planning_engineer',
-          'procurement_officer','qa_qc','document_controller',
-          'architect','interior_designer','sales_manager',
-          'hr_manager','storekeeper','designer','viewer'
+          'admin', 'accountant', 'finance_manager',
+          'project_manager', 'site_engineer', 'planning_engineer',
+          'procurement_officer', 'qa_qc', 'document_controller',
+          'architect', 'interior_designer', 'sales_manager',
+          'hr_manager', 'storekeeper', 'designer', 'viewer'
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {
@@ -929,16 +984,16 @@ export const appRouter = router({
         name: z.string().optional(),
         email: z.string().email().optional(),
         role: z.enum([
-          'admin','accountant','finance_manager',
-          'project_manager','site_engineer','planning_engineer',
-          'procurement_officer','qa_qc','document_controller',
-          'architect','interior_designer','sales_manager',
-          'hr_manager','storekeeper','designer','viewer'
+          'admin', 'accountant', 'finance_manager',
+          'project_manager', 'site_engineer', 'planning_engineer',
+          'procurement_officer', 'qa_qc', 'document_controller',
+          'architect', 'interior_designer', 'sales_manager',
+          'hr_manager', 'storekeeper', 'designer', 'viewer'
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {
         const { userId, ...updateData } = input;
-        
+
         if (updateData.email) {
           const existingUser = await db.getUserByEmail(updateData.email);
           if (existingUser && existingUser.id !== userId) {
@@ -985,6 +1040,47 @@ export const appRouter = router({
         await db.setUserPermissions(input.userId, input.permissions);
         await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`);
         return { success: true };
+      }),
+    // Admin sets password for a user
+    setPassword: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        password: z.string().min(4)
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const crypto = await import('crypto');
+        const hash = crypto.createHash('sha256').update(input.password).digest('hex');
+        await db.setUserPassword(input.userId, hash);
+        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin');
+        return { success: true };
+      }),
+    // User changes their own password
+    changeMyPassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(4)
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'المستخدم غير موجود' });
+        }
+        const crypto = await import('crypto');
+        const currentHash = crypto.createHash('sha256').update(input.currentPassword).digest('hex');
+        if (user.passwordHash && user.passwordHash !== currentHash) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'كلمة السر الحالية غير صحيحة' });
+        }
+        const newHash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
+        await db.setUserPassword(ctx.user.id, newHash);
+        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password');
+        return { success: true };
+      }),
+    // Get user password info (admin only - shows if password is set)
+    getPasswordInfo: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const user = await db.getUserById(input.userId);
+        return { hasPassword: !!user?.passwordHash };
       })
   }),
 
@@ -1132,7 +1228,7 @@ export const appRouter = router({
         } else {
           url = `data:${input.mimeType};base64,${input.fileData}`;
         }
-        
+
         await db.createAttachment({
           entityType: input.entityType,
           entityId: input.entityId,
@@ -1143,9 +1239,9 @@ export const appRouter = router({
           mimeType: input.mimeType,
           uploadedBy: ctx.user.id
         });
-        
+
         await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`);
-        
+
         return { success: true, url };
       }),
 

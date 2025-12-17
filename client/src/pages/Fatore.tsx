@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,12 +41,42 @@ export default function Fatore() {
       try {
         const doc = iframe.contentDocument;
         if (!doc) return;
+        const makeSnapshot = (d: Document) => {
+          try {
+            d.querySelectorAll('input').forEach((el) => {
+              const input = el as HTMLInputElement;
+              if (["checkbox", "radio"].includes(input.type)) {
+                if (input.checked) el.setAttribute("checked", "");
+                else el.removeAttribute("checked");
+              } else {
+                el.setAttribute("value", input.value ?? "");
+              }
+            });
+            d.querySelectorAll('textarea').forEach((el) => {
+              const ta = el as HTMLTextAreaElement;
+              el.textContent = ta.value ?? "";
+            });
+            d.querySelectorAll('select').forEach((el) => {
+              const sel = el as HTMLSelectElement;
+              el.setAttribute("value", sel.value ?? "");
+              Array.from(sel.options).forEach((opt) => {
+                if (opt.selected) opt.setAttribute("selected", "");
+                else opt.removeAttribute("selected");
+              });
+            });
+          } catch {}
+          return "<!DOCTYPE html>\n" + d.documentElement.outerHTML;
+        };
         const extractHtml = async () => {
           try {
-            const res = await fetch("/fatore.HTML", { cache: "no-store" });
-            return await res.text();
+            return makeSnapshot(doc);
           } catch {
-            return doc.documentElement.outerHTML;
+            try {
+              const res = await fetch("/fatore.HTML", { cache: "no-store" });
+              return await res.text();
+            } catch {
+              return doc.documentElement.outerHTML;
+            }
           }
         };
         const collectImages = () => {
@@ -117,11 +151,40 @@ export default function Fatore() {
   const handleSaveFileCopy = async () => {
     try {
       let text: string | null = null;
-      const res = await fetch("/fatore.HTML");
-      if (res.ok) {
-        text = await res.text();
-      } else if (iframeRef.current?.contentDocument) {
-        text = iframeRef.current.contentDocument.documentElement.outerHTML;
+      const doc = iframeRef.current?.contentDocument;
+      const makeSnapshot = (d: Document) => {
+        try {
+          d.querySelectorAll('input').forEach((el) => {
+            const input = el as HTMLInputElement;
+            if (["checkbox", "radio"].includes(input.type)) {
+              if (input.checked) el.setAttribute("checked", "");
+              else el.removeAttribute("checked");
+            } else {
+              el.setAttribute("value", input.value ?? "");
+            }
+          });
+          d.querySelectorAll('textarea').forEach((el) => {
+            const ta = el as HTMLTextAreaElement;
+            el.textContent = ta.value ?? "";
+          });
+          d.querySelectorAll('select').forEach((el) => {
+            const sel = el as HTMLSelectElement;
+            el.setAttribute("value", sel.value ?? "");
+            Array.from(sel.options).forEach((opt) => {
+              if (opt.selected) opt.setAttribute("selected", "");
+              else opt.removeAttribute("selected");
+            });
+          });
+        } catch {}
+        return "<!DOCTYPE html>\n" + d.documentElement.outerHTML;
+      };
+      if (doc) {
+        text = makeSnapshot(doc);
+      } else {
+        const res = await fetch("/fatore.HTML");
+        if (res.ok) {
+          text = await res.text();
+        }
       }
       if (!text) throw new Error("fetch_failed");
       const base64 = btoa(unescape(encodeURIComponent(text)));

@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { useParams, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";

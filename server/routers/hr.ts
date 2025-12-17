@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { 
+import {
   employees, attendance, payroll, leaves, performanceReviews, users,
   InsertEmployee, InsertAttendance, InsertPayroll, InsertLeave, InsertPerformanceReview
 } from "../../drizzle/schema";
@@ -25,7 +25,7 @@ const adminProcedure = protectedProcedure
       if (record.hasOwnProperty('hr') && !record['hr']) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
       }
-    } catch {}
+    } catch { }
     return next({ ctx });
   });
 
@@ -34,7 +34,7 @@ export const hrRouter = router({
   employees: router({
     list: adminProcedure.query(async () => {
       const db = await getDb();
-      if (!db) return [];
+      if (!db) return (await import("../_core/demoStore")).list("employees");
       return await db.select().from(employees).orderBy(desc(employees.createdAt));
     }),
 
@@ -42,11 +42,16 @@ export const hrRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          const emp = demo.findById("employees", input.id);
+          if (!emp) throw new TRPCError({ code: 'NOT_FOUND' });
+          return emp;
+        }
+
         const result = await db.select().from(employees).where(eq(employees.id, input.id)).limit(1);
         if (result.length === 0) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         return result[0];
       }),
 
@@ -63,13 +68,17 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.insert("employees", { ...input, status: "active" });
+          return { success: true };
+        }
+
         const values: InsertEmployee = {
           ...input,
           status: 'active'
         };
-        
+
         await db.insert(employees).values(values);
         return { success: true };
       }),
@@ -87,10 +96,10 @@ export const hrRouter = router({
       .mutation(async ({ input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        
+
         const { id, ...updateData } = input;
         await db.update(employees).set(updateData).where(eq(employees.id, id));
-        
+
         return { success: true };
       }),
 
@@ -99,19 +108,19 @@ export const hrRouter = router({
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) return [];
-        
+
         // Get employee with user data
         const employee = await db.select({
           employee: employees,
           user: users
         })
-        .from(employees)
-        .leftJoin(users, eq(employees.userId, users.id))
-        .where(eq(employees.id, input.id))
-        .limit(1);
-        
+          .from(employees)
+          .leftJoin(users, eq(employees.userId, users.id))
+          .where(eq(employees.id, input.id))
+          .limit(1);
+
         if (employee.length === 0) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         // Get related data
         const [recentAttendance, recentPayroll, activeLeaves, reviews] = await Promise.all([
           db.select().from(attendance)
@@ -133,7 +142,7 @@ export const hrRouter = router({
             .orderBy(desc(performanceReviews.reviewDate))
             .limit(5)
         ]);
-        
+
         return {
           employee: employee[0].employee,
           user: employee[0].user,
@@ -155,19 +164,26 @@ export const hrRouter = router({
       }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          let rows = demo.list("attendance");
+          if (input.employeeId) rows = rows.filter((r: any) => r.employeeId === input.employeeId);
+          if (input.startDate) rows = rows.filter((r: any) => new Date(r.date) >= input.startDate!);
+          if (input.endDate) rows = rows.filter((r: any) => new Date(r.date) <= input.endDate!);
+          return rows.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+
         let query = db.select().from(attendance);
-        
+
         const conditions = [];
         if (input.employeeId) conditions.push(eq(attendance.employeeId, input.employeeId));
         if (input.startDate) conditions.push(gte(attendance.date, input.startDate));
         if (input.endDate) conditions.push(lte(attendance.date, input.endDate));
-        
+
         if (conditions.length > 0) {
           query = query.where(and(...conditions)) as any;
         }
-        
+
         return await query.orderBy(desc(attendance.date));
       }),
 
@@ -178,15 +194,19 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.insert("attendance", { employeeId: input.employeeId, date: input.date, checkIn: new Date(), status: "present" });
+          return { success: true };
+        }
+
         const values: InsertAttendance = {
           employeeId: input.employeeId,
           date: input.date,
           checkIn: new Date(),
           status: 'present'
         };
-        
+
         await db.insert(attendance).values(values);
         return { success: true };
       }),
@@ -198,19 +218,26 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true, hoursWorked: 0 };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          const rec = demo.findById("attendance", input.id) as any;
+          const checkIn = rec?.checkIn ? new Date(rec.checkIn) : null;
+          const hoursWorked = checkIn ? Math.floor((input.checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60)) : 0;
+          demo.update("attendance", input.id, { checkOut: input.checkOut, hoursWorked });
+          return { success: true, hoursWorked };
+        }
+
         // Calculate hours worked
         const record = await db.select().from(attendance).where(eq(attendance.id, input.id)).limit(1);
         if (record.length === 0) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         const checkIn = record[0].checkIn;
         const hoursWorked = checkIn ? Math.floor((input.checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60)) : 0;
-        
+
         await db.update(attendance)
           .set({ checkOut: input.checkOut, hoursWorked })
           .where(eq(attendance.id, input.id));
-        
+
         return { success: true, hoursWorked };
       }),
 
@@ -232,10 +259,10 @@ export const hrRouter = router({
             averageHours: 0
           };
         }
-        
+
         const startDate = new Date(input.year, input.month - 1, 1);
         const endDate = new Date(input.year, input.month, 0);
-        
+
         const records = await db.select()
           .from(attendance)
           .where(and(
@@ -243,13 +270,13 @@ export const hrRouter = router({
             gte(attendance.date, startDate),
             lte(attendance.date, endDate)
           ));
-        
+
         const totalDays = records.length;
         const presentDays = records.filter(r => r.status === 'present').length;
         const absentDays = records.filter(r => r.status === 'absent').length;
         const lateDays = records.filter(r => r.status === 'late').length;
         const totalHours = records.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
-        
+
         return {
           totalDays,
           presentDays,
@@ -290,7 +317,7 @@ export const hrRouter = router({
         employeesRows.forEach(e => empByNumber.set((e as any).employeeNumber, e));
         let created = 0, late = 0, absent = 0;
         const toTime = (dateStr: string, hm: string) => {
-          const [h,m] = hm.split(":").map(x => parseInt(x));
+          const [h, m] = hm.split(":").map(x => parseInt(x));
           const d = new Date(dateStr);
           d.setHours(h, m, 0, 0);
           return d;
@@ -356,19 +383,26 @@ export const hrRouter = router({
       }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          let rows = demo.list("payroll");
+          if (input.employeeId) rows = rows.filter((r: any) => r.employeeId === input.employeeId);
+          if (input.year) rows = rows.filter((r: any) => r.year === input.year);
+          if (input.month) rows = rows.filter((r: any) => r.month === input.month);
+          return rows.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        }
+
         let query = db.select().from(payroll);
-        
+
         const conditions = [];
         if (input.employeeId) conditions.push(eq(payroll.employeeId, input.employeeId));
         if (input.year) conditions.push(eq(payroll.year, input.year));
         if (input.month) conditions.push(eq(payroll.month, input.month));
-        
+
         if (conditions.length > 0) {
           query = query.where(and(...conditions)) as any;
         }
-        
+
         return await query.orderBy(desc(payroll.createdAt));
       }),
 
@@ -384,12 +418,17 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return { success: true, netSalary: (input.baseSalary + (input.bonuses || 0) - (input.deductions || 0)) };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          const netSalary = input.baseSalary + (input.bonuses || 0) - (input.deductions || 0);
+          demo.insert("payroll", { ...input, netSalary, status: "pending", createdBy: 0 });
+          return { success: true, netSalary };
+        }
+
         const bonuses = input.bonuses || 0;
         const deductions = input.deductions || 0;
         const netSalary = input.baseSalary + bonuses - deductions;
-        
+
         const values: InsertPayroll = {
           ...input,
           bonuses,
@@ -398,7 +437,7 @@ export const hrRouter = router({
           status: 'pending',
           createdBy: ctx.user.id
         };
-        
+
         await db.insert(payroll).values(values);
         return { success: true, netSalary };
       }),
@@ -410,19 +449,23 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.update("payroll", input.id, { status: "paid", paymentDate: input.paymentDate });
+          return { success: true };
+        }
+
         await db.update(payroll)
           .set({ status: 'paid', paymentDate: input.paymentDate })
           .where(eq(payroll.id, input.id));
-        
+
         return { success: true };
       }),
-    
+
     update: adminProcedure
       .input(z.object({
         id: z.number(),
-        status: z.enum(['pending','paid']).optional(),
+        status: z.enum(['pending', 'paid']).optional(),
         paymentDate: z.date().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -434,12 +477,16 @@ export const hrRouter = router({
           .where(eq(payroll.id, id));
         return { success: true };
       }),
-    
+
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.remove("payroll", input.id);
+          return { success: true };
+        }
         await db.delete(payroll).where(eq(payroll.id, input.id));
         return { success: true };
       }),
@@ -449,21 +496,21 @@ export const hrRouter = router({
       .query(async ({ input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        
+
         // Get payroll record with employee and user data
         const result = await db.select({
           payroll: payroll,
           employee: employees,
           user: users
         })
-        .from(payroll)
-        .leftJoin(employees, eq(payroll.employeeId, employees.id))
-        .leftJoin(users, eq(employees.userId, users.id))
-        .where(eq(payroll.id, input.id))
-        .limit(1);
-        
+          .from(payroll)
+          .leftJoin(employees, eq(payroll.employeeId, employees.id))
+          .leftJoin(users, eq(employees.userId, users.id))
+          .where(eq(payroll.id, input.id))
+          .limit(1);
+
         if (result.length === 0) throw new TRPCError({ code: 'NOT_FOUND' });
-        
+
         return result[0];
       }),
   }),
@@ -477,18 +524,24 @@ export const hrRouter = router({
       }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          let rows = demo.list("leaves");
+          if (input.employeeId) rows = rows.filter((r: any) => r.employeeId === input.employeeId);
+          if (input.status) rows = rows.filter((r: any) => r.status === input.status);
+          return rows.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        }
+
         let query = db.select().from(leaves);
-        
+
         const conditions = [];
         if (input.employeeId) conditions.push(eq(leaves.employeeId, input.employeeId));
         if (input.status) conditions.push(eq(leaves.status, input.status));
-        
+
         if (conditions.length > 0) {
           query = query.where(and(...conditions)) as any;
         }
-        
+
         return await query.orderBy(desc(leaves.createdAt));
       }),
 
@@ -503,13 +556,17 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.insert("leaves", { ...input, status: "pending" });
+          return { success: true };
+        }
+
         const values: InsertLeave = {
           ...input,
           status: 'pending'
         };
-        
+
         await db.insert(leaves).values(values);
         return { success: true };
       }),
@@ -521,17 +578,21 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.update("leaves", input.id, { status: "approved", approvedBy: 0, approvedAt: new Date(), notes: input.notes });
+          return { success: true };
+        }
+
         await db.update(leaves)
-          .set({ 
-            status: 'approved', 
-            approvedBy: ctx.user.id, 
+          .set({
+            status: 'approved',
+            approvedBy: ctx.user.id,
             approvedAt: new Date(),
-            notes: input.notes 
+            notes: input.notes
           })
           .where(eq(leaves.id, input.id));
-        
+
         return { success: true };
       }),
 
@@ -543,17 +604,21 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.update("leaves", input.id, { status: "rejected", approvedBy: 0, approvedAt: new Date(), notes: input.notes ?? input.reason });
+          return { success: true };
+        }
+
         await db.update(leaves)
-          .set({ 
-            status: 'rejected', 
-            approvedBy: ctx.user.id, 
+          .set({
+            status: 'rejected',
+            approvedBy: ctx.user.id,
             approvedAt: new Date(),
-            notes: input.notes ?? input.reason 
+            notes: input.notes ?? input.reason
           })
           .where(eq(leaves.id, input.id));
-        
+
         return { success: true };
       }),
   }),
@@ -566,14 +631,19 @@ export const hrRouter = router({
       }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          let rows = demo.list("performanceReviews");
+          if (input.employeeId) rows = rows.filter((r: any) => r.employeeId === input.employeeId);
+          return rows.sort((a: any, b: any) => new Date(b.reviewDate || b.createdAt || 0).getTime() - new Date(a.reviewDate || a.createdAt || 0).getTime());
+        }
+
         let query = db.select().from(performanceReviews);
-        
+
         if (input.employeeId) {
           query = query.where(eq(performanceReviews.employeeId, input.employeeId)) as any;
         }
-        
+
         return await query.orderBy(desc(performanceReviews.reviewDate));
       }),
 
@@ -590,22 +660,30 @@ export const hrRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.insert("performanceReviews", { ...input, reviewerId: 0 });
+          return { success: true };
+        }
+
         const values: InsertPerformanceReview = {
           ...input,
           reviewerId: ctx.user.id
         };
-        
+
         await db.insert(performanceReviews).values(values);
         return { success: true };
       }),
-    
+
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.remove("performanceReviews", input.id);
+          return { success: true };
+        }
         await db.delete(performanceReviews).where(eq(performanceReviews.id, input.id));
         return { success: true };
       }),

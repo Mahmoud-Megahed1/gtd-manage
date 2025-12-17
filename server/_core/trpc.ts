@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";

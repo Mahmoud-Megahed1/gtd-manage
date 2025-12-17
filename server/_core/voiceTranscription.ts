@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 /**
  * Voice transcription helper using internal Speech-to-Text service
  *

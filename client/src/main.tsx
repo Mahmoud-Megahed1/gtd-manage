@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

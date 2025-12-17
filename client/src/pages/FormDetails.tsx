@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +11,7 @@ import { useParams, useLocation } from "wouter";
 import { FileText, ArrowLeft, Paperclip, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMemo } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function FormDetails() {
   const params = useParams();
@@ -21,6 +26,14 @@ export default function FormDetails() {
     },
     onError: () => toast.error("تعذر حذف المرفق"),
   });
+  const deleteForm = trpc.forms.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف الاستمارة");
+      setLocation("/forms");
+    },
+    onError: () => toast.error("تعذر حذف الاستمارة"),
+  });
+  const { user } = useAuth();
 
   const statusLabel = useMemo(() => {
     const map: Record<string, string> = {
@@ -120,7 +133,21 @@ export default function FormDetails() {
             <CardTitle>محتوى الاستمارة</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: form.formData || "" }} />
+            <iframe
+              srcDoc={form.formData || ""}
+              className="w-full h-[70vh] bg-white border rounded"
+              title={`Form ${form.formNumber}`}
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setLocation("/forms")}>
+                العودة
+              </Button>
+              {user?.role === "admin" && (
+                <Button variant="destructive" onClick={() => deleteForm.mutate({ id })}>
+                  حذف الاستمارة
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 

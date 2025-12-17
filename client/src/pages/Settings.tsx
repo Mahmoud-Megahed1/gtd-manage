@@ -15,10 +15,11 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
-import { Save, Upload, Users, Building2, Shield, Database } from "lucide-react";
-import { useState } from "react";
+import { Save, Upload, Users, Building2, Shield, Database, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import AuthHealth from "@/components/AuthHealth";
+import { AddUserDialog } from "@/components/AddUserDialog";
 
 export default function Settings() {
   // const { data: settings, isLoading } = trpc.settings.get.useQuery({ key: 'company' });
@@ -27,6 +28,10 @@ export default function Settings() {
   const setPermissionsMutation = trpc.users.setPermissions.useMutation({
     onSuccess: () => toast.success("تم تحديث الصلاحيات"),
     onError: () => toast.error("تعذر تحديث الصلاحيات"),
+  });
+  const setPasswordMutation = trpc.users.setPassword.useMutation({
+    onSuccess: () => toast.success("تم تعيين كلمة السر بنجاح"),
+    onError: (error) => toast.error(error.message || "فشل تعيين كلمة السر"),
   });
   const [openPermUserId, setOpenPermUserId] = useState<number | null>(null);
   const [permState, setPermState] = useState<Record<string, boolean>>({
@@ -40,7 +45,7 @@ export default function Settings() {
     audit: false,
     settings: false
   });
-  
+
   const [companyData, setCompanyData] = useState({
     name: "Golden Touch Design",
     commercialRegister: "7017891396",
@@ -65,8 +70,21 @@ export default function Settings() {
   const [barcodeUrl, setBarcodeUrl] = useState<string | null>(null);
   const { data: appLogo } = trpc.settings.get.useQuery({ key: "companyLogoUrl" });
   const { data: appBarcode } = trpc.settings.get.useQuery({ key: "companyBarcodeUrl" });
+  const { data: savedStamp } = trpc.settings.get.useQuery({ key: "companyStampUrl" });
+  const { data: savedBarcode } = trpc.settings.get.useQuery({ key: "companyBarcodeUrl" });
   const { data: injectLogo } = trpc.settings.get.useQuery({ key: "invoiceInjectLogo" });
   const { data: injectBarcode } = trpc.settings.get.useQuery({ key: "invoiceInjectBarcode" });
+
+  // Load saved stamp and barcode URLs from database
+  useEffect(() => {
+    if (savedStamp?.settingValue) {
+      setStampUrl(savedStamp.settingValue);
+    }
+    if (savedBarcode?.settingValue) {
+      setBarcodeUrl(savedBarcode.settingValue);
+    }
+  }, [savedStamp, savedBarcode]);
+
   const [appSettings, setAppSettings] = useState({
     invoiceInjectLogo: true,
     invoiceInjectBarcode: true,
@@ -185,7 +203,7 @@ export default function Settings() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>صورة الختم</Label>
@@ -219,6 +237,19 @@ export default function Settings() {
                           reader.readAsDataURL(file);
                         }}
                       />
+                      {stampUrl && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setStampUrl(null);
+                            updateSettings.mutate({ key: "companyStampUrl", value: "" });
+                            toast.success("تم حذف صورة الختم");
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -253,6 +284,19 @@ export default function Settings() {
                           reader.readAsDataURL(file);
                         }}
                       />
+                      {barcodeUrl && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setBarcodeUrl(null);
+                            updateSettings.mutate({ key: "companyBarcodeUrl", value: "" });
+                            toast.success("تم حذف صورة الباركود");
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -264,7 +308,7 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* App Settings */}
           <TabsContent value="app" className="space-y-4">
             <Card>
@@ -332,10 +376,7 @@ export default function Settings() {
                     <CardTitle>إدارة المستخدمين</CardTitle>
                     <CardDescription>عرض وإدارة مستخدمي النظام</CardDescription>
                   </div>
-                  <Button>
-                    <Users className="w-4 h-4 ml-2" />
-                    إضافة مستخدم
-                  </Button>
+                  <AddUserDialog />
                 </div>
               </CardHeader>
               <CardContent>
@@ -359,26 +400,25 @@ export default function Settings() {
                           <TableCell>
                             <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
                               {user.role === 'admin' ? 'مدير' :
-                               user.role === 'accountant' ? 'محاسب' :
-                               user.role === 'finance_manager' ? 'مدير مالي' :
-                               user.role === 'project_manager' ? 'مدير مشاريع' :
-                               user.role === 'site_engineer' ? 'مهندس موقع' :
-                               user.role === 'planning_engineer' ? 'مهندس تخطيط' :
-                               user.role === 'procurement_officer' ? 'مسؤول مشتريات' :
-                               user.role === 'qa_qc' ? 'جودة QA/QC' :
-                               user.role === 'document_controller' ? 'مسؤول وثائق' :
-                               user.role === 'architect' ? 'معماري' :
-                               user.role === 'interior_designer' ? 'مصمم داخلي' :
-                               user.role === 'sales_manager' ? 'مدير مبيعات' :
-                               user.role === 'hr_manager' ? 'مدير موارد بشرية' :
-                               user.role === 'storekeeper' ? 'أمين مستودع' :
-                               user.role === 'designer' ? 'مصمم' : user.role}
+                                user.role === 'accountant' ? 'محاسب' :
+                                  user.role === 'finance_manager' ? 'مدير مالي' :
+                                    user.role === 'project_manager' ? 'مدير مشاريع' :
+                                      user.role === 'site_engineer' ? 'مهندس موقع' :
+                                        user.role === 'planning_engineer' ? 'مهندس تخطيط' :
+                                          user.role === 'procurement_officer' ? 'مسؤول مشتريات' :
+                                            user.role === 'qa_qc' ? 'جودة QA/QC' :
+                                              user.role === 'document_controller' ? 'مسؤول وثائق' :
+                                                user.role === 'architect' ? 'معماري' :
+                                                  user.role === 'interior_designer' ? 'مصمم داخلي' :
+                                                    user.role === 'sales_manager' ? 'مدير مبيعات' :
+                                                      user.role === 'hr_manager' ? 'مدير موارد بشرية' :
+                                                        user.role === 'storekeeper' ? 'أمين مستودع' :
+                                                          user.role === 'designer' ? 'مصمم' : user.role}
                             </span>
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                            }`}>
+                            <span className={`px-2 py-1 rounded-full text-xs ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                              }`}>
                               {user.isActive ? 'نشط' : 'غير نشط'}
                             </span>
                           </TableCell>
@@ -409,6 +449,21 @@ export default function Settings() {
                               }}
                             >
                               صلاحيات
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={setPasswordMutation.isPending}
+                              onClick={() => {
+                                const newPassword = prompt("أدخل كلمة سر جديدة (4 أحرف على الأقل):");
+                                if (newPassword && newPassword.length >= 4) {
+                                  setPasswordMutation.mutate({ userId: user.id, password: newPassword });
+                                } else if (newPassword) {
+                                  toast.error("كلمة السر يجب أن تكون 4 أحرف على الأقل");
+                                }
+                              }}
+                            >
+                              {setPasswordMutation.isPending ? "جاري..." : "كلمة سر"}
                             </Button>
                           </TableCell>
                         </TableRow>

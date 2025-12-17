@@ -1,7 +1,7 @@
 import { eq, desc, and, or, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, users, 
+import {
+  InsertUser, users,
   clients, InsertClient,
   projects, InsertProject,
 
@@ -152,7 +152,7 @@ export async function createUser(user: { name: string; email: string; role: any 
     });
     return rec;
   }
-  
+
   await db.insert(users).values({
     openId: `local-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     name: user.name,
@@ -161,7 +161,7 @@ export async function createUser(user: { name: string; email: string; role: any 
     loginMethod: 'email',
     lastSignedIn: new Date()
   });
-  
+
   // Get the newly created user by email
   const newUser = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
   return newUser[0];
@@ -188,12 +188,39 @@ export async function deleteUser(userId: number) {
   await db.delete(users).where(eq(users.id, userId));
 }
 
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return demo.findById("users", userId);
+  }
+  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return result[0] || null;
+}
+
+export async function setUserPassword(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) {
+    demo.update("users", userId, { passwordHash });
+    return;
+  }
+  await db.update(users).set({ passwordHash } as any).where(eq(users.id, userId));
+}
+
+export async function updateUserLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    demo.update("users", userId, { lastSignedIn: new Date() });
+    return;
+  }
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+}
+
 // ============= CLIENT MANAGEMENT =============
 
 export async function createClient(client: InsertClient) {
   const db = await getDb();
   if (!db) return demo.insert("clients", client);
-  
+
   const result = await db.insert(clients).values(client);
   return result;
 }
@@ -206,7 +233,7 @@ export async function getAllClients() {
 
 export async function getClientById(id: number) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) return demo.findById("clients", id);
   const result = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
   return result[0] || null;
 }
@@ -225,19 +252,19 @@ export async function deleteClient(id: number) {
 
 export async function getClientProjects(clientId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.filter("projects", (p) => p.clientId === clientId);
   return await db.select().from(projects).where(eq(projects.clientId, clientId)).orderBy(desc(projects.createdAt));
 }
 
 export async function getClientInvoices(clientId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.filter("invoices", (i) => i.clientId === clientId);
   return await db.select().from(invoices).where(eq(invoices.clientId, clientId)).orderBy(desc(invoices.createdAt));
 }
 
 export async function getClientForms(clientId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.filter("forms", (f) => f.clientId === clientId);
   return await db.select().from(forms).where(eq(forms.clientId, clientId)).orderBy(desc(forms.createdAt));
 }
 
@@ -252,13 +279,13 @@ export async function createProject(project: InsertProject) {
 
 export async function getAllProjects() {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.list("projects");
   return await db.select().from(projects).orderBy(desc(projects.createdAt));
 }
 
 export async function getProjectById(id: number) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) return demo.findById("projects", id);
   const result = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
   return result[0] || null;
 }
@@ -295,13 +322,13 @@ export async function createInvoice(invoice: InsertInvoice) {
 
 export async function getAllInvoices() {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.list("invoices");
   return await db.select().from(invoices).orderBy(desc(invoices.createdAt));
 }
 
 export async function getInvoiceById(id: number) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) return demo.findById("invoices", id);
   const result = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
   return result[0] || null;
 }
@@ -354,13 +381,13 @@ export async function createForm(form: InsertForm) {
 
 export async function getAllForms() {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.list("forms");
   return await db.select().from(forms).orderBy(desc(forms.createdAt));
 }
 
 export async function getFormById(id: number) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) return demo.findById("forms", id);
   const result = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
   return result[0] || null;
 }
@@ -395,7 +422,7 @@ export async function createBOQItem(item: InsertBOQ) {
 
 export async function getProjectBOQ(projectId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.filter("boq", (b) => b.projectId === projectId);
   return await db.select().from(boq).where(eq(boq.projectId, projectId));
 }
 
@@ -422,13 +449,13 @@ export async function createExpense(expense: InsertExpense) {
 
 export async function getAllExpenses() {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.list("expenses");
   return await db.select().from(expenses).orderBy(desc(expenses.expenseDate));
 }
 
 export async function getProjectExpenses(projectId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.filter("expenses", (e) => e.projectId === projectId);
   return await db.select().from(expenses).where(eq(expenses.projectId, projectId)).orderBy(desc(expenses.expenseDate));
 }
 
@@ -458,7 +485,7 @@ export async function createInstallment(installment: InsertInstallment) {
 
 export async function getProjectInstallments(projectId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return demo.filter("installments", (i) => i.projectId === projectId);
   return await db.select().from(installments).where(eq(installments.projectId, projectId)).orderBy(installments.dueDate);
 }
 
@@ -520,7 +547,7 @@ export async function setCompanySetting(key: string, value: string, updatedBy: n
     demo.write("companySettings", list);
     return;
   }
-  
+
   await db.insert(companySettings).values({
     settingKey: key,
     settingValue: value,
@@ -615,9 +642,9 @@ export async function deleteProjectTask(id: number) {
 export async function globalSearch(query: string) {
   const db = await getDb();
   if (!db) return { clients: [], projects: [], invoices: [], forms: [] };
-  
+
   const searchPattern = `%${query}%`;
-  
+
   const [clientResults, projectResults, invoiceResults, formResults] = await Promise.all([
     db.select().from(clients).where(
       or(
@@ -627,7 +654,7 @@ export async function globalSearch(query: string) {
         like(clients.clientNumber, searchPattern)
       )
     ).limit(10),
-    
+
     db.select().from(projects).where(
       or(
         like(projects.name, searchPattern),
@@ -635,16 +662,16 @@ export async function globalSearch(query: string) {
         like(projects.description, searchPattern)
       )
     ).limit(10),
-    
+
     db.select().from(invoices).where(
       like(invoices.invoiceNumber, searchPattern)
     ).limit(10),
-    
+
     db.select().from(forms).where(
       like(forms.formNumber, searchPattern)
     ).limit(10)
   ]);
-  
+
   return {
     clients: clientResults,
     projects: projectResults,
@@ -658,14 +685,14 @@ export async function globalSearch(query: string) {
 export async function getDashboardStats() {
   const db = await getDb();
   if (!db) return null;
-  
+
   const [clientCount, projectCount, invoiceCount, formCount] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(clients),
     db.select({ count: sql<number>`count(*)` }).from(projects),
     db.select({ count: sql<number>`count(*)` }).from(invoices),
     db.select({ count: sql<number>`count(*)` }).from(forms)
   ]);
-  
+
   return {
     totalClients: clientCount[0]?.count || 0,
     totalProjects: projectCount[0]?.count || 0,

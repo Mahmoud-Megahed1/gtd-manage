@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import SimplifiedInvoiceForm from "@/components/SimplifiedInvoiceForm";
 import { Button } from "@/components/ui/button";
@@ -115,17 +119,9 @@ export default function Invoices() {
           </div>
         )}
         <div className="flex gap-2 mt-4">
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" onClick={() => setLocation(`/invoices/${invoice.id}`)}>
             عرض التفاصيل
           </Button>
-          {user?.role === 'admin' && (
-            <Button
-              variant="destructive"
-              onClick={() => deleteInvoice.mutate({ id: invoice.id })}
-            >
-              حذف
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>
@@ -145,10 +141,13 @@ export default function Invoices() {
         <p className="text-muted-foreground text-center mb-6">
           {type === "invoice" ? "ابدأ بإنشاء فاتورة جديدة" : type === "quote" ? "ابدأ بإنشاء عرض سعر جديد" : "ابدأ بإنشاء فاتورة أو عرض سعر"}
         </p>
-        <Button className="gap-2" onClick={() => setLocation('/fatore')}>
-          <Plus className="w-5 h-5" />
-          {type === "invoice" ? "إنشاء فاتورة" : type === "quote" ? "إنشاء عرض سعر" : "إضافة جديد"}
-        </Button>
+          <Button
+            className="gap-2"
+            onClick={() => setLocation('/fatore')}
+          >
+            <Plus className="w-5 h-5" />
+            {type === "invoice" ? "إنشاء فاتورة" : type === "quote" ? "إنشاء عرض سعر" : "إضافة جديد"}
+          </Button>
       </CardContent>
     </Card>
   );
@@ -164,7 +163,11 @@ export default function Invoices() {
               إدارة الفواتير وعروض الأسعار
             </p>
           </div>
-          <Button size="lg" className="gap-2" onClick={() => setLocation('/fatore')}>
+          <Button
+            size="lg"
+            className="gap-2"
+            onClick={() => setLocation('/fatore')}
+          >
             <Plus className="w-5 h-5" />
             فاتورة / عرض سعر جديد
           </Button>

@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,22 +104,70 @@ export default function Clinthope() {
 
   const handleSaveFileCopy = async () => {
     try {
+      if (!target.clientId) {
+        toast.error("يرجى اختيار العميل قبل الحفظ");
+        return;
+      }
       let text: string | null = null;
-      const res = await fetch("/clinthope.html");
-      if (res.ok) {
-        text = await res.text();
-      } else if (iframeRef.current?.contentDocument) {
-        text = iframeRef.current.contentDocument.documentElement.outerHTML;
+      const makeSnapshot = (doc: Document) => {
+        try {
+          doc.querySelectorAll('input').forEach((el) => {
+            const input = el as HTMLInputElement;
+            if (["checkbox", "radio"].includes(input.type)) {
+              if (input.checked) el.setAttribute("checked", "");
+              else el.removeAttribute("checked");
+            } else {
+              el.setAttribute("value", input.value ?? "");
+            }
+          });
+          doc.querySelectorAll('textarea').forEach((el) => {
+            const ta = el as HTMLTextAreaElement;
+            el.textContent = ta.value ?? "";
+          });
+          doc.querySelectorAll('select').forEach((el) => {
+            const sel = el as HTMLSelectElement;
+            el.setAttribute("value", sel.value ?? "");
+            Array.from(sel.options).forEach((opt) => {
+              if (opt.selected) opt.setAttribute("selected", "");
+              else opt.removeAttribute("selected");
+            });
+          });
+        } catch {}
+        return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+      };
+      if (iframeRef.current?.contentDocument) {
+        text = makeSnapshot(iframeRef.current.contentDocument);
+      } else {
+        const res = await fetch("/clinthope.raw.html");
+        if (res.ok) {
+          const raw = await res.text();
+          text = raw;
+        }
       }
       if (!text) throw new Error("fetch_failed");
-      const base64 = btoa(unescape(encodeURIComponent(text)));
-      await uploadFile.mutateAsync({
-        entityType: "form_copy",
-        entityId: 0,
-        fileName: `clinthope-${Date.now()}.html`,
-        fileData: base64,
-        mimeType: "text/html"
+      const clientName = (clients || []).find((c: any) => c.id === (target.clientId || -1))?.name || "بدون_عميل";
+      const projectName = (projects || []).find((p: any) => p.id === (target.projectId || -1))?.name || "بدون_مشروع";
+      const safeClient = clientName.replace(/\s+/g, "_");
+      const safeProject = projectName.replace(/\s+/g, "_");
+      const created = await createForm.mutateAsync({
+        clientId: target.clientId || 0,
+        projectId: target.projectId,
+        formType: "request",
+        formData: text
       });
+      const formId = (created as any)?.id;
+      if (formId) {
+        const base64 = btoa(unescape(encodeURIComponent(text)));
+        await uploadFile.mutateAsync({
+          entityType: "form",
+          entityId: formId,
+          fileName: `طلب_${safeClient}_${safeProject}_${Date.now()}.html`,
+          fileData: base64,
+          mimeType: "text/html"
+        });
+      }
+      toast.success("تم حفظ الاستمارة في قسم طلبات العملاء");
+      setLocation("/forms");
     } catch {
       toast.error("تعذر جلب الصفحة وحفظها");
     }
@@ -123,8 +175,38 @@ export default function Clinthope() {
   
   const handleSaveAsRequestForm = async () => {
     try {
-      const res = await fetch("/clinthope.html");
-      const text = await res.text();
+      if (!target.clientId) {
+        toast.error("يرجى اختيار العميل قبل الحفظ");
+        return;
+      }
+      const makeSnapshot = (doc: Document) => {
+        try {
+          doc.querySelectorAll('input').forEach((el) => {
+            const input = el as HTMLInputElement;
+            if (["checkbox", "radio"].includes(input.type)) {
+              if (input.checked) el.setAttribute("checked", "");
+              else el.removeAttribute("checked");
+            } else {
+              el.setAttribute("value", input.value ?? "");
+            }
+          });
+          doc.querySelectorAll('textarea').forEach((el) => {
+            const ta = el as HTMLTextAreaElement;
+            el.textContent = ta.value ?? "";
+          });
+          doc.querySelectorAll('select').forEach((el) => {
+            const sel = el as HTMLSelectElement;
+            el.setAttribute("value", sel.value ?? "");
+            Array.from(sel.options).forEach((opt) => {
+              if (opt.selected) opt.setAttribute("selected", "");
+              else opt.removeAttribute("selected");
+            });
+          });
+        } catch {}
+        return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+      };
+      const doc = iframeRef.current?.contentDocument;
+      const text = doc ? makeSnapshot(doc) : (await (await fetch("/clinthope.raw.html")).text());
       const result = await createForm.mutateAsync({
         clientId: target.clientId || 0,
         projectId: target.projectId,
@@ -133,11 +215,15 @@ export default function Clinthope() {
       });
       const formId = (result as any)?.id;
       if (formId) {
+        const clientName = (clients || []).find((c: any) => c.id === (target.clientId || -1))?.name || "بدون_عميل";
+        const projectName = (projects || []).find((p: any) => p.id === (target.projectId || -1))?.name || "بدون_مشروع";
+        const safeClient = clientName.replace(/\s+/g, "_");
+        const safeProject = projectName.replace(/\s+/g, "_");
         const base64 = btoa(unescape(encodeURIComponent(text)));
         await uploadFile.mutateAsync({
           entityType: "form",
           entityId: formId,
-          fileName: `request-${Date.now()}.html`,
+          fileName: `طلب_${safeClient}_${safeProject}_${Date.now()}.html`,
           fileData: base64,
           mimeType: "text/html"
         });
@@ -209,10 +295,10 @@ export default function Clinthope() {
                 </select>
               </div>
             </div>
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow_hidden">
               <iframe
                 ref={iframeRef}
-                src="/clinthope.html"
+                src="/clinthope.raw.html"
                 className="w-full h-[70vh] bg-white"
                 title="Clinthope Page"
               />

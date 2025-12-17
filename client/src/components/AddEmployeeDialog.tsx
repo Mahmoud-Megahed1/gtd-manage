@@ -25,7 +25,7 @@ import { toast } from "sonner";
 export function AddEmployeeDialog() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    userId: "",
+    userName: "",
     employeeNumber: "",
     department: "",
     position: "",
@@ -43,7 +43,7 @@ export function AddEmployeeDialog() {
       setOpen(false);
       // Reset form
       setFormData({
-        userId: "",
+        userName: "",
         employeeNumber: "",
         department: "",
         position: "",
@@ -57,25 +57,46 @@ export function AddEmployeeDialog() {
       toast.error(`فشل إضافة الموظف: ${error.message}`);
     },
   });
+  const { data: users } = trpc.users.list.useQuery();
+  const createUser = trpc.users.create.useMutation({
+    onSuccess: () => utils.users.list.invalidate()
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.userId || !formData.employeeNumber) {
+
+    if (!formData.userName || !formData.employeeNumber) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
     }
 
-    createEmployee.mutate({
-      userId: parseInt(formData.userId),
-      employeeNumber: formData.employeeNumber,
-      department: formData.department || undefined,
-      position: formData.position || undefined,
-      hireDate: new Date(formData.hireDate),
-      salary: formData.salary ? parseFloat(formData.salary) : undefined,
-      bankAccount: formData.bankAccount || undefined,
-      emergencyContact: formData.emergencyContact || undefined,
-    });
+    const existing = (users || []).find((u: any) => (u.name || "").trim().toLowerCase() === formData.userName.trim().toLowerCase());
+    const proceed = async (userId: number) => {
+      createEmployee.mutate({
+        userId,
+        employeeNumber: formData.employeeNumber,
+        department: formData.department || undefined,
+        position: formData.position || undefined,
+        hireDate: new Date(formData.hireDate),
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        bankAccount: formData.bankAccount || undefined,
+        emergencyContact: formData.emergencyContact || undefined,
+      });
+    };
+    if (existing) {
+      proceed(existing.id);
+    } else {
+      // Generate unique email that won't have Arabic character issues
+      const uniqueEmail = `emp-${Date.now()}@gtd-system.local`;
+      createUser.mutate({
+        name: formData.userName,
+        email: uniqueEmail,
+        role: 'designer'
+      }, {
+        onSuccess: (user: any) => proceed(user.id),
+        onError: () => toast.error("تعذر إنشاء مستخدم جديد")
+      } as any);
+    }
   };
 
   return (
@@ -97,12 +118,11 @@ export function AddEmployeeDialog() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="userId">رقم المستخدم *</Label>
+                <Label htmlFor="userName">اسم المستخدم *</Label>
                 <Input
-                  id="userId"
-                  type="number"
-                  value={formData.userId}
-                  onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                  id="userName"
+                  value={formData.userName}
+                  onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
                   required
                 />
               </div>

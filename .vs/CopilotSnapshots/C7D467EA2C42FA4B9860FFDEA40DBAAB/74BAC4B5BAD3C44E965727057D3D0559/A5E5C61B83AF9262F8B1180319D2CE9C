@@ -1,0 +1,136 @@
+﻿# ════════════════════════════════════════════════════════════════
+# Production Environment Variables - REQUIRED ONLY
+# متغيرات البيئة الإلزامية فقط للإنتاج
+# ════════════════════════════════════════════════════════════════
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 1. CRITICAL - Application Mode
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NODE_ENV=production
+# ⚠️ MUST be "production" - controls all production behaviors
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 2. CRITICAL - Server Port
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PORT=3000
+# Default: 3000
+# Hostinger usually uses 3000 or reads from environment
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 3. CRITICAL - Cookie Secret (Session Security)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COOKIE_SECRET=change_me_to_random_48_chars_minimum_abcdefghij
+# ⚠️ MUST be 32+ characters random string
+# Generate: node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+# أو: -join ((1..48) | ForEach-Object { [char](Get-Random -Min 33 -Max 126) })
+# لو ناقص: Cookies won't work = Login fails
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 4. CRITICAL - CORS Origin (Frontend URL)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WEB_ORIGIN=https://yourdomain.com
+# ⚠️ MUST match your domain EXACTLY (no trailing slash)
+# Examples:
+#   ✅ https://gtd-sys.com
+#   ✅ https://demo.yourdomain.com
+#   ❌ https://gtd-sys.com/  (has slash)
+#   ❌ http://gtd-sys.com    (not HTTPS)
+# لو غلط: CORS errors = Frontend can't call backend
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 5. CRITICAL - Server Origin (for internal use)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VITE_SERVER_ORIGIN=https://yourdomain.com
+# ⚠️ Usually same as WEB_ORIGIN
+# Used by frontend to know where backend is
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 6. CRITICAL - Disable Dev Login
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VITE_USE_DEV_LOGIN=false
+# ⚠️ MUST be false in production
+# لو true: Anyone can login without password = SECURITY BREACH
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 7. OPTIONAL - Database (if using MySQL)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DATABASE_URL=mysql://username:password@localhost:3306/database_name
+# ⚠️ If missing: App uses in-memory demo store (data lost on restart)
+# Format: mysql://USER:PASS@HOST:PORT/DB_NAME
+# Example: mysql://u123_gtd:MyPass123@localhost:3306/u123_gtd
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 8. OPTIONAL - OAuth (if using external auth)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# OAUTH_SERVER_URL=
+# VITE_OAUTH_PORTAL_URL=
+# VITE_APP_ID=
+# ⚠️ If empty: OAuth disabled, dev login must be enabled or manual user creation
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 9. OPTIONAL - Analytics (Umami)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# VITE_ANALYTICS_ENDPOINT=
+# VITE_ANALYTICS_WEBSITE_ID=
+# ⚠️ If empty: Analytics disabled (no impact on functionality)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 10. OPTIONAL - Owner Settings
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# OWNER_OPEN_ID=
+# ALLOW_AUTO_PROVISION=false
+# COOKIE_DOMAIN=
+
+# ════════════════════════════════════════════════════════════════
+# SUMMARY - What breaks without these?
+# ════════════════════════════════════════════════════════════════
+#
+# Missing NODE_ENV=production:
+#   → Dev mode enabled (slow, verbose logs, insecure)
+#
+# Missing/Wrong COOKIE_SECRET:
+#   → Sessions won't persist = Login fails every refresh
+#
+# Missing/Wrong WEB_ORIGIN:
+#   → CORS blocks all API calls = Frontend shows errors
+#
+# Missing VITE_USE_DEV_LOGIN=false:
+#   → Dev login enabled = SECURITY RISK (anyone can login)
+#
+# Missing DATABASE_URL:
+#   → Data stored in memory = Lost on restart
+#   → Still works, but not for production use
+#
+# Missing VITE_ANALYTICS_*:
+#   → Analytics disabled = No impact on functionality ✅
+#
+# ════════════════════════════════════════════════════════════════
+# TESTING - After deployment
+# ════════════════════════════════════════════════════════════════
+#
+# 1. Check environment loaded:
+#    ssh user@host "cd /path && cat .env"
+#
+# 2. Check server sees them:
+#    curl https://yourdomain.com/healthz
+#    Should show: {"env":"production"}
+#
+# 3. Check cookies work:
+#    Open browser > Login > Check DevTools > Application > Cookies
+#    Should see: sessionId cookie with httpOnly flag
+#
+# ════════════════════════════════════════════════════════════════
+
+# 🎯 MINIMAL PRODUCTION .env (copy this):
+
+NODE_ENV=production
+PORT=3000
+COOKIE_SECRET=<generate-48-char-random>
+WEB_ORIGIN=https://yourdomain.com
+VITE_SERVER_ORIGIN=https://yourdomain.com
+VITE_USE_DEV_LOGIN=false
+VITE_ANALYTICS_ENDPOINT=
+VITE_ANALYTICS_WEBSITE_ID=
+
+# Add if using database:
+# DATABASE_URL=mysql://user:pass@localhost:3306/dbname

@@ -9,6 +9,8 @@ client/dist/
 .env
 .env.local
 .env.*.local
+.env.hostinger
+.env.production
 .DS_Store
 Thumbs.db
 npm-debug.log*
@@ -19,3 +21,10 @@ pnpm-debug.log*
 .drizzle/
 demo_store/
 .demo_store/
+deploy-temp/
+
+# Deployment configuration (sensitive)
+.deploy-config.json
+.db-connection-info.txt
+.ssh/id_ed25519
+.ssh/id_ed25519.pub

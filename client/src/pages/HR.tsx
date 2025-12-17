@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { useState } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -6,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import { Input } from "@/components/ui/input";
+import {
   Users, Clock, DollarSign, Calendar, Award,
   Plus, FileText, CheckCircle, XCircle
 } from "lucide-react";
@@ -34,15 +39,23 @@ export default function HR() {
     reason?: string | null;
     action: "approve" | "reject";
   } | null>(null);
-  
+
   // Queries
   const { data: employees, isLoading: loadingEmployees } = trpc.hr.employees.list.useQuery();
   const { data: attendanceList, isLoading: loadingAttendance } = trpc.hr.attendance.list.useQuery({});
-  const { data: payrollList, isLoading: loadingPayroll } = trpc.hr.payroll.list.useQuery({});
+  const [payrollFilter, setPayrollFilter] = useState<{ employeeId?: number; year?: number; month?: number }>({});
+  const { data: payrollList, isLoading: loadingPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any);
   const { data: leavesList, isLoading: loadingLeaves } = trpc.hr.leaves.list.useQuery({});
   const { data: reviewsList, isLoading: loadingReviews } = trpc.hr.reviews.list.useQuery({});
   const { user } = useAuth();
-  const deletePayslip = trpc.hr.payroll.delete.useMutation();
+  const utils = trpc.useUtils();
+  const deletePayslip = trpc.hr.payroll.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف كشف الراتب");
+      utils.hr.payroll.list.invalidate();
+    },
+    onError: () => toast.error("تعذر حذف كشف الراتب"),
+  });
 
   return (
     <DashboardLayout>
@@ -152,8 +165,8 @@ export default function HR() {
                 ) : employees && employees.length > 0 ? (
                   <div className="space-y-4">
                     {employees.map((emp) => (
-                      <div 
-                        key={emp.id} 
+                      <div
+                        key={emp.id}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
                         onClick={() => setLocation(`/hr/employees/${emp.id}`)}
                       >
@@ -171,8 +184,8 @@ export default function HR() {
                             تاريخ التوظيف: {new Date(emp.hireDate).toLocaleDateString('ar-SA')}
                           </p>
                         </div>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -263,7 +276,23 @@ export default function HR() {
               </CardHeader>
               <CardContent>
                 <div className="mb-3">
-                  <PayrollExport payrollList={payrollList || []} />
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">من شهر</label>
+                    <Input
+                      type="number"
+                      placeholder="1"
+                      onBlur={(e) => setPayrollFilter((f) => ({ ...f, month: e.target.value ? parseInt(e.target.value) : undefined }))}
+                      className="w-24"
+                    />
+                    <label className="text-sm">سنة</label>
+                    <Input
+                      type="number"
+                      placeholder="2025"
+                      onBlur={(e) => setPayrollFilter((f) => ({ ...f, year: e.target.value ? parseInt(e.target.value) : undefined }))}
+                      className="w-28"
+                    />
+                    <PayrollExport payrollList={payrollList || []} />
+                  </div>
                 </div>
                 {loadingPayroll ? (
                   <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
@@ -339,9 +368,9 @@ export default function HR() {
                           <div className="flex items-center gap-2">
                             <p className="font-medium">موظف #{leave.employeeId}</p>
                             <Badge>
-                              {leave.leaveType === 'annual' ? 'سنوية' : 
-                               leave.leaveType === 'sick' ? 'مرضية' :
-                               leave.leaveType === 'emergency' ? 'طارئة' : 'بدون راتب'}
+                              {leave.leaveType === 'annual' ? 'سنوية' :
+                                leave.leaveType === 'sick' ? 'مرضية' :
+                                  leave.leaveType === 'emergency' ? 'طارئة' : 'بدون راتب'}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -353,15 +382,15 @@ export default function HR() {
                         <div className="flex items-center gap-2">
                           <Badge variant={
                             leave.status === 'approved' ? 'default' :
-                            leave.status === 'rejected' ? 'destructive' : 'secondary'
+                              leave.status === 'rejected' ? 'destructive' : 'secondary'
                           }>
                             {leave.status === 'approved' ? 'موافق' :
-                             leave.status === 'rejected' ? 'مرفوض' : 'معلق'}
+                              leave.status === 'rejected' ? 'مرفوض' : 'معلق'}
                           </Badge>
                           {leave.status === 'pending' && (
                             <div className="flex gap-1">
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => setApprovalDialog({
                                   open: true,
@@ -375,8 +404,8 @@ export default function HR() {
                               >
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => setApprovalDialog({
                                   open: true,

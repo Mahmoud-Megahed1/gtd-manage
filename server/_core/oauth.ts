@@ -1,4 +1,8 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
+import { COOKIE_NAME, ONE_YEAR_MS } from '@shared/const';
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
@@ -60,28 +64,34 @@ export function registerOAuthRoutes(app: Express) {
       res.status(500).json({ error: "OAuth callback failed" });
     }
   });
-  
+
   app.get("/api/dev/login", async (req: Request, res: Response) => {
     const openId = getQueryParam(req, "openId") || "dev-admin";
     const name = getQueryParam(req, "name") || "Developer";
-    const email = getQueryParam(req, "email");
+    const email = getQueryParam(req, "email") || "developer@demo.local";
     const role = getQueryParam(req, "role") as "admin" | "accountant" | "project_manager" | "designer" | undefined;
     try {
-      if (!email) {
-        res.status(403).json({ error: "Email is required" });
-        return;
-      }
-      const existing = await db.getUserByEmail(email);
+      // In demo mode, auto-create user if not exists
+      let existing = await db.getUserByEmail(email);
       if (!existing) {
-        res.status(403).json({ error: "Access denied: email not registered" });
-        return;
+        // Auto-provision in dev mode
+        await db.upsertUser({
+          openId,
+          name,
+          email,
+          loginMethod: "dev",
+          role: role ?? "admin",
+          lastSignedIn: new Date(),
+        } as any);
+        existing = await db.getUserByEmail(email);
       }
+
       await db.upsertUser({
         openId,
         name,
         email: email ?? null,
         loginMethod: "dev",
-        role: existing.role ?? role ?? undefined,
+        role: existing?.role ?? role ?? "admin",
         lastSignedIn: new Date(),
       } as any);
       const sessionToken = await sdk.createSessionToken(openId, {

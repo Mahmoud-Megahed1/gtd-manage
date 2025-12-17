@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 /**
  * Quick example (matches curl usage):
  *   await callDataApi("Youtube/search", {

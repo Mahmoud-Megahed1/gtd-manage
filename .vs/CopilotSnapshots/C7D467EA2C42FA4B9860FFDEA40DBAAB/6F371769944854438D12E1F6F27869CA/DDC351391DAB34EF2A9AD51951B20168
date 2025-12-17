@@ -1,0 +1,9 @@
+﻿NODE_ENV=development
+COOKIE_SECRET=manus-dev-secret-1234567890
+VITE_OAUTH_PORTAL_URL=
+VITE_APP_ID=gtd-dev-app
+VITE_USE_DEV_LOGIN=true
+WEB_ORIGIN=http://localhost:3000
+VITE_SERVER_ORIGIN=http://localhost:3000
+DATABASE_URL=
+OWNER_OPEN_ID=dev-admin

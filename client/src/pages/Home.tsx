@@ -1,16 +1,36 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 export default function Home() {
-  const { user, loading } = useAuth({ redirectOnUnauthenticated: false });
+  const { user, loading, refresh } = useAuth({ redirectOnUnauthenticated: false });
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const loginMutation = trpc.auth.loginWithPassword.useMutation({
+    onSuccess: () => {
+      toast.success("تم تسجيل الدخول بنجاح");
+      refresh();
+      setLocation("/dashboard");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل تسجيل الدخول");
+      setIsLoggingIn(false);
+    }
+  });
 
   useEffect(() => {
     if (!loading && user) {
@@ -33,18 +53,42 @@ export default function Home() {
     return null;
   }
 
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !/.+@.+\..+/.test(email)) {
+      toast.error("يرجى إدخال بريد إلكتروني صالح");
+      return;
+    }
+    if (!password) {
+      toast.error("يرجى إدخال كلمة السر");
+      return;
+    }
+    setIsLoggingIn(true);
+    loginMutation.mutate({ email, password });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5" dir="rtl">
       <div className="max-w-md w-full p-8 space-y-8">
         <div className="text-center space-y-6">
-          <img src="/logo.png" alt="Golden Touch Design" className="h-32 mx-auto" />
+          <img
+            src="/logo.png"
+            alt="Golden Touch Design"
+            className="h-32 mx-auto"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (!target.src.includes('LOGO.png')) {
+                target.src = '/LOGO.png';
+              }
+            }}
+          />
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-3">Golden Touch Design</h1>
             <p className="text-xl text-primary font-medium">نظام الإدارة المتكامل</p>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <form onSubmit={handlePasswordLogin} className="space-y-4">
           <div className="space-y-2">
             <Input
               type="email"
@@ -53,26 +97,41 @@ export default function Home() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          <div className="space-y-2 relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="كلمة السر"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
           <Button
-            onClick={() => {
-              if (!email || !/.+@.+\..+/.test(email)) {
-                toast.error("يرجى إدخال بريد إلكتروني صالح");
-                return;
-              }
-              window.location.assign(getLoginUrl(email));
-            }}
+            type="submit"
             size="lg"
             className="w-full text-lg h-14 shadow-lg hover:shadow-xl transition-all"
+            disabled={isLoggingIn}
           >
-            تسجيل الدخول
+            {isLoggingIn ? (
+              <>
+                <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                جاري تسجيل الدخول...
+              </>
+            ) : (
+              "تسجيل الدخول"
+            )}
           </Button>
-          
+
           <div className="text-center text-sm text-muted-foreground">
             <p>للوصول إلى النظام، يرجى تسجيل الدخول</p>
           </div>
-        </div>
-
-        
+        </form>
       </div>
     </div>
   );

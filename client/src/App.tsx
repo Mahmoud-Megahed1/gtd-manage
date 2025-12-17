@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -10,7 +14,9 @@ import Clients from "./pages/Clients";
 import ClientDetails from "./pages/ClientDetails";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
+import ProjectReport from "./pages/ProjectReport";
 import Invoices from "./pages/Invoices";
+import InvoiceDetails from "./pages/InvoiceDetails";
 import Forms from "./pages/Forms";
 import FormDetails from "./pages/FormDetails";
 import Accounting from "./pages/Accounting";
@@ -38,9 +44,12 @@ function Router() {
       <Route path={"/clients"} component={Clients} />
       <Route path={"/clients/:id"} component={ClientDetails} />
       <Route path={"/projects"} component={Projects} />
+      <Route path={"/projects/:id/report"} component={ProjectReport} />
       <Route path={"/projects/:id"} component={ProjectDetails} />
       <Route path={"/invoices"} component={Invoices} />
+      <Route path={"/invoices/:id"} component={InvoiceDetails} />
       <Route path={"/forms"} component={Forms} />
+      <Route path={"/forms/new"} component={ClientFormNew} />
       <Route path={"/forms/:id"} component={FormDetails} />
       <Route path={"/change-orders"} component={ChangeOrders} />
       <Route path={"/accounting"} component={Accounting} />

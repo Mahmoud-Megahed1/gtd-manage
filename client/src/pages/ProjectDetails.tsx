@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import { useParams } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +22,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -34,9 +39,14 @@ export default function ProjectDetails() {
   const [, setLocation] = useLocation();
   const projectId = params.id ? parseInt(params.id) : 0;
 
+  const utils = trpc.useUtils();
   const { data: projectData, isLoading } = trpc.projects.getDetails.useQuery({ id: projectId });
   const { data: tasks } = trpc.projects.listTasks.useQuery({ projectId });
-  const createTask = trpc.projects.createTask.useMutation();
+  const createTask = trpc.projects.createTask.useMutation({
+    onSuccess: () => {
+      utils.projects.listTasks.invalidate({ projectId });
+    }
+  });
   const deleteTask = trpc.projects.deleteTask.useMutation();
   const [newTask, setNewTask] = useState({
     name: "",
@@ -154,7 +164,11 @@ export default function ProjectDetails() {
               {getStatusLabel(project.status)}
             </Badge>
           </div>
-          <Button size="lg" className="gap-2">
+          <Button
+            size="lg"
+            className="gap-2"
+            onClick={() => setLocation(`/projects/${project.id}/report`)}
+          >
             <FileText className="w-5 h-5" />
             تقرير المشروع
           </Button>
@@ -410,6 +424,10 @@ export default function ProjectDetails() {
                   </div>
                   <Button
                     onClick={() => {
+                      if (!newTask.name.trim()) {
+                        toast.error("يرجى إدخال اسم المهمة");
+                        return;
+                      }
                       createTask.mutate({
                         projectId,
                         name: newTask.name,

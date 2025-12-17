@@ -1,3 +1,7 @@
+<!--
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+-->
 <!doctype html>
 <html lang="ar" dir="rtl">
 
@@ -16,10 +20,26 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <!-- Umami Analytics (optional) - only loads if configured -->
+    <script>
+      (function() {
+        var endpoint = '%VITE_ANALYTICS_ENDPOINT%';
+        var websiteId = '%VITE_ANALYTICS_WEBSITE_ID%';
+        
+        // Only load if both values are set and not placeholder
+        if (endpoint && websiteId && 
+            endpoint !== '' && 
+            websiteId !== '' &&
+            !endpoint.includes('%') && 
+            !websiteId.includes('%')) {
+          var script = document.createElement('script');
+          script.defer = true;
+          script.src = endpoint + '/umami';
+          script.setAttribute('data-website-id', websiteId);
+          document.body.appendChild(script);
+        }
+      })();
+    </script>
   </body>
 
 </html>

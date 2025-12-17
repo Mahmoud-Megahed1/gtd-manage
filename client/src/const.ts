@@ -26,6 +26,8 @@ export const getLoginUrl = (email?: string) => {
     url.searchParams.set("type", "signIn");
     return url.toString();
   } catch {
-    return window.location.origin + "/api/dev/login";
+    const url = new URL(serverOrigin + "/api/dev/login");
+    if (email) url.searchParams.set("email", email);
+    return url.toString();
   }
 };

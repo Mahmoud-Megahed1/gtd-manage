@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  LayoutDashboard, 
-  Users, 
-  FolderKanban, 
-  FileText, 
-  Receipt, 
-  Calculator, 
-  History, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  FolderKanban,
+  FileText,
+  Receipt,
+  Calculator,
+  History,
+  Settings,
   LogOut,
   Search,
   Menu,
@@ -51,57 +51,57 @@ interface NavItem {
 const navItems: NavItem[] = [
   { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, roles: ["admin"] },
   { title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: ["admin"] },
-  { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin","project_manager","designer"] },
-  { title: "المهام", href: "/tasks", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin","project_manager","designer"] },
+  { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer"] },
+  { title: "المهام", href: "/tasks", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer"] },
   { title: "طلبات التغيير", href: "/change-orders", icon: <FileDiff className="w-5 h-5" />, roles: ["admin"] },
   { title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: ["admin"] },
   { title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" />, roles: ["admin"] },
-  { 
-    title: "المحاسبة", 
-    href: "/accounting", 
+  {
+    title: "المحاسبة",
+    href: "/accounting",
     icon: <Calculator className="w-5 h-5" />,
     roles: ["admin", "accountant"]
   },
-  { 
-    title: "التقارير", 
-    href: "/reports", 
+  {
+    title: "التقارير",
+    href: "/reports",
     icon: <Calculator className="w-5 h-5" />,
     roles: ["admin", "accountant"]
   },
-  { 
-    title: "الإشعارات", 
-    href: "/notifications", 
+  {
+    title: "الإشعارات",
+    href: "/notifications",
     icon: <Bell className="w-5 h-5" />,
     roles: ["admin"]
   },
-  { 
-    title: "مساعد AI", 
-    href: "/ai-assistant", 
+  {
+    title: "مساعد AI",
+    href: "/ai-assistant",
     icon: <Search className="w-5 h-5" />,
     roles: ["admin"]
   },
-  { 
-    title: "شؤون الموظفين", 
-    href: "/hr", 
+  {
+    title: "شؤون الموظفين",
+    href: "/hr",
     icon: <UserCog className="w-5 h-5" />,
     roles: ["admin"]
   },
-  { 
-    title: "سجل النشاطات", 
-    href: "/audit-logs", 
+  {
+    title: "سجل النشاطات",
+    href: "/audit-logs",
     icon: <History className="w-5 h-5" />,
     roles: ["admin"]
   },
-  { 
-    title: "الإعدادات", 
-    href: "/settings", 
+  {
+    title: "الإعدادات",
+    href: "/settings",
     icon: <Settings className="w-5 h-5" />,
     roles: ["admin"]
   },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth({ redirectOnUnauthenticated: true, redirectPath: "/" });
   const { theme, toggleTheme, switchable } = useTheme();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -113,9 +113,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync();
-      window.location.href = "/";
+      // Clear all localStorage
+      localStorage.removeItem("manus-runtime-user-info");
+      // Clear cookies manually as backup
+      document.cookie = "GT_SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      // Force hard redirect to clear all state
+      window.location.replace("/");
     } catch (error) {
-      toast.error("فشل تسجيل الخروج");
+      // Even on error, try to logout by clearing local state
+      localStorage.removeItem("manus-runtime-user-info");
+      document.cookie = "GT_SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.replace("/");
     }
   };
 
@@ -170,27 +178,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   if (!user) {
+    // Automatic redirect to login - no user interaction needed
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <img src="/logo.png" alt="Logo" className="h-24" />
-            <h1 className="text-2xl font-semibold tracking-tight text-center">
-              تسجيل الدخول مطلوب
-            </h1>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              يتطلب الوصول إلى لوحة التحكم المصادقة. انقر للمتابعة إلى صفحة تسجيل الدخول.
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            تسجيل الدخول
-          </Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">جاري التوجيه لصفحة الدخول...</p>
         </div>
       </div>
     );
@@ -209,7 +205,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </Button>
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Logo" className="h-8" />
+            <img src="/logo.png" alt="Logo" className="h-8" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
             <span className="font-bold text-lg">Golden Touch</span>
           </div>
           <div className="w-10" />
@@ -218,15 +214,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "translate-x-full"
-        } lg:translate-x-0`}
+        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "translate-x-full"
+          } lg:translate-x-0`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 hidden lg:block">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="h-12" />
+              <img src="/logo.png" alt="Logo" className="h-12" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
               <div>
                 <h1 className="font-bold text-xl text-primary">Golden Touch</h1>
                 <p className="text-xs text-muted-foreground">نظام الإدارة المتكامل</p>
@@ -263,7 +258,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
 
           {/* Navigation */}
-          <ScrollArea className="flex-1 px-3">
+          <ScrollArea className="flex-1 px-3 max-h-[calc(100vh-300px)] overflow-y-auto">
             <nav className="space-y-1 py-2">
               {filteredNavItems.map((item) => {
                 const isActive = location === item.href || location.startsWith(item.href + "/");
@@ -271,11 +266,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Link key={item.href} href={item.href}>
                     <a
                       onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground font-medium"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
                     >
                       <div className="relative">
                         {item.icon}
@@ -320,6 +314,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Logout Button - Direct */}
+            <Button
+              variant="outline"
+              className="w-full mt-3 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+              onClick={handleLogout}
+            >
+              <LogOut className="ml-2 w-4 h-4" />
+              تسجيل الخروج
+            </Button>
           </div>
         </div>
       </aside>

@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
@@ -108,7 +112,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        
+
 
         {/* Charts */}
         <div className="grid gap-6 md:grid-cols-2">
@@ -117,7 +121,7 @@ export default function Dashboard() {
               <CardTitle>توزيع المشاريع حسب الحالة</CardTitle>
             </CardHeader>
             <CardContent>
-              {projectsData && <ProjectsChart data={projectsData} />}
+              <ProjectsChart data={projectsData || { design: 0, execution: 0, delivery: 0, completed: 0, cancelled: 0 }} />
             </CardContent>
           </Card>
 
@@ -126,7 +130,14 @@ export default function Dashboard() {
               <CardTitle>الإيرادات والمصروفات الشهرية</CardTitle>
             </CardHeader>
             <CardContent>
-              {revenueData && <RevenueChart monthlyData={revenueData} />}
+              <RevenueChart monthlyData={revenueData || [
+                { month: 'يناير', revenue: 0, expenses: 0 },
+                { month: 'فبراير', revenue: 0, expenses: 0 },
+                { month: 'مارس', revenue: 0, expenses: 0 },
+                { month: 'أبريل', revenue: 0, expenses: 0 },
+                { month: 'مايو', revenue: 0, expenses: 0 },
+                { month: 'يونيو', revenue: 0, expenses: 0 },
+              ]} />
             </CardContent>
           </Card>
         </div>

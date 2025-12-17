@@ -1,0 +1,11 @@
+NODE_ENV=production
+PORT=3000
+COOKIE_SECRET=GTD2025SecureProductionSecret48CharLong1234567
+WEB_ORIGIN=https://pro.gtd-sys.com
+VITE_SERVER_ORIGIN=https://pro.gtd-sys.com
+VITE_APP_ID=gtd-pro
+VITE_USE_DEV_LOGIN=true
+DATABASE_URL=mysql://gtd_user:Gtd2025@SecureDB@localhost:3306/gtd_manage
+OAUTH_SERVER_URL=https://pro.gtd-sys.com
+VITE_ANALYTICS_ENDPOINT=
+VITE_ANALYTICS_WEBSITE_ID=

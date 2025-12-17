@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 /**
  * Base HTTP error class with status code.
  * Throw this from route handlers to send specific HTTP errors.

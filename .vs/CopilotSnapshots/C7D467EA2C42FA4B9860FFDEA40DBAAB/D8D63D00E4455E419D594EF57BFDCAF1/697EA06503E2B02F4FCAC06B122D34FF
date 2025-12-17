@@ -1,0 +1,394 @@
+﻿#!/usr/bin/env pwsh
+# Auto Deploy to Hostinger - Fully Automated
+# رفع أوتوماتيكي كامل على Hostinger
+
+param(
+    [string]$HostingerHost = "",
+    [string]$HostingerUser = "",
+    [string]$HostingerPort = "65002",
+    [string]$Domain = "",
+    [string]$TargetPath = "",
+    [string]$DbName = "",
+    [string]$DbUser = "",
+    [string]$DbPass = "",
+    [switch]$SkipBuild,
+    [switch]$Interactive
+)
+
+$ErrorActionPreference = "Stop"
+
+# Colors
+function Write-Title($text) { Write-Host "`n$text" -ForegroundColor Cyan -BackgroundColor Black }
+function Write-Success($text) { Write-Host "✓ $text" -ForegroundColor Green }
+function Write-Error($text) { Write-Host "✗ $text" -ForegroundColor Red }
+function Write-Info($text) { Write-Host "ℹ $text" -ForegroundColor Yellow }
+function Write-Step($text) { Write-Host "`n▶ $text" -ForegroundColor Magenta }
+
+Write-Host @"
+
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║           🚀 Auto Deploy - Hostinger GTD System              ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+"@ -ForegroundColor Cyan
+
+# ============================================================================
+# STEP 1: Load or Get Configuration
+# ============================================================================
+
+Write-Step "1/8 - جاري تحميل الإعدادات..."
+
+$configFile = ".deploy-config.json"
+$config = @{}
+
+if (Test-Path $configFile) {
+    Write-Info "تم العثور على ملف الإعدادات السابق"
+    $config = Get-Content $configFile | ConvertFrom-Json -AsHashtable
+    
+    # Override with parameters if provided
+    if ($HostingerHost) { $config.HostingerHost = $HostingerHost }
+    if ($HostingerUser) { $config.HostingerUser = $HostingerUser }
+    if ($HostingerPort) { $config.HostingerPort = $HostingerPort }
+    if ($Domain) { $config.Domain = $Domain }
+    if ($TargetPath) { $config.TargetPath = $TargetPath }
+    if ($DbName) { $config.DbName = $DbName }
+    if ($DbUser) { $config.DbUser = $DbUser }
+    if ($DbPass) { $config.DbPass = $DbPass }
+    
+    Write-Success "تم تحميل الإعدادات"
+    Write-Host "   SSH: $($config.HostingerUser)@$($config.HostingerHost):$($config.HostingerPort)" -ForegroundColor Gray
+    Write-Host "   Domain: $($config.Domain)" -ForegroundColor Gray
+    Write-Host "   Database: $($config.DbName)" -ForegroundColor Gray
+    
+    if ($Interactive) {
+        $continue = Read-Host "`nهل تريد استخدام هذه الإعدادات؟ (y/n)"
+        if ($continue -ne "y") {
+            Remove-Item $configFile -Force
+            $config = @{}
+        }
+    }
+}
+
+# Get missing configuration
+if (-not $config.HostingerHost -or -not $config.HostingerUser -or -not $config.Domain -or -not $config.DbName) {
+    Write-Info "يرجى إدخال بيانات Hostinger..."
+    Write-Host ""
+    
+    if (-not $config.HostingerHost) {
+        $config.HostingerHost = Read-Host "SSH Host (مثال: srv123.hostinger.com)"
+    }
+    if (-not $config.HostingerUser) {
+        $config.HostingerUser = Read-Host "SSH Username (مثال: u123456789)"
+    }
+    if (-not $config.HostingerPort) {
+        $config.HostingerPort = Read-Host "SSH Port (اضغط Enter للافتراضي: 65002)"
+        if ([string]::IsNullOrWhiteSpace($config.HostingerPort)) { $config.HostingerPort = "65002" }
+    }
+    if (-not $config.Domain) {
+        $config.Domain = Read-Host "Domain Name (مثال: gtd-sys.com)"
+    }
+    if (-not $config.TargetPath) {
+        $defaultPath = "/home/$($config.HostingerUser)/domains/$($config.Domain)/public_html"
+        $config.TargetPath = Read-Host "Target Path (اضغط Enter للافتراضي: $defaultPath)"
+        if ([string]::IsNullOrWhiteSpace($config.TargetPath)) { $config.TargetPath = $defaultPath }
+    }
+    
+    Write-Host ""
+    Write-Info "بيانات Database:"
+    if (-not $config.DbName) {
+        $config.DbName = Read-Host "Database Name"
+    }
+    if (-not $config.DbUser) {
+        $config.DbUser = Read-Host "Database User"
+    }
+    if (-not $config.DbPass) {
+        $securePass = Read-Host "Database Password" -AsSecureString
+        $config.DbPass = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePass)
+        )
+    }
+    
+    # Save configuration
+    $config | ConvertTo-Json | Set-Content $configFile
+    Write-Success "تم حفظ الإعدادات في $configFile"
+}
+
+# Generate secure COOKIE_SECRET
+if (-not $config.CookieSecret) {
+    $config.CookieSecret = -join ((1..48) | ForEach-Object { 
+        [char](Get-Random -Minimum 33 -Maximum 126) 
+    })
+    $config | ConvertTo-Json | Set-Content $configFile
+}
+
+Write-Success "الإعدادات جاهزة"
+
+# ============================================================================
+# STEP 2: Check Prerequisites
+# ============================================================================
+
+Write-Step "2/8 - فحص المتطلبات..."
+
+# Check SSH Key
+$sshKey = ".ssh\id_ed25519"
+if (-not (Test-Path $sshKey)) {
+    Write-Info "SSH Key غير موجود - جاري الإنشاء..."
+    New-Item -ItemType Directory -Path ".ssh" -Force | Out-Null
+    ssh-keygen -t ed25519 -f $sshKey -N '""' -C "hostinger-auto-deploy"
+    Write-Success "تم إنشاء SSH Key"
+    
+    Write-Host "`n" -NoNewline
+    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Yellow
+    Write-Info "يجب إضافة SSH Public Key إلى Hostinger!"
+    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "1. افتح: https://hpanel.hostinger.com" -ForegroundColor White
+    Write-Host "2. اذهب إلى: Advanced > SSH Keys" -ForegroundColor White
+    Write-Host "3. اضغط: Add New Key" -ForegroundColor White
+    Write-Host "4. الصق المفتاح التالي:" -ForegroundColor White
+    Write-Host ""
+    Get-Content "$sshKey.pub" | Write-Host -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Yellow
+    
+    Read-Host "`nاضغط Enter بعد إضافة المفتاح في Hostinger"
+}
+
+Write-Success "SSH Key موجود"
+
+# Check if pnpm/npm exists
+$packageManager = "pnpm"
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+    $packageManager = "npm"
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Error "pnpm أو npm غير مثبت!"
+        exit 1
+    }
+}
+
+Write-Success "Package Manager: $packageManager"
+
+# ============================================================================
+# STEP 3: Build Project
+# ============================================================================
+
+if (-not $SkipBuild) {
+    Write-Step "3/8 - بناء المشروع..."
+    
+    Write-Info "تثبيت Dependencies..."
+    & $packageManager install --frozen-lockfile 2>&1 | Out-Null
+    
+    Write-Info "Building..."
+    & $packageManager run build
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "فشل البناء!"
+        exit 1
+    }
+    
+    Write-Success "تم بناء المشروع بنجاح"
+} else {
+    Write-Step "3/8 - تخطي البناء (--SkipBuild)"
+}
+
+# Verify build
+if (-not (Test-Path "dist/index.js")) {
+    Write-Error "dist/index.js غير موجود!"
+    exit 1
+}
+
+Write-Success "ملفات Build جاهزة"
+
+# ============================================================================
+# STEP 4: Prepare Deployment Package
+# ============================================================================
+
+Write-Step "4/8 - تجهيز حزمة الرفع..."
+
+$deployDir = "deploy-temp"
+if (Test-Path $deployDir) {
+    Remove-Item $deployDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $deployDir | Out-Null
+
+# Copy files
+Copy-Item "dist" -Destination "$deployDir\dist" -Recurse
+Copy-Item "package.json" -Destination "$deployDir\"
+
+if (Test-Path "pnpm-lock.yaml") {
+    Copy-Item "pnpm-lock.yaml" -Destination "$deployDir\"
+} elseif (Test-Path "package-lock.json") {
+    Copy-Item "package-lock.json" -Destination "$deployDir\"
+}
+
+# Create .env
+$envContent = @"
+NODE_ENV=production
+PORT=3000
+COOKIE_SECRET=$($config.CookieSecret)
+WEB_ORIGIN=https://$($config.Domain)
+VITE_SERVER_ORIGIN=https://$($config.Domain)
+DATABASE_URL=mysql://$($config.DbUser):$($config.DbPass)@localhost:3306/$($config.DbName)
+OAUTH_SERVER_URL=
+VITE_OAUTH_PORTAL_URL=
+VITE_APP_ID=gtd-production
+VITE_USE_DEV_LOGIN=false
+OWNER_OPEN_ID=
+ALLOW_AUTO_PROVISION=false
+"@
+
+Set-Content -Path "$deployDir\.env" -Value $envContent -Encoding UTF8
+
+Write-Success "حزمة الرفع جاهزة"
+
+# ============================================================================
+# STEP 5: Test SSH Connection
+# ============================================================================
+
+Write-Step "5/8 - اختبار الاتصال بـ Hostinger..."
+
+$sshCmd = "ssh -i $sshKey -p $($config.HostingerPort) -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $($config.HostingerUser)@$($config.HostingerHost) 'echo OK'"
+
+try {
+    $result = Invoke-Expression $sshCmd 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "SSH connection failed"
+    }
+    Write-Success "اتصال SSH ناجح"
+} catch {
+    Write-Error "فشل الاتصال بـ Hostinger!"
+    Write-Host "تحقق من:" -ForegroundColor Yellow
+    Write-Host "  - SSH Host: $($config.HostingerHost)" -ForegroundColor Gray
+    Write-Host "  - SSH User: $($config.HostingerUser)" -ForegroundColor Gray
+    Write-Host "  - SSH Port: $($config.HostingerPort)" -ForegroundColor Gray
+    Write-Host "  - SSH Key مضاف في Hostinger Panel" -ForegroundColor Gray
+    exit 1
+}
+
+# ============================================================================
+# STEP 6: Upload Files
+# ============================================================================
+
+Write-Step "6/8 - رفع الملفات إلى Hostinger..."
+
+# Create target directory
+Write-Info "إنشاء المجلد الهدف..."
+ssh -i $sshKey -p $($config.HostingerPort) "$($config.HostingerUser)@$($config.HostingerHost)" "mkdir -p $($config.TargetPath)"
+
+# Upload via SCP
+Write-Info "رفع الملفات (قد يستغرق 2-3 دقائق)..."
+scp -i $sshKey -P $($config.HostingerPort) -r "$deployDir/*" "$($config.HostingerUser)@$($config.HostingerHost):$($config.TargetPath)/"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "فشل رفع الملفات!"
+    exit 1
+}
+
+Write-Success "تم رفع الملفات بنجاح"
+
+# ============================================================================
+# STEP 7: Install Dependencies & Start Application
+# ============================================================================
+
+Write-Step "7/8 - تثبيت Dependencies وتشغيل التطبيق..."
+
+$remoteCommands = @"
+cd $($config.TargetPath)
+echo '▶ تثبيت Dependencies...'
+npm install --production --legacy-peer-deps --silent
+echo '▶ إيقاف التطبيق القديم (إن وجد)...'
+npx pm2 delete gtd-sys 2>/dev/null || true
+echo '▶ تشغيل التطبيق...'
+NODE_ENV=production npx pm2 start dist/index.js --name gtd-sys --time
+echo '▶ حفظ تكوين PM2...'
+npx pm2 save
+echo '▶ تفعيل Startup...'
+npx pm2 startup | grep -E 'sudo|pm2' | bash || true
+echo '▶ حالة التطبيق:'
+npx pm2 list
+echo '✓ تم!'
+"@
+
+Write-Info "تنفيذ الأوامر على السيرفر..."
+ssh -i $sshKey -p $($config.HostingerPort) "$($config.HostingerUser)@$($config.HostingerHost)" $remoteCommands
+
+Write-Success "التطبيق يعمل الآن!"
+
+# ============================================================================
+# STEP 8: Health Check
+# ============================================================================
+
+Write-Step "8/8 - اختبار الموقع..."
+
+Write-Info "انتظار 10 ثواني لبدء التطبيق..."
+Start-Sleep -Seconds 10
+
+$healthUrl = "https://$($config.Domain)/healthz"
+Write-Info "اختبار: $healthUrl"
+
+try {
+    $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 15
+    
+    if ($response.StatusCode -eq 200) {
+        Write-Success "الموقع يعمل بنجاح!"
+        Write-Host "`n   Response:" -ForegroundColor Gray
+        Write-Host "   $($response.Content)" -ForegroundColor DarkGray
+    }
+} catch {
+    Write-Info "لم يتم الاتصال بـ Health Check (قد يحتاج وقت)"
+    Write-Host "   جرب يدوياً: $healthUrl" -ForegroundColor Yellow
+}
+
+# ============================================================================
+# CLEANUP
+# ============================================================================
+
+Write-Step "تنظيف الملفات المؤقتة..."
+Remove-Item $deployDir -Recurse -Force
+Write-Success "تم التنظيف"
+
+# ============================================================================
+# SUCCESS SUMMARY
+# ============================================================================
+
+Write-Host "`n"
+Write-Host "╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║                                                               ║" -ForegroundColor Green
+Write-Host "║              ✅ تم الرفع بنجاح!                               ║" -ForegroundColor Green
+Write-Host "║                                                               ║" -ForegroundColor Green
+Write-Host "╚═══════════════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "🌐 الموقع: " -NoNewline -ForegroundColor White
+Write-Host "https://$($config.Domain)" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📊 Health Check: " -NoNewline -ForegroundColor White
+Write-Host "https://$($config.Domain)/healthz" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
+Write-Host ""
+Write-Host "📝 أوامر مفيدة:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "   # الاتصال بـ SSH:" -ForegroundColor Gray
+Write-Host "   ssh -i $sshKey -p $($config.HostingerPort) $($config.HostingerUser)@$($config.HostingerHost)" -ForegroundColor White
+Write-Host ""
+Write-Host "   # عرض Logs:" -ForegroundColor Gray
+Write-Host "   npx pm2 logs gtd-sys" -ForegroundColor White
+Write-Host ""
+Write-Host "   # إعادة تشغيل:" -ForegroundColor Gray
+Write-Host "   npx pm2 restart gtd-sys" -ForegroundColor White
+Write-Host ""
+Write-Host "   # عرض الحالة:" -ForegroundColor Gray
+Write-Host "   npx pm2 list" -ForegroundColor White
+Write-Host ""
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
+Write-Host ""
+Write-Host "⚠️  تنبيهات أمان:" -ForegroundColor Red
+Write-Host "   • ملف .deploy-config.json يحتوي على معلومات حساسة" -ForegroundColor Yellow
+Write-Host "   • لا ترفعه على Git (موجود في .gitignore)" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
+Write-Host ""
+Write-Host "🎉 استمتع بموقعك! 🚀" -ForegroundColor Green
+Write-Host ""

@@ -1,0 +1,692 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\new project\\GTD-manage\\GTD-manage\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\vite.config.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:vite.config.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\ALL-QUESTIONS-ANSWERED.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:ALL-QUESTIONS-ANSWERED.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\START-HERE-NOW.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:START-HERE-NOW.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-BEST-PRACTICES.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DEPLOYMENT-BEST-PRACTICES.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\HEALTHCHECK-DOCUMENTATION.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:HEALTHCHECK-DOCUMENTATION.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\.env.production.REQUIRED-ONLY||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.env.production.REQUIRED-ONLY||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\DEPLOY-INSTRUCTIONS.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DEPLOY-INSTRUCTIONS.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\FINAL-DEPLOY-GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:FINAL-DEPLOY-GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\server\\routers\\tasks.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:server\\routers\\tasks.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\HOSTING-OPTIONS.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:HOSTING-OPTIONS.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\deploy-now.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\deploy-now.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\deploy-hostinger-manual.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\deploy-hostinger-manual.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\LOGO.png||{177559E0-D141-11D0-92DF-00A0C9138C45}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:LOGO.png||{177559E0-D141-11D0-92DF-00A0C9138C45}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\app.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:server\\_core\\app.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\cookies.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:server\\_core\\cookies.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\index.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:server\\_core\\index.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\env.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:server\\_core\\env.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\.env.production.template||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.env.production.template||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\.env||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.env||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\test-server.js||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:test-server.js||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-CHECKLIST.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DEPLOYMENT-CHECKLIST.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\READY-TO-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:READY-TO-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\DEPLOY-NOW.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DEPLOY-NOW.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\check-hosting.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\check-hosting.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\check-deploy-ready.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\check-deploy-ready.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\START-HERE-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:START-HERE-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-CHECKLIST-FINAL.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DEPLOYMENT-CHECKLIST-FINAL.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\QUICK-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:QUICK-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\README-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:README-DEPLOY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\PROJECT-READY.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:PROJECT-READY.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\auto-deploy.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\auto-deploy.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\setup-database.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\setup-database.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\master-deploy.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\master-deploy.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\simple-deploy.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\simple-deploy.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\scripts\\DEPLOY-COMMANDS.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:scripts\\DEPLOY-COMMANDS.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\PRODUCTION-MODE-VERIFICATION.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:PRODUCTION-MODE-VERIFICATION.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\client\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:client\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\FIX-ANALYTICS-VARIABLES.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:FIX-ANALYTICS-VARIABLES.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\new project\\GTD-manage\\GTD-manage\\package.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:package.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "vite.config.ts",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\vite.config.ts",
+              "RelativeDocumentMoniker": "vite.config.ts",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\vite.config.ts",
+              "RelativeToolTip": "vite.config.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-12-15T11:49:22.41Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 41,
+              "Title": "package.json",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\package.json",
+              "RelativeDocumentMoniker": "package.json",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\package.json",
+              "RelativeToolTip": "package.json",
+              "ViewState": "AgIAAHoAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-12-15T11:02:50.724Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ALL-QUESTIONS-ANSWERED.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\ALL-QUESTIONS-ANSWERED.md",
+              "RelativeDocumentMoniker": "ALL-QUESTIONS-ANSWERED.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\ALL-QUESTIONS-ANSWERED.md",
+              "RelativeToolTip": "ALL-QUESTIONS-ANSWERED.md",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:33:07.032Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 40,
+              "Title": "FIX-ANALYTICS-VARIABLES.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\FIX-ANALYTICS-VARIABLES.md",
+              "RelativeDocumentMoniker": "FIX-ANALYTICS-VARIABLES.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\FIX-ANALYTICS-VARIABLES.md",
+              "RelativeToolTip": "FIX-ANALYTICS-VARIABLES.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T04:16:19.711Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 39,
+              "Title": "index.html",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\client\\index.html",
+              "RelativeDocumentMoniker": "client\\index.html",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\client\\index.html",
+              "RelativeToolTip": "client\\index.html",
+              "ViewState": "AgIAACkAAAAAAAAAAEBVwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2025-12-15T04:13:48.819Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "START-HERE-NOW.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\START-HERE-NOW.md",
+              "RelativeDocumentMoniker": "START-HERE-NOW.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\START-HERE-NOW.md",
+              "RelativeToolTip": "START-HERE-NOW.md",
+              "ViewState": "AgIAAMoAAAAAAAAAAADwv+IAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:32:11.674Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DEPLOYMENT-BEST-PRACTICES.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-BEST-PRACTICES.md",
+              "RelativeDocumentMoniker": "DEPLOYMENT-BEST-PRACTICES.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-BEST-PRACTICES.md",
+              "RelativeToolTip": "DEPLOYMENT-BEST-PRACTICES.md",
+              "ViewState": "AgIAAHoBAAAAAAAAAAAAwJIBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:30:00.902Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 38,
+              "Title": "PRODUCTION-MODE-VERIFICATION.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\PRODUCTION-MODE-VERIFICATION.md",
+              "RelativeDocumentMoniker": "PRODUCTION-MODE-VERIFICATION.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\PRODUCTION-MODE-VERIFICATION.md",
+              "RelativeToolTip": "PRODUCTION-MODE-VERIFICATION.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADsBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:31:26.802Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "HEALTHCHECK-DOCUMENTATION.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\HEALTHCHECK-DOCUMENTATION.md",
+              "RelativeDocumentMoniker": "HEALTHCHECK-DOCUMENTATION.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\HEALTHCHECK-DOCUMENTATION.md",
+              "RelativeToolTip": "HEALTHCHECK-DOCUMENTATION.md",
+              "ViewState": "AgIAAAcBAAAAAAAAAADwvx8BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:28:59.178Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": ".env.production.REQUIRED-ONLY",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\.env.production.REQUIRED-ONLY",
+              "RelativeDocumentMoniker": ".env.production.REQUIRED-ONLY",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\.env.production.REQUIRED-ONLY",
+              "RelativeToolTip": ".env.production.REQUIRED-ONLY",
+              "ViewState": "AgIAAIgAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:28:06.911Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "DEPLOY-INSTRUCTIONS.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOY-INSTRUCTIONS.md",
+              "RelativeDocumentMoniker": "DEPLOY-INSTRUCTIONS.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOY-INSTRUCTIONS.md",
+              "RelativeToolTip": "DEPLOY-INSTRUCTIONS.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAANoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:16:24.929Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "FINAL-DEPLOY-GUIDE.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\FINAL-DEPLOY-GUIDE.md",
+              "RelativeDocumentMoniker": "FINAL-DEPLOY-GUIDE.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\FINAL-DEPLOY-GUIDE.md",
+              "RelativeToolTip": "FINAL-DEPLOY-GUIDE.md",
+              "ViewState": "AgIAANIAAAAAAAAAAAAAAH0BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:04:12.564Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 37,
+              "Title": "DEPLOY-COMMANDS.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\DEPLOY-COMMANDS.ps1",
+              "RelativeDocumentMoniker": "scripts\\DEPLOY-COMMANDS.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\DEPLOY-COMMANDS.ps1",
+              "RelativeToolTip": "scripts\\DEPLOY-COMMANDS.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:17:36.496Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 36,
+              "Title": "simple-deploy.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\simple-deploy.ps1",
+              "RelativeDocumentMoniker": "scripts\\simple-deploy.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\simple-deploy.ps1",
+              "RelativeToolTip": "scripts\\simple-deploy.ps1",
+              "ViewState": "AgIAAJAAAAAAAAAAAIBJwJIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:16:58.542Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "check-deploy-ready.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\check-deploy-ready.ps1",
+              "RelativeDocumentMoniker": "scripts\\check-deploy-ready.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\check-deploy-ready.ps1",
+              "RelativeToolTip": "scripts\\check-deploy-ready.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:04:40.275Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "master-deploy.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\master-deploy.ps1",
+              "RelativeDocumentMoniker": "scripts\\master-deploy.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\master-deploy.ps1",
+              "RelativeToolTip": "scripts\\master-deploy.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:13:45.786Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "setup-database.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\setup-database.ps1",
+              "RelativeDocumentMoniker": "scripts\\setup-database.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\setup-database.ps1",
+              "RelativeToolTip": "scripts\\setup-database.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:12:54.709Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "auto-deploy.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\auto-deploy.ps1",
+              "RelativeDocumentMoniker": "scripts\\auto-deploy.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\auto-deploy.ps1",
+              "RelativeToolTip": "scripts\\auto-deploy.ps1",
+              "ViewState": "AgIAAIoBAAAAAAAAAIBJwIwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T03:12:17.053Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "SUMMARY.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\SUMMARY.md",
+              "RelativeDocumentMoniker": "SUMMARY.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\SUMMARY.md",
+              "RelativeToolTip": "SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAPUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:09:45.809Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "PROJECT-READY.txt",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\PROJECT-READY.txt",
+              "RelativeDocumentMoniker": "PROJECT-READY.txt",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\PROJECT-READY.txt",
+              "RelativeToolTip": "PROJECT-READY.txt",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2025-12-15T03:08:42.699Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "README-DEPLOY.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\README-DEPLOY.md",
+              "RelativeDocumentMoniker": "README-DEPLOY.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\README-DEPLOY.md",
+              "RelativeToolTip": "README-DEPLOY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEABAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:07:34.931Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "QUICK-DEPLOY.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\QUICK-DEPLOY.md",
+              "RelativeDocumentMoniker": "QUICK-DEPLOY.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\QUICK-DEPLOY.md",
+              "RelativeToolTip": "QUICK-DEPLOY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:06:41.095Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "DEPLOYMENT-CHECKLIST-FINAL.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-CHECKLIST-FINAL.md",
+              "RelativeDocumentMoniker": "DEPLOYMENT-CHECKLIST-FINAL.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-CHECKLIST-FINAL.md",
+              "RelativeToolTip": "DEPLOYMENT-CHECKLIST-FINAL.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:06:27.579Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "START-HERE-DEPLOY.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\START-HERE-DEPLOY.md",
+              "RelativeDocumentMoniker": "START-HERE-DEPLOY.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\START-HERE-DEPLOY.md",
+              "RelativeToolTip": "START-HERE-DEPLOY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T03:05:42.967Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "tasks.ts",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\server\\routers\\tasks.ts",
+              "RelativeDocumentMoniker": "server\\routers\\tasks.ts",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\server\\routers\\tasks.ts",
+              "RelativeToolTip": "server\\routers\\tasks.ts",
+              "ViewState": "AgIAACUAAAAAAAAAAAAAwDkAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-12-15T02:59:27.991Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt",
+              "RelativeDocumentMoniker": "\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt",
+              "RelativeToolTip": "\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629.txt",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2025-12-15T02:55:47.851Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "check-hosting.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\check-hosting.ps1",
+              "RelativeDocumentMoniker": "scripts\\check-hosting.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\check-hosting.ps1",
+              "RelativeToolTip": "scripts\\check-hosting.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAK4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T00:44:10.879Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "HOSTING-OPTIONS.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\HOSTING-OPTIONS.md",
+              "RelativeDocumentMoniker": "HOSTING-OPTIONS.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\HOSTING-OPTIONS.md",
+              "RelativeToolTip": "HOSTING-OPTIONS.md",
+              "ViewState": "AgIAAMcAAAAAAAAAAAAAAAkAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T00:43:26.526Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "deploy-now.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\deploy-now.ps1",
+              "RelativeDocumentMoniker": "scripts\\deploy-now.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\deploy-now.ps1",
+              "RelativeToolTip": "scripts\\deploy-now.ps1",
+              "ViewState": "AgIAAC8BAAAAAAAAAAAAAD4BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T00:32:55.031Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": ".gitignore",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\.gitignore",
+              "RelativeDocumentMoniker": ".gitignore",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\.gitignore",
+              "RelativeToolTip": ".gitignore",
+              "ViewState": "AgIAABwAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T00:33:44.729Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "DEPLOY-NOW.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOY-NOW.md",
+              "RelativeDocumentMoniker": "DEPLOY-NOW.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOY-NOW.md",
+              "RelativeToolTip": "DEPLOY-NOW.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T00:33:29.696Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "READY-TO-DEPLOY.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\READY-TO-DEPLOY.md",
+              "RelativeDocumentMoniker": "READY-TO-DEPLOY.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\READY-TO-DEPLOY.md",
+              "RelativeToolTip": "READY-TO-DEPLOY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T00:26:11.251Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "LOGO.png - PNG [1500x921, 32 bit, PNG]",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\LOGO.png",
+              "RelativeDocumentMoniker": "LOGO.png",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\LOGO.png - PNG [1500x921, 32 bit, PNG]",
+              "RelativeToolTip": "LOGO.png - PNG [1500x921, 32 bit, PNG]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001533|",
+              "WhenOpened": "2025-12-15T00:09:16.131Z",
+              "EditorCaption": " - PNG [1500x921, 32 bit, PNG]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "deploy-hostinger-manual.ps1",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\deploy-hostinger-manual.ps1",
+              "RelativeDocumentMoniker": "scripts\\deploy-hostinger-manual.ps1",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\scripts\\deploy-hostinger-manual.ps1",
+              "RelativeToolTip": "scripts\\deploy-hostinger-manual.ps1",
+              "ViewState": "AgIAAD8AAAAAAAAAAAAAAKwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T00:25:14.806Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "app.ts",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\app.ts",
+              "RelativeDocumentMoniker": "server\\_core\\app.ts",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\app.ts",
+              "RelativeToolTip": "server\\_core\\app.ts",
+              "ViewState": "AgIAAEQBAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-12-15T00:10:37.376Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "cookies.ts",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\cookies.ts",
+              "RelativeDocumentMoniker": "server\\_core\\cookies.ts",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\cookies.ts",
+              "RelativeToolTip": "server\\_core\\cookies.ts",
+              "ViewState": "AgIAAEUAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-12-15T00:11:09.948Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "DEPLOYMENT-CHECKLIST.md",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-CHECKLIST.md",
+              "RelativeDocumentMoniker": "DEPLOYMENT-CHECKLIST.md",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\DEPLOYMENT-CHECKLIST.md",
+              "RelativeToolTip": "DEPLOYMENT-CHECKLIST.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAANEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-15T00:24:16.646Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "test-server.js",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\test-server.js",
+              "RelativeDocumentMoniker": "test-server.js",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\test-server.js",
+              "RelativeToolTip": "test-server.js",
+              "ViewState": "AgIAADUAAAAAAAAAAABBwDYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-12-15T00:22:37.311Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": ".env",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\.env",
+              "RelativeDocumentMoniker": ".env",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\.env",
+              "RelativeToolTip": ".env",
+              "ViewState": "AgIAAAoAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T00:16:35.717Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": ".env.production.template",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\.env.production.template",
+              "RelativeDocumentMoniker": ".env.production.template",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\.env.production.template",
+              "RelativeToolTip": ".env.production.template",
+              "ViewState": "AgIAACwAAAAAAAAAAABBwC0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-15T00:12:26.823Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "env.ts",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\env.ts",
+              "RelativeDocumentMoniker": "server\\_core\\env.ts",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\env.ts",
+              "RelativeToolTip": "server\\_core\\env.ts",
+              "ViewState": "AgIAAB0AAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-12-15T00:11:33.23Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "index.ts",
+              "DocumentMoniker": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\index.ts",
+              "RelativeDocumentMoniker": "server\\_core\\index.ts",
+              "ToolTip": "D:\\new project\\GTD-manage\\GTD-manage\\server\\_core\\index.ts",
+              "RelativeToolTip": "server\\_core\\index.ts",
+              "ViewState": "AgIAABoAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-12-15T00:11:22.125Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

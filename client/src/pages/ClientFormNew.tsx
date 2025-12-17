@@ -1,6 +1,10 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -26,7 +30,6 @@ export default function ClientFormNew() {
         const res = await fetch("/clinthope.raw.html", { cache: "no-store" });
         const html = await res.text();
         if (cancelled) return;
-        // Inject styles from <head> into document head without modification
         const styleBlocks = html.match(/<style[^>]*>[\s\S]*?<\/style>/gi) || [];
         styleBlocks.forEach((block, idx) => {
           const marker = `embedded-clinthope-style-${idx}`;
@@ -37,28 +40,23 @@ export default function ClientFormNew() {
             document.head.appendChild(styleEl);
           }
         });
-        // Extract body content to preserve page markup without replacing the app root
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         const bodyInner = bodyMatch ? bodyMatch[1] : html;
         if (containerRef.current) {
           containerRef.current.innerHTML = bodyInner;
-          // Re-execute scripts found inside the injected content
           const scripts = Array.from(containerRef.current.querySelectorAll("script"));
           scripts.forEach((old) => {
             const s = document.createElement("script");
-            // Preserve inline vs src
             if (old.src) {
               s.src = old.src;
             } else {
               s.textContent = old.textContent || "";
             }
-            // Carry basic attributes
             if (old.type) s.type = old.type;
             if (old.defer) s.defer = true;
             if (old.async) s.async = true;
             old.replaceWith(s);
           });
-          // Hook saving without changing template
           const hook = () => {
             try {
               const collectImages = () => {
@@ -75,7 +73,6 @@ export default function ClientFormNew() {
               const saveIntoSystem = async () => {
                 const htmlSnapshot = "<!DOCTYPE html>\n" + containerRef.current!.innerHTML;
                 const base64 = btoa(unescape(encodeURIComponent(htmlSnapshot)));
-                // Create form record
                 const result = await createForm.mutateAsync({
                   clientId: 0,
                   projectId: undefined,
@@ -105,16 +102,19 @@ export default function ClientFormNew() {
                   setLocation("/forms");
                 }
               };
-              // Attach click listener to catch "حفظ" buttons inside template
-              containerRef.current!.addEventListener("click", async (e) => {
-                const el = e.target as HTMLElement;
-                const txt = (el?.textContent || "").trim();
-                if (el?.tagName === "BUTTON" && /حفظ|PDF|تصدير/.test(txt)) {
-                  try {
-                    await saveIntoSystem();
-                  } catch {}
-                }
-              }, true);
+              containerRef.current!.addEventListener(
+                "click",
+                async (e) => {
+                  const el = e.target as HTMLElement;
+                  const txt = (el?.textContent || "").trim();
+                  if (el?.tagName === "BUTTON" && /حفظ|PDF|تصدير/.test(txt)) {
+                    try {
+                      await saveIntoSystem();
+                    } catch {}
+                  }
+                },
+                true
+              );
             } catch {}
           };
           setTimeout(hook, 0);
@@ -131,13 +131,37 @@ export default function ClientFormNew() {
     };
   }, []);
 
+  const handleSaveFileCopy = async () => {
+    try {
+      let text: string | null = null;
+      const res = await fetch("/clinthope.raw.html");
+      if (res.ok) {
+        text = await res.text();
+      } else if (containerRef.current) {
+        text = "<!DOCTYPE html>\n" + containerRef.current.innerHTML;
+      }
+      if (!text) throw new Error("fetch_failed");
+      const base64 = btoa(unescape(encodeURIComponent(text)));
+      await uploadFile.mutateAsync({
+        entityType: "form_copy",
+        entityId: 0,
+        fileName: `clinthope-${Date.now()}.html`,
+        fileData: base64,
+        mimeType: "text/html",
+      });
+      toast.success("تم حفظ نسخة الصفحة");
+    } catch {
+      toast.error("تعذر جلب الصفحة وحفظها");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">إنشاء استمارة طلب عميل</h1>
-            <p className="text-muted-foreground mt-2">دمج القالب داخل التطبيق دون تعديل على المحتوى أو الخصائص</p>
+            <h1 className="text-3xl font-bold">إنشاء استمارة طلب عميل</h1>
+            <p className="text-muted-foreground">صفحة ضمنية لحفظ نسخة داخل البرنامج</p>
           </div>
           <Button variant="outline" onClick={() => setLocation("/forms")}>
             العودة

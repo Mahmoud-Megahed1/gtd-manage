@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "light" | "dark";

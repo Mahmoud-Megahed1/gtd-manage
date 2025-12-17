@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +47,7 @@ export default function Forms() {
 
           <TabsContent value="requests" className="mt-6 space-y-6">
             <div className="flex gap-2 justify-end">
-              <Button size="lg" variant="outline" onClick={() => setLocation('/forms/new')}>
+              <Button size="lg" variant="outline" onClick={() => setLocation('/clinthope')}>
                 اضافة استمارة
               </Button>
             </div>
@@ -77,14 +81,7 @@ export default function Forms() {
                         <Button variant="outline" className="w-full" onClick={() => setLocation(`/forms/${form.id}`)}>
                           عرض التفاصيل
                         </Button>
-                        {user?.role === 'admin' && (
-                          <Button
-                            variant="destructive"
-                            onClick={() => deleteForm.mutate({ id: form.id })}
-                          >
-                            حذف
-                          </Button>
-                        )}
+                        
                       </div>
                     </CardContent>
                   </Card>
@@ -141,14 +138,7 @@ export default function Forms() {
                         <Button variant="outline" className="w-full" onClick={() => setLocation(`/forms/${form.id}`)}>
                           عرض التفاصيل
                         </Button>
-                        {user?.role === 'admin' && (
-                          <Button
-                            variant="destructive"
-                            onClick={() => deleteForm.mutate({ id: form.id })}
-                          >
-                            حذف
-                          </Button>
-                        )}
+                        
                       </div>
                     </CardContent>
                   </Card>

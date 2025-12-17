@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import * as db from "../db";
 import { and, gte, lte, sql } from "drizzle-orm";
 import { invoices, expenses, installments, purchases } from "../../drizzle/schema";
+import * as demo from "../_core/demoStore";
 
 export const reportsRouter = router({
   summary: protectedProcedure
@@ -18,21 +19,33 @@ export const reportsRouter = router({
       expenseStatus: z.enum(["active","cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (!['admin', 'accountant'].includes(ctx.user.role)) {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       // Basic permission guard if needed
       // await ensurePerm(ctx, 'accounting');
       const conn = await db.getDb();
       if (!conn) {
-        // Demo mode: aggregate using demo store approximations
-        const inv = await db.getAllCompanySettings(); // placeholder to ensure structure
+        const from = input.from ?? new Date(0);
+        const to = input.to ?? new Date();
+        const within = (d: Date | number | string | null | undefined) => {
+          const dt = d ? new Date(d as any) : null;
+          if (!dt) return false;
+          return dt >= from && dt <= to;
+        };
+        const invRows = demo.list("invoices").filter((r: any) => within(r.issueDate));
+        const purRows = demo.list("purchases").filter((r: any) => within(r.purchaseDate));
+        const expRows = demo.list("expenses").filter((r: any) => within(r.expenseDate));
+        const instRows = demo.list("installments").filter((r: any) => within(r.createdAt));
         return {
-          invoicesTotal: 0,
-          purchasesTotal: 0,
-          expensesTotal: 0,
-          installmentsTotal: 0,
-          net: 0,
+          invoicesTotal: invRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0),
+          purchasesTotal: purRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
+          expensesTotal: expRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
+          installmentsTotal: instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
+          net: invRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0)
+            + instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
+            - purRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
+            - expRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
         };
       }
       const from = input.from ?? new Date(0);
@@ -82,7 +95,7 @@ export const reportsRouter = router({
       expenseStatus: z.enum(["active","cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (!['admin', 'accountant'].includes(ctx.user.role)) {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       const conn = await db.getDb();
@@ -101,7 +114,32 @@ export const reportsRouter = router({
         }
       }
       if (!conn) {
-        return range.map(r => ({ dateKey: r.key, invoices: 0, expenses: 0, installments: 0, net: 0 }));
+        const invRows = demo.list("invoices");
+        const expRows = demo.list("expenses");
+        const instRows = demo.list("installments");
+        const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth()+1}` : d.toISOString().substring(0, 10);
+        const acc: Record<string, { invoices: number; expenses: number; installments: number }> = {};
+        range.forEach(r => { acc[r.key] = { invoices: 0, expenses: 0, installments: 0 }; });
+        invRows.forEach((r: any) => {
+          const d = new Date(r.issueDate || r.createdAt || Date.now());
+          const k = makeKey(d);
+          if (acc[k]) acc[k].invoices += Number(r.total || 0);
+        });
+        expRows.forEach((r: any) => {
+          const d = new Date(r.expenseDate || r.createdAt || Date.now());
+          const k = makeKey(d);
+          if (acc[k]) acc[k].expenses += Number(r.amount || 0);
+        });
+        instRows.forEach((r: any) => {
+          const d = new Date(r.createdAt || Date.now());
+          const k = makeKey(d);
+          if (acc[k]) acc[k].installments += Number(r.amount || 0);
+        });
+        return range.map(r => {
+          const v = acc[r.key] || { invoices: 0, expenses: 0, installments: 0 };
+          const net = v.invoices + v.installments - v.expenses;
+          return { dateKey: r.key, invoices: v.invoices, expenses: v.expenses, installments: v.installments, net };
+        });
       }
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to)];
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);

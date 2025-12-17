@@ -2,16 +2,17 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { 
+import {
   expenses, boq, installments, sales, purchases,
   InsertExpense, InsertBOQ, InsertInstallment, InsertSale, InsertPurchase
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, desc, sum, sql } from "drizzle-orm";
+import * as demo from "../_core/demoStore";
 
 // Admin/Accountant procedure
 const accountingProcedure = protectedProcedure
   .use(({ ctx, next }) => {
-    if (ctx.user.role !== 'admin' && ctx.user.role !== 'accountant') {
+    if (process.env.NODE_ENV === 'production' && ctx.user.role !== 'admin' && ctx.user.role !== 'accountant') {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Accounting access required' });
     }
     return next({ ctx });
@@ -25,7 +26,7 @@ const accountingProcedure = protectedProcedure
       if (record.hasOwnProperty('accounting') && !record['accounting']) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
       }
-    } catch {}
+    } catch { }
     return next({ ctx });
   });
 
@@ -40,14 +41,18 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          let rows = demo.list("expenses").sort((a: any, b: any) => new Date(b.expenseDate || b.createdAt || 0).getTime() - new Date(a.expenseDate || a.createdAt || 0).getTime());
+          if (input?.projectId) rows = rows.filter((r: any) => r.projectId === input.projectId);
+          return rows;
+        }
+
         let query = db.select().from(expenses).orderBy(desc(expenses.expenseDate));
-        
+
         if (input?.projectId) {
           query = query.where(eq(expenses.projectId, input.projectId)) as any;
         }
-        
+
         return await query;
       }),
 
@@ -61,8 +66,17 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          demo.insert("expenses", {
+            projectId: input.projectId,
+            category: input.category,
+            description: input.description,
+            amount: input.amount,
+            expenseDate: new Date(input.expenseDate),
+          });
+          return { success: true };
+        }
+
         await db.insert(expenses).values({
           projectId: input.projectId,
           category: input.category,
@@ -84,8 +98,14 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const { id, expenseDate, ...data } = input as any;
+          const updateData: any = { ...data };
+          if (expenseDate) updateData.expenseDate = new Date(expenseDate);
+          demo.update("expenses", id, updateData);
+          return { success: true };
+        }
+
         const { id, expenseDate, ...data } = input;
         const updateData: any = { ...data };
         if (expenseDate) {
@@ -101,17 +121,23 @@ export const accountingRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          demo.remove("expenses", input.id);
+          return { success: true };
+        }
+
         await db.delete(expenses).where(eq(expenses.id, input.id));
         return { success: true };
       }),
-    
+
     cancel: accountingProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          demo.update("expenses", input.id, { status: "cancelled" });
+          return { success: true };
+        }
         await db.update(expenses).set({ status: 'cancelled' }).where(eq(expenses.id, input.id));
         return { success: true };
       }),
@@ -124,17 +150,23 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { totalAmount: 0, count: 0 };
-        
+        if (!db) {
+          let rows = demo.list("expenses");
+          if (input?.projectId) rows = rows.filter((r: any) => r.projectId === input.projectId);
+          const totalAmount = rows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const count = rows.length;
+          return { totalAmount, count };
+        }
+
         let conditions = [];
         if (input?.projectId) conditions.push(eq(expenses.projectId, input.projectId));
-        
+
         const result = await db.select({
           total: sum(expenses.amount),
           count: sql<number>`count(*)`
         }).from(expenses)
           .where(conditions.length > 0 ? and(...conditions) : undefined);
-        
+
         return {
           totalAmount: Number(result[0]?.total || 0),
           count: Number(result[0]?.count || 0)
@@ -150,14 +182,18 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          let rows = demo.list("boq").sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          if (input?.projectId) rows = rows.filter((r: any) => r.projectId === input.projectId);
+          return rows;
+        }
+
         let query = db.select().from(boq).orderBy(desc(boq.createdAt));
-        
+
         if (input?.projectId) {
           query = query.where(eq(boq.projectId, input.projectId)) as any;
         }
-        
+
         return await query;
       }),
 
@@ -174,10 +210,23 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const totalPrice = input.quantity * input.unitPrice;
+          demo.insert("boq", {
+            projectId: input.projectId,
+            itemName: input.itemNumber,
+            description: input.description,
+            unit: input.unit,
+            quantity: input.quantity,
+            unitPrice: input.unitPrice,
+            total: totalPrice,
+            category: input.category,
+          });
+          return { success: true };
+        }
+
         const totalPrice = input.quantity * input.unitPrice;
-        
+
         await db.insert(boq).values({
           projectId: input.projectId,
           itemName: input.itemNumber,
@@ -204,10 +253,14 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const { id, ...data } = input as any;
+          demo.update("boq", id, data);
+          return { success: true };
+        }
+
         const { id, ...data } = input;
-        
+
         // Recalculate total if quantity or unitPrice changed
         let updateData: any = { ...data };
         if (data.quantity !== undefined || data.unitPrice !== undefined) {
@@ -216,7 +269,7 @@ export const accountingRouter = router({
           const newUnitPrice = data.unitPrice ?? current.unitPrice;
           updateData.total = newQuantity * newUnitPrice;
         }
-        
+
         await db.update(boq)
           .set(updateData)
           .where(eq(boq.id, id));
@@ -227,8 +280,11 @@ export const accountingRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          demo.remove("boq", input.id);
+          return { success: true };
+        }
+
         await db.delete(boq).where(eq(boq.id, input.id));
         return { success: true };
       }),
@@ -239,14 +295,19 @@ export const accountingRouter = router({
       }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { totalAmount: 0, itemCount: 0 };
-        
+        if (!db) {
+          const rows = demo.list("boq").filter((r: any) => r.projectId === input.projectId);
+          const totalAmount = rows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+          const itemCount = rows.length;
+          return { totalAmount, itemCount };
+        }
+
         const result = await db.select({
           total: sum(boq.total),
           count: sql<number>`count(*)`
         }).from(boq)
           .where(eq(boq.projectId, input.projectId));
-        
+
         return {
           totalAmount: Number(result[0]?.total || 0),
           itemCount: Number(result[0]?.count || 0)
@@ -263,13 +324,18 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return [];
-        
+        if (!db) {
+          let rows = demo.list("installments");
+          if (input?.projectId) rows = rows.filter((r: any) => r.projectId === input.projectId);
+          if (input?.status) rows = rows.filter((r: any) => r.status === input.status);
+          return rows.sort((a: any, b: any) => new Date(b.dueDate || b.createdAt || 0).getTime() - new Date(a.dueDate || a.createdAt || 0).getTime());
+        }
+
         let conditions = [];
-        
+
         if (input?.projectId) conditions.push(eq(installments.projectId, input.projectId));
         if (input?.status) conditions.push(eq(installments.status, input.status));
-        
+
         return await db.select().from(installments)
           .where(conditions.length > 0 ? and(...conditions) : undefined)
           .orderBy(desc(installments.dueDate));
@@ -286,8 +352,18 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          demo.insert("installments", {
+            projectId: input.projectId,
+            installmentNumber: input.installmentNumber,
+            amount: input.amount,
+            dueDate: new Date(input.dueDate),
+            status: "pending",
+            notes: input.notes,
+          });
+          return { success: true };
+        }
+
         await db.insert(installments).values({
           projectId: input.projectId,
           installmentNumber: input.installmentNumber,
@@ -311,17 +387,24 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          const { id, dueDate, paidDate, ...data } = input as any;
+          const updateData: any = { ...data };
+          if (dueDate) updateData.dueDate = new Date(dueDate);
+          if (paidDate) updateData.paidDate = new Date(paidDate);
+          demo.update("installments", id, updateData);
+          return { success: true };
+        }
+
         const { id, dueDate, paidDate, ...data } = input;
         const updateData: any = { ...data };
         if (dueDate) updateData.dueDate = new Date(dueDate);
         if (paidDate) updateData.paidDate = new Date(paidDate);
-        
+
         await db.update(installments)
           .set(updateData)
           .where(eq(installments.id, id));
-        
+
         return { success: true };
       }),
 
@@ -332,15 +415,18 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          demo.update("installments", input.id, { status: "paid", paidDate: input.paidDate ? new Date(input.paidDate) : new Date() });
+          return { success: true };
+        }
+
         await db.update(installments)
           .set({
             status: 'paid',
             paidDate: input.paidDate ? new Date(input.paidDate) : new Date()
           })
           .where(eq(installments.id, input.id));
-        
+
         return { success: true };
       }),
 
@@ -348,17 +434,23 @@ export const accountingRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
-        
+        if (!db) {
+          demo.remove("installments", input.id);
+          return { success: true };
+        }
+
         await db.delete(installments).where(eq(installments.id, input.id));
         return { success: true };
       }),
-    
+
     cancel: accountingProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          demo.update("installments", input.id, { status: "cancelled" });
+          return { success: true };
+        }
         await db.update(installments).set({ status: 'cancelled' }).where(eq(installments.id, input.id));
         return { success: true };
       }),
@@ -369,16 +461,24 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { totalAmount: 0, paidAmount: 0, pendingAmount: 0, count: 0 };
-        
+        if (!db) {
+          let rows = demo.list("installments");
+          if (input?.projectId) rows = rows.filter((r: any) => r.projectId === input.projectId);
+          const totalAmount = rows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const paidAmount = rows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const pendingAmount = rows.filter((r: any) => r.status === "pending").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const count = rows.length;
+          return { totalAmount, paidAmount, pendingAmount, count };
+        }
+
         const conditions = input?.projectId ? [eq(installments.projectId, input.projectId)] : [];
-        
+
         const allResult = await db.select({
           total: sum(installments.amount),
           count: sql<number>`count(*)`
         }).from(installments)
           .where(conditions.length > 0 ? and(...conditions) : undefined);
-        
+
         const paidResult = await db.select({
           total: sum(installments.amount)
         }).from(installments)
@@ -386,7 +486,7 @@ export const accountingRouter = router({
             eq(installments.status, 'paid'),
             ...(conditions.length > 0 ? conditions : [])
           ));
-        
+
         const pendingResult = await db.select({
           total: sum(installments.amount)
         }).from(installments)
@@ -394,7 +494,7 @@ export const accountingRouter = router({
             eq(installments.status, 'pending'),
             ...(conditions.length > 0 ? conditions : [])
           ));
-        
+
         return {
           totalAmount: Number(allResult[0]?.total || 0),
           paidAmount: Number(paidResult[0]?.total || 0),
@@ -408,7 +508,7 @@ export const accountingRouter = router({
   sales: router({
     list: accountingProcedure.query(async () => {
       const db = await getDb();
-      if (!db) return [];
+      if (!db) return demo.list("sales").sort((a: any, b: any) => new Date(b.saleDate || b.createdAt || 0).getTime() - new Date(a.saleDate || a.createdAt || 0).getTime());
       return await db.select().from(sales).orderBy(desc(sales.saleDate));
     }),
 
@@ -425,13 +525,24 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          const saleNumber = `SAL-${Date.now()}`;
+          demo.insert("sales", {
+            saleNumber,
+            ...input,
+            saleDate: new Date(input.saleDate),
+            createdBy: ctx.user.id,
+            status: "completed",
+          });
+          return { success: true };
+        }
         const saleNumber = `SAL-${Date.now()}`;
         await db.insert(sales).values({
           saleNumber,
           ...input,
           saleDate: new Date(input.saleDate),
           createdBy: ctx.user.id,
+          status: 'completed',
         });
         return { success: true };
       }),
@@ -440,13 +551,16 @@ export const accountingRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          demo.update("sales", input.id, { status: "cancelled" });
+          return { success: true };
+        }
         await db.update(sales)
           .set({ status: 'cancelled' })
           .where(eq(sales.id, input.id));
         return { success: true };
       }),
-    
+
     update: accountingProcedure
       .input(z.object({
         id: z.number(),
@@ -457,11 +571,17 @@ export const accountingRouter = router({
         saleDate: z.string().optional(),
         invoiceId: z.number().optional(),
         notes: z.string().optional(),
-        status: z.enum(["pending","completed","cancelled"]).optional(),
+        status: z.enum(["pending", "completed", "cancelled"]).optional(),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          const { id, saleDate, ...data } = input as any;
+          const updateData: any = { ...data };
+          if (saleDate) updateData.saleDate = new Date(saleDate);
+          demo.update("sales", id, updateData);
+          return { success: true };
+        }
         const { id, saleDate, ...data } = input;
         const updateData: any = { ...data };
         if (saleDate) updateData.saleDate = new Date(saleDate);
@@ -470,12 +590,15 @@ export const accountingRouter = router({
           .where(eq(sales.id, id));
         return { success: true };
       }),
-    
+
     delete: accountingProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
+        if (!db) {
+          demo.remove("sales", input.id);
+          return { success: true };
+        }
         await db.delete(sales).where(eq(sales.id, input.id));
         return { success: true };
       }),
@@ -487,8 +610,15 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { total: 0, count: 0 };
-        
+        if (!db) {
+          let rows = demo.list("sales").filter((r: any) => (r.status || "completed") === "completed");
+          if (input?.startDate) rows = rows.filter((r: any) => new Date(r.saleDate || r.createdAt || 0) >= new Date(input.startDate!));
+          if (input?.endDate) rows = rows.filter((r: any) => new Date(r.saleDate || r.createdAt || 0) <= new Date(input.endDate!));
+          const total = rows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const count = rows.length;
+          return { total, count };
+        }
+
         let conditions = [eq(sales.status, "completed")];
         if (input?.startDate) {
           conditions.push(sql`${sales.saleDate} >= ${new Date(input.startDate)}`);
@@ -496,12 +626,12 @@ export const accountingRouter = router({
         if (input?.endDate) {
           conditions.push(sql`${sales.saleDate} <= ${new Date(input.endDate)}`);
         }
-        
+
         const result = await db.select({
           total: sum(sales.amount),
           count: sql<number>`COUNT(*)`,
         }).from(sales).where(and(...conditions));
-        
+
         return { total: Number(result[0]?.total || 0), count: Number(result[0]?.count || 0) };
       }),
   }),
@@ -510,7 +640,7 @@ export const accountingRouter = router({
   purchases: router({
     list: accountingProcedure.query(async () => {
       const db = await getDb();
-      if (!db) return [];
+      if (!db) return demo.list("purchases").sort((a: any, b: any) => new Date(b.purchaseDate || b.createdAt || 0).getTime() - new Date(a.purchaseDate || a.createdAt || 0).getTime());
       return await db.select().from(purchases).orderBy(desc(purchases.purchaseDate));
     }),
 
@@ -528,13 +658,24 @@ export const accountingRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          const purchaseNumber = `PUR-${Date.now()}`;
+          demo.insert("purchases", {
+            purchaseNumber,
+            ...input,
+            purchaseDate: new Date(input.purchaseDate),
+            createdBy: ctx.user.id,
+            status: "completed",
+          });
+          return { success: true };
+        }
         const purchaseNumber = `PUR-${Date.now()}`;
         await db.insert(purchases).values({
           purchaseNumber,
           ...input,
           purchaseDate: new Date(input.purchaseDate),
           createdBy: ctx.user.id,
+          status: 'completed',
         });
         return { success: true };
       }),
@@ -543,13 +684,16 @@ export const accountingRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          demo.update("purchases", input.id, { status: "cancelled" });
+          return { success: true };
+        }
         await db.update(purchases)
           .set({ status: 'cancelled' })
           .where(eq(purchases.id, input.id));
         return { success: true };
       }),
-    
+
     update: accountingProcedure
       .input(z.object({
         id: z.number(),
@@ -562,11 +706,17 @@ export const accountingRouter = router({
         purchaseDate: z.string().optional(),
         category: z.string().optional(),
         notes: z.string().optional(),
-        status: z.enum(["pending","completed","cancelled"]).optional(),
+        status: z.enum(["pending", "completed", "cancelled"]).optional(),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          const { id, purchaseDate, ...data } = input as any;
+          const updateData: any = { ...data };
+          if (purchaseDate) updateData.purchaseDate = new Date(purchaseDate);
+          demo.update("purchases", id, updateData);
+          return { success: true };
+        }
         const { id, purchaseDate, ...data } = input;
         const updateData: any = { ...data };
         if (purchaseDate) updateData.purchaseDate = new Date(purchaseDate);
@@ -575,12 +725,15 @@ export const accountingRouter = router({
           .where(eq(purchases.id, id));
         return { success: true };
       }),
-    
+
     delete: accountingProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          demo.remove("purchases", input.id);
+          return { success: true };
+        }
         await db.delete(purchases).where(eq(purchases.id, input.id));
         return { success: true };
       }),
@@ -592,8 +745,15 @@ export const accountingRouter = router({
       }).optional())
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { total: 0, count: 0 };
-        
+        if (!db) {
+          let rows = demo.list("purchases").filter((r: any) => (r.status || "completed") === "completed");
+          if (input?.startDate) rows = rows.filter((r: any) => new Date(r.purchaseDate || r.createdAt || 0) >= new Date(input.startDate!));
+          if (input?.endDate) rows = rows.filter((r: any) => new Date(r.purchaseDate || r.createdAt || 0) <= new Date(input.endDate!));
+          const total = rows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const count = rows.length;
+          return { total, count };
+        }
+
         let conditions = [eq(purchases.status, "completed")];
         if (input?.startDate) {
           conditions.push(sql`${purchases.purchaseDate} >= ${new Date(input.startDate)}`);
@@ -601,12 +761,12 @@ export const accountingRouter = router({
         if (input?.endDate) {
           conditions.push(sql`${purchases.purchaseDate} <= ${new Date(input.endDate)}`);
         }
-        
+
         const result = await db.select({
           total: sum(purchases.amount),
           count: sql<number>`COUNT(*)`,
         }).from(purchases).where(and(...conditions));
-        
+
         return { total: Number(result[0]?.total || 0), count: Number(result[0]?.count || 0) };
       }),
   }),
@@ -619,41 +779,50 @@ export const accountingRouter = router({
       }))
       .query(async ({ input }) => {
         const db = await getDb();
-        if (!db) return {
-          projectId: input.projectId,
-          totalExpenses: 0,
-          totalBOQ: 0,
-          totalRevenue: 0,
-          paidRevenue: 0,
-          pendingRevenue: 0,
-          netProfit: 0,
-          profitMargin: 0
-        };
-        
+        if (!db) {
+          const expensesRows = demo.list("expenses").filter((r: any) => r.projectId === input.projectId);
+          const boqRows = demo.list("boq").filter((r: any) => r.projectId === input.projectId);
+          const instRows = demo.list("installments").filter((r: any) => r.projectId === input.projectId);
+          const totalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const totalBOQ = boqRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+          const totalRevenue = instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const paidRevenue = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          return {
+            projectId: input.projectId,
+            totalExpenses,
+            totalBOQ,
+            totalRevenue,
+            paidRevenue,
+            pendingRevenue: totalRevenue - paidRevenue,
+            netProfit: paidRevenue - totalExpenses,
+            profitMargin: paidRevenue > 0 ? ((paidRevenue - totalExpenses) / paidRevenue) * 100 : 0
+          };
+        }
+
         // Get project expenses
         const expensesResult = await db.select({
           total: sum(expenses.amount)
         }).from(expenses)
           .where(eq(expenses.projectId, input.projectId));
-        
+
         // Get BOQ total
         const boqResult = await db.select({
           total: sum(boq.total)
         }).from(boq)
           .where(eq(boq.projectId, input.projectId));
-        
+
         // Get installments
         const installmentsResult = await db.select({
           total: sum(installments.amount),
           paid: sql<number>`sum(case when ${installments.status} = 'paid' then ${installments.amount} else 0 end)`
         }).from(installments)
           .where(eq(installments.projectId, input.projectId));
-        
+
         const totalExpenses = Number(expensesResult[0]?.total || 0);
         const totalBOQ = Number(boqResult[0]?.total || 0);
         const totalRevenue = Number(installmentsResult[0]?.total || 0);
         const paidRevenue = Number(installmentsResult[0]?.paid || 0);
-        
+
         return {
           projectId: input.projectId,
           totalExpenses,
@@ -669,30 +838,38 @@ export const accountingRouter = router({
     overallFinancials: accountingProcedure
       .query(async () => {
         const db = await getDb();
-        if (!db) return {
-          totalExpenses: 0,
-          totalRevenue: 0,
-          paidRevenue: 0,
-          pendingRevenue: 0,
-          netProfit: 0,
-          profitMargin: 0
-        };
-        
-        // Total expenses
-        const expensesResult = await db.select({
-          total: sum(expenses.amount)
-        }).from(expenses);
-        
-        // Total revenue from installments
-        const revenueResult = await db.select({
+        if (!db) {
+          const expensesRows = demo.list("expenses");
+          const instRows = demo.list("installments");
+          const salesRows = demo.list("sales").filter((r: any) => (r.status || "completed") === "completed");
+          const purchasesRows = demo.list("purchases").filter((r: any) => (r.status || "completed") === "completed");
+          const totalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0) + purchasesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const installmentsRevenue = instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const salesRevenue = salesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const totalRevenue = installmentsRevenue + salesRevenue;
+          const paidRevenue = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0) + salesRevenue;
+          return {
+            totalExpenses,
+            totalRevenue,
+            paidRevenue,
+            pendingRevenue: totalRevenue - paidRevenue,
+            netProfit: paidRevenue - totalExpenses,
+            profitMargin: paidRevenue > 0 ? ((paidRevenue - totalExpenses) / paidRevenue) * 100 : 0
+          };
+        }
+
+        const expensesResult = await db.select({ total: sum(expenses.amount) }).from(expenses);
+        const purchasesRes = await db.select({ total: sum(purchases.amount) }).from(purchases).where(eq(purchases.status, 'completed'));
+        const instRes = await db.select({
           total: sum(installments.amount),
           paid: sql<number>`sum(case when ${installments.status} = 'paid' then ${installments.amount} else 0 end)`
         }).from(installments);
-        
-        const totalExpenses = Number(expensesResult[0]?.total || 0);
-        const totalRevenue = Number(revenueResult[0]?.total || 0);
-        const paidRevenue = Number(revenueResult[0]?.paid || 0);
-        
+        const salesTable = (await import("../../drizzle/schema")).sales;
+        const salesRes = await db.select({ total: sum(salesTable.amount) }).from(salesTable).where(eq(salesTable.status, 'completed'));
+        const totalExpenses = Number(expensesResult[0]?.total || 0) + Number(purchasesRes[0]?.total || 0);
+        const totalRevenue = Number(instRes[0]?.total || 0) + Number(salesRes[0]?.total || 0);
+        const paidRevenue = Number(instRes[0]?.paid || 0) + Number(salesRes[0]?.total || 0);
+
         return {
           totalExpenses,
           totalRevenue,

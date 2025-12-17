@@ -26,16 +26,22 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate and Push DB
-        if: ${{ secrets.DATABASE_URL != '' }}
+        if: ${{ secrets.DATABASE_URL != '' && secrets.ALLOW_DB_PUSH == 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm db:push
 
       - name: Build
+        env:
+          VITE_SERVER_ORIGIN: ${{ secrets.VITE_SERVER_ORIGIN }}
+          WEB_ORIGIN: ${{ secrets.WEB_ORIGIN }}
+          VITE_OAUTH_PORTAL_URL: ${{ secrets.VITE_OAUTH_PORTAL_URL }}
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
+          VITE_USE_DEV_LOGIN: ${{ secrets.VITE_USE_DEV_LOGIN }}
         run: pnpm build
 
       - name: Deploy via SSH
-        if: ${{ secrets.HOSTINGER_SSH_KEY != '' }}
+        if: ${{ secrets.HOSTINGER_SSH_KEY != '' && contains(secrets.HOSTINGER_SSH_KEY, 'PRIVATE KEY') }}
         uses: easingthemes/ssh-deploy@v5.1.0
         env:
           SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
@@ -47,7 +53,7 @@ jobs:
           EXCLUDE: ".git*,node_modules/"
 
       - name: Restart PM2
-        if: ${{ secrets.HOSTINGER_SSH_KEY != '' }}
+        if: ${{ secrets.HOSTINGER_SSH_KEY != '' && contains(secrets.HOSTINGER_SSH_KEY, 'PRIVATE KEY') }}
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
@@ -91,7 +97,7 @@ jobs:
             **/*.map
 
       - name: Health Check
-        if: ${{ secrets.HOSTINGER_DOMAIN != '' && secrets.HOSTINGER_SSH_KEY != '' }}
+        if: ${{ secrets.HOSTINGER_DOMAIN != '' && secrets.HOSTINGER_SSH_KEY != '' && contains(secrets.HOSTINGER_SSH_KEY, 'PRIVATE KEY') }}
         run: |
           DOMAIN="${{ secrets.HOSTINGER_DOMAIN }}"
           echo "Checking https://${DOMAIN}/healthz"

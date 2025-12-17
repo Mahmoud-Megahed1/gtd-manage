@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,10 +75,42 @@ export default function Reports() {
     });
     return rows;
   }, [timeseries]);
-  const csvDataUri = useMemo(() => {
-    const content = csvRows.map(r => r.join(",")).join("\n");
-    return "data:text/csv;charset=utf-8," + encodeURIComponent(content);
-  }, [csvRows]);
+  const buildQuery = () => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    if (clientId !== "all") q.set("clientId", clientId);
+    if (projectId !== "all") q.set("projectId", projectId);
+    if (invoiceStatus !== "all") q.set("invoiceStatus", invoiceStatus);
+    if (purchaseStatus !== "all") q.set("purchaseStatus", purchaseStatus);
+    if (expenseStatus !== "all") q.set("expenseStatus", expenseStatus);
+    if (installmentStatus !== "all") q.set("installmentStatus", installmentStatus);
+    return q.toString();
+  };
+  const buildBreakdownQuery = () => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    if (clientId !== "all") q.set("clientId", clientId);
+    if (projectId !== "all") q.set("projectId", projectId);
+    invSel.forEach(s => q.append("invoiceStatuses", s));
+    purSel.forEach(s => q.append("purchaseStatuses", s));
+    expSel.forEach(s => q.append("expenseStatuses", s));
+    instSel.forEach(s => q.append("installmentStatuses", s));
+    return q.toString();
+  };
+  const downloadCsv = (rows: string[][], filename: string) => {
+    const content = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + content], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
   const chartData = useMemo(() => {
     const labels = (timeseries || []).map(r => r.dateKey);
     return {
@@ -172,10 +208,8 @@ export default function Reports() {
     });
     return rows;
   }, [breakdown, invSel, purSel, expSel, instSel]);
-  const breakdownCsvUri = useMemo(() => {
-    const content = breakdownCsv.map(r => r.join(",")).join("\n");
-    return "data:text/csv;charset=utf-8," + encodeURIComponent(content);
-  }, [breakdownCsv]);
+  const canExportCsv = useMemo(() => (timeseries || []).length > 0, [timeseries]);
+  const canExportBreakdown = useMemo(() => (breakdown || []).length > 0, [breakdown]);
   const exportPdf = () => {
     try {
       const img = chartRef.current?.toBase64Image?.() || "";
@@ -195,15 +229,33 @@ export default function Reports() {
             <div class="card"><div>إجمالي المصروفات</div><h2>${data?.expensesTotal ?? 0}</h2></div>
             <div class="card"><div>الصافي</div><h2>${data?.net ?? 0}</h2></div>
           </div>
-          ${img ? `<h2>المخطط</h2><img src="${img}" />` : ""}
+          ${img ? `<h2>المخطط</h2><img id="chartImg" src="${img}" />` : "<div style='margin-top:16px;color:#6b7280'>لا يوجد مخطط لطباعته</div>"}
+          <script>
+            function readyToPrint(){
+              try {
+                window.focus();
+                setTimeout(function(){ window.print(); }, 150);
+              } catch {}
+            }
+            var pic = document.getElementById('chartImg');
+            if (pic) {
+              pic.onload = readyToPrint;
+              setTimeout(readyToPrint, 400);
+            } else {
+              setTimeout(readyToPrint, 150);
+            }
+          </script>
         </body></html>`;
       const w = window.open("", "_blank");
       if (!w) return;
+      w.document.open();
       w.document.write(html);
       w.document.close();
-      w.focus();
-      w.print();
     } catch {}
+  };
+  const exportServerPdf = () => {
+    const qs = buildQuery();
+    window.open(`/reports.print.html?${qs}`, "_blank");
   };
   return (
     <DashboardLayout>
@@ -318,13 +370,23 @@ export default function Reports() {
               </div>
             </div>
             <div className="flex gap-2">
-              <a href={csvDataUri} download={`reports-${Date.now()}.csv`}>
-                <Button variant="outline">تصدير CSV</Button>
-              </a>
-              <Button variant="outline" onClick={exportPdf}>تصدير PDF</Button>
-              <a href={breakdownCsvUri} download={`reports-breakdown-${Date.now()}.csv`}>
-                <Button variant="outline">تفصيل CSV</Button>
-              </a>
+              <Button
+                variant="outline"
+                onClick={() => window.open(`/reports.export.csv?${buildQuery()}`, "_blank")}
+                disabled={!canExportCsv}
+              >
+                تصدير CSV
+              </Button>
+              <Button variant="outline" onClick={exportServerPdf} disabled={isLoading && tsLoading}>
+                تصدير PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open(`/reports.breakdown.csv?${buildBreakdownQuery()}`, "_blank")}
+                disabled={!canExportBreakdown}
+              >
+                تفصيل CSV
+              </Button>
             </div>
           </CardContent>
         </Card>

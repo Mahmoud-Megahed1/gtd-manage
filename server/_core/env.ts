@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.COOKIE_SECRET ?? process.env.JWT_SECRET ?? "",
@@ -13,3 +17,15 @@ export const ENV = {
   allowedEmailDomain: process.env.ALLOWED_EMAIL_DOMAIN ?? "",
   allowedEmails: (process.env.ALLOWED_EMAILS ?? ""),
 };
+
+// Validate critical env vars at module load time in production
+if (ENV.isProduction) {
+  const missing: string[] = [];
+  if (!ENV.cookieSecret) missing.push("COOKIE_SECRET or JWT_SECRET");
+  if (!ENV.databaseUrl) missing.push("DATABASE_URL");
+  if (!ENV.webOrigin) missing.push("WEB_ORIGIN");
+  
+  if (missing.length > 0) {
+    console.error(`[ENV] Missing required production environment variables: ${missing.join(", ")}`);
+  }
+}

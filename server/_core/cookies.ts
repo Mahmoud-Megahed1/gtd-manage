@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import type { CookieOptions, Request } from "express";
 import { ENV } from "./env";
 
@@ -9,9 +13,12 @@ function isIpAddress(host: string) {
   return host.includes(":");
 }
 
-function isSecureRequest(req: Request) {
+function isSecureRequest(req: Request): boolean {
+  // Direct HTTPS
   if (req.protocol === "https") return true;
+  if (req.secure) return true;
 
+  // Check x-forwarded-proto header (used by reverse proxies like Hostinger)
   const forwardedProto = req.headers["x-forwarded-proto"];
   if (!forwardedProto) return false;
 
@@ -25,28 +32,40 @@ function isSecureRequest(req: Request) {
 export function getSessionCookieOptions(
   req: Request
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
-
+  const isSecure = isSecureRequest(req);
+  const isProduction = ENV.isProduction;
+  
+  // Domain configuration
   const domain =
     ENV.cookieDomain && ENV.cookieDomain.length > 0 ? ENV.cookieDomain : undefined;
+  
+  // In production with HTTPS: use secure cookies with sameSite=none for cross-origin
+  // In production without HTTPS: use sameSite=lax (less secure fallback)
+  // In development: use sameSite=lax
+  let sameSite: "none" | "lax" | "strict" = "lax";
+  let secure = false;
+  
+  if (isProduction) {
+    if (isSecure) {
+      // Production HTTPS: allow cross-origin cookies
+      sameSite = "none";
+      secure = true;
+    } else {
+      // Production HTTP (not recommended): restrict to same-site
+      sameSite = "lax";
+      secure = false;
+    }
+  } else {
+    // Development
+    sameSite = "lax";
+    secure = isSecure;
+  }
+
   return {
     httpOnly: true,
     path: "/",
-    secure: isSecureRequest(req),
-    sameSite: isSecureRequest(req) ? "none" : "lax",
+    secure,
+    sameSite,
     domain,
   };
 }

@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +31,7 @@ export default function Accounting() {
   const { data: purchasesList, isLoading: loadingPurchases } = trpc.accounting.purchases.list.useQuery();
   const { data: overallFinancials } = trpc.accounting.reports.overallFinancials.useQuery();
   const { data: projects } = trpc.projects.list.useQuery();
+  const utils = trpc.useUtils();
   const summary = {
     totalRevenue: overallFinancials?.paidRevenue || 0,
     totalExpenses: overallFinancials?.totalExpenses || 0
@@ -40,11 +45,14 @@ export default function Accounting() {
     date: new Date().toISOString().split('T')[0]
   });
 
+
   const createExpense = trpc.accounting.expenses.create.useMutation({
     onSuccess: () => {
       toast.success("تم إضافة التكلفة بنجاح");
       setShowExpenseForm(false);
       setExpenseData({ category: "", description: "", amount: "", date: new Date().toISOString().split('T')[0] });
+      utils.accounting.expenses.list.invalidate({});
+      utils.accounting.reports.overallFinancials.invalidate();
     },
     onError: () => {
       toast.error("حدث خطأ أثناء إضافة التكلفة");
@@ -55,7 +63,10 @@ export default function Accounting() {
     onError: () => toast.error("تعذر إلغاء المصروف"),
   });
   const deleteExpense = trpc.accounting.expenses.delete.useMutation({
-    onSuccess: () => toast.success("تم حذف المصروف"),
+    onSuccess: () => {
+      toast.success("تم حذف المصروف");
+      utils.accounting.expenses.list.invalidate();
+    },
     onError: () => toast.error("تعذر حذف المصروف"),
   });
   const cancelSale = trpc.accounting.sales.cancel.useMutation({
@@ -71,7 +82,10 @@ export default function Accounting() {
     onError: () => toast.error("تعذر تحديث عملية البيع"),
   });
   const deleteSale = trpc.accounting.sales.delete.useMutation({
-    onSuccess: () => toast.success("تم حذف عملية البيع"),
+    onSuccess: () => {
+      toast.success("تم حذف عملية البيع");
+      utils.accounting.sales.list.invalidate();
+    },
     onError: () => toast.error("تعذر حذف عملية البيع"),
   });
   const cancelPurchase = trpc.accounting.purchases.cancel.useMutation({
@@ -87,7 +101,10 @@ export default function Accounting() {
     onError: () => toast.error("تعذر تحديث عملية الشراء"),
   });
   const deletePurchase = trpc.accounting.purchases.delete.useMutation({
-    onSuccess: () => toast.success("تم حذف عملية الشراء"),
+    onSuccess: () => {
+      toast.success("تم حذف عملية الشراء");
+      utils.accounting.purchases.list.invalidate();
+    },
     onError: () => toast.error("تعذر حذف عملية الشراء"),
   });
   const cancelInstallment = trpc.accounting.installments.cancel.useMutation({
@@ -117,7 +134,7 @@ export default function Accounting() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
@@ -128,6 +145,32 @@ export default function Accounting() {
                 {summary?.totalRevenue?.toLocaleString() || 0} ر.س
               </div>
               <p className="text-xs text-muted-foreground">من الفواتير المدفوعة</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle>
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-600">
+                {salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س
+              </div>
+              <p className="text-xs text-muted-foreground">{salesList?.filter((s: any) => s.status === 'completed').length || 0} عملية بيع</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">إجمالي المشتريات</CardTitle>
+              <TrendingDown className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                {purchasesList?.filter((p: any) => p.status === 'completed').reduce((a: number, p: any) => a + (p.amount || 0), 0).toLocaleString() || 0} ر.س
+              </div>
+              <p className="text-xs text-muted-foreground">{purchasesList?.filter((p: any) => p.status === 'completed').length || 0} عملية شراء</p>
             </CardContent>
           </Card>
 
@@ -159,12 +202,12 @@ export default function Accounting() {
         </div>
 
         <Tabs defaultValue="expenses" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="expenses">التكاليف</TabsTrigger>
-              <TabsTrigger value="sales">المبيعات</TabsTrigger>
-              <TabsTrigger value="purchases">المشتريات</TabsTrigger>
-              <TabsTrigger value="reports">التقارير</TabsTrigger>
-            </TabsList>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="expenses">التكاليف</TabsTrigger>
+            <TabsTrigger value="sales">المبيعات</TabsTrigger>
+            <TabsTrigger value="purchases">المشتريات</TabsTrigger>
+            <TabsTrigger value="reports">التقارير</TabsTrigger>
+          </TabsList>
 
           {/* Expenses Tab */}
           <TabsContent value="expenses" className="space-y-4">
@@ -290,7 +333,7 @@ export default function Accounting() {
             </Card>
           </TabsContent>
 
-          
+
 
           {/* Sales Tab */}
           <TabsContent value="sales" className="space-y-4">
@@ -371,7 +414,7 @@ export default function Accounting() {
                           <TableCell>
                             <Input
                               type="date"
-                              defaultValue={new Date(sale.saleDate).toISOString().slice(0,10)}
+                              defaultValue={new Date(sale.saleDate).toISOString().slice(0, 10)}
                               onBlur={(e) => {
                                 const v = e.target.value;
                                 updateSale.mutate({ id: sale.id, saleDate: v });
@@ -379,11 +422,10 @@ export default function Accounting() {
                             />
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            <span className={`px-2 py-1 rounded text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' :
                               sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
+                                'bg-red-100 text-red-800'
+                              }`}>
                               {sale.status === 'completed' && 'مكتمل'}
                               {sale.status === 'pending' && 'قيد المعالجة'}
                               {sale.status === 'cancelled' && 'ملغي'}
@@ -501,7 +543,7 @@ export default function Accounting() {
                           <TableCell>
                             <Input
                               type="date"
-                              defaultValue={new Date(purchase.purchaseDate).toISOString().slice(0,10)}
+                              defaultValue={new Date(purchase.purchaseDate).toISOString().slice(0, 10)}
                               onBlur={(e) => {
                                 const v = e.target.value;
                                 updatePurchase.mutate({ id: purchase.id, purchaseDate: v });
@@ -509,11 +551,10 @@ export default function Accounting() {
                             />
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            <span className={`px-2 py-1 rounded text-xs ${purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
                               purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
+                                'bg-red-100 text-red-800'
+                              }`}>
                               {purchase.status === 'completed' && 'مكتمل'}
                               {purchase.status === 'pending' && 'قيد المعالجة'}
                               {purchase.status === 'cancelled' && 'ملغي'}
@@ -556,34 +597,142 @@ export default function Accounting() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>التقارير المالية</CardTitle>
-                  <Button variant="outline">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const html = `
+                        <!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>التقرير المالي</title>
+                        <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto;padding:24px}
+                        .card{border:1px solid #ddd;padding:16px;margin:8px 0;border-radius:8px}
+                        .green{color:#16a34a}.red{color:#dc2626}.blue{color:#2563eb}
+                        table{width:100%;border-collapse:collapse;margin:16px 0}
+                        th,td{border:1px solid #ddd;padding:8px;text-align:right}
+                        th{background:#f3f4f6}</style>
+                        </head><body>
+                        <h1>التقرير المالي الشامل</h1>
+                        <p>تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}</p>
+                        <div class="card">
+                          <h3>ملخص مالي</h3>
+                          <p>إجمالي الإيرادات: <span class="green">${(summary.totalRevenue || 0).toLocaleString()} ر.س</span></p>
+                          <p>إجمالي المصروفات: <span class="red">${(summary.totalExpenses || 0).toLocaleString()} ر.س</span></p>
+                          <p>صافي الربح: <span class="blue">${(((summary.totalRevenue || 0) - (summary.totalExpenses || 0)) || 0).toLocaleString()} ر.س</span></p>
+                        </div>
+                        <div class="card">
+                          <h3>تفاصيل الإيرادات</h3>
+                          <p>عدد عمليات البيع: ${salesList?.length || 0}</p>
+                          <p>إجمالي المبيعات المكتملة: ${salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س</p>
+                        </div>
+                        <div class="card">
+                          <h3>تفاصيل المصروفات</h3>
+                          <p>عدد المصروفات: ${expenses?.length || 0}</p>
+                          <p>عدد المشتريات: ${purchasesList?.length || 0}</p>
+                        </div>
+                        <script>window.onload=function(){window.print()}</script>
+                        </body></html>`;
+                      const w = window.open("", "_blank");
+                      if (!w) return;
+                      w.document.write(html);
+                      w.document.close();
+                    }}
+                  >
                     <Download className="w-4 h-4 ml-2" />
-                    تصدير تقرير
+                    طباعة التقرير
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* Financial Summary */}
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="p-4 border rounded-lg bg-green-50">
+                      <h3 className="font-medium text-green-800 mb-1">إجمالي المبيعات</h3>
+                      <p className="text-2xl font-bold text-green-600">
+                        {salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س
+                      </p>
+                      <p className="text-xs text-muted-foreground">{salesList?.filter((s: any) => s.status === 'completed').length || 0} عملية مكتملة</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-red-50">
+                      <h3 className="font-medium text-red-800 mb-1">إجمالي المشتريات</h3>
+                      <p className="text-2xl font-bold text-red-600">
+                        {purchasesList?.filter((p: any) => p.status === 'completed').reduce((a: number, p: any) => a + (p.amount || 0), 0).toLocaleString() || 0} ر.س
+                      </p>
+                      <p className="text-xs text-muted-foreground">{purchasesList?.filter((p: any) => p.status === 'completed').length || 0} عملية مكتملة</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-orange-50">
+                      <h3 className="font-medium text-orange-800 mb-1">إجمالي التكاليف</h3>
+                      <p className="text-2xl font-bold text-orange-600">
+                        {expenses?.reduce((a: number, e: any) => a + (e.amount || 0), 0).toLocaleString() || 0} ر.س
+                      </p>
+                      <p className="text-xs text-muted-foreground">{expenses?.length || 0} تكلفة</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-blue-50">
+                      <h3 className="font-medium text-blue-800 mb-1">صافي الربح</h3>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {((summary.totalRevenue || 0) - (summary.totalExpenses || 0)).toLocaleString()} ر.س
+                      </p>
+                      <p className="text-xs text-muted-foreground">الإيرادات - المصروفات</p>
+                    </div>
+                  </div>
+
+                  {/* Reports List */}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">تقرير شهري</h3>
-                      <p className="text-sm text-muted-foreground mb-4">ملخص الإيرادات والمصروفات الشهرية</p>
-                      <Button variant="outline" size="sm">عرض التقرير</Button>
+                      <h3 className="font-medium mb-2">تفاصيل المبيعات</h3>
+                      {salesList && salesList.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>الوصف</TableHead>
+                              <TableHead>المبلغ</TableHead>
+                              <TableHead>الحالة</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {salesList.slice(0, 5).map((sale) => (
+                              <TableRow key={sale.id}>
+                                <TableCell>{sale.description}</TableCell>
+                                <TableCell className="text-green-600">{sale.amount?.toLocaleString()} ر.س</TableCell>
+                                <TableCell>
+                                  <span className={`px-2 py-1 rounded text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    {sale.status === 'completed' ? 'مكتمل' : 'قيد المعالجة'}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">لا توجد مبيعات</p>
+                      )}
                     </div>
                     <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">تقرير سنوي</h3>
-                      <p className="text-sm text-muted-foreground mb-4">تقرير مالي شامل للسنة</p>
-                      <Button variant="outline" size="sm">عرض التقرير</Button>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">تقرير ضريبي</h3>
-                      <p className="text-sm text-muted-foreground mb-4">تقرير ضريبة القيمة المضافة</p>
-                      <Button variant="outline" size="sm">عرض التقرير</Button>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">تقرير الأرباح</h3>
-                      <p className="text-sm text-muted-foreground mb-4">تحليل الأرباح حسب المشاريع</p>
-                      <Button variant="outline" size="sm">عرض التقرير</Button>
+                      <h3 className="font-medium mb-2">تفاصيل المشتريات</h3>
+                      {purchasesList && purchasesList.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>الوصف</TableHead>
+                              <TableHead>المبلغ</TableHead>
+                              <TableHead>الحالة</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {purchasesList.slice(0, 5).map((purchase) => (
+                              <TableRow key={purchase.id}>
+                                <TableCell>{purchase.description}</TableCell>
+                                <TableCell className="text-red-600">{purchase.amount?.toLocaleString()} ر.س</TableCell>
+                                <TableCell>
+                                  <span className={`px-2 py-1 rounded text-xs ${purchase.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    {purchase.status === 'completed' ? 'مكتمل' : 'قيد المعالجة'}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">لا توجد مشتريات</p>
+                      )}
                     </div>
                   </div>
                 </div>

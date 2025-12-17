@@ -1,3 +1,7 @@
+/*
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ Unauthorized use or reproduction is prohibited.
+*/
 export const COOKIE_NAME = "GT_SESSION";
 export const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 export const AXIOS_TIMEOUT_MS = 15000;
