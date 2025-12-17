@@ -36,6 +36,15 @@ export default function Fatore() {
     const onLoad = () => setHtmlLoaded(true);
     const iframe = iframeRef.current;
     if (!iframe) return;
+
+    // Check if iframe is already loaded
+    if (iframe.contentDocument?.readyState === 'complete') {
+      setHtmlLoaded(true);
+    }
+
+    // Fallback: set loaded after 3 seconds regardless
+    const timeout = setTimeout(() => setHtmlLoaded(true), 3000);
+
     iframe.addEventListener("load", onLoad);
     iframe.addEventListener("load", () => {
       try {
@@ -64,7 +73,7 @@ export default function Fatore() {
                 else opt.removeAttribute("selected");
               });
             });
-          } catch {}
+          } catch { }
           return "<!DOCTYPE html>\n" + d.documentElement.outerHTML;
         };
         const extractHtml = async () => {
@@ -138,14 +147,17 @@ export default function Fatore() {
             if (targetEl?.tagName === "BUTTON" && /حفظ|PDF|تصدير/.test(txt)) {
               try {
                 await saveInvoiceDraft();
-              } catch {}
+              } catch { }
             }
           },
           true
         );
-      } catch {}
+      } catch { }
     });
-    return () => iframe.removeEventListener("load", onLoad);
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleSaveFileCopy = async () => {
@@ -175,7 +187,7 @@ export default function Fatore() {
               else opt.removeAttribute("selected");
             });
           });
-        } catch {}
+        } catch { }
         return "<!DOCTYPE html>\n" + d.documentElement.outerHTML;
       };
       if (doc) {
@@ -201,7 +213,7 @@ export default function Fatore() {
       toast.error("تعذر جلب الصفحة وحفظها");
     }
   };
-  
+
   const handleSaveDraftRecord = async () => {
     try {
       const res = await fetch("/fatore.HTML");
