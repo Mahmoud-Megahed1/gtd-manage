@@ -1045,7 +1045,9 @@ export const appRouter = router({
         permissions: z.record(z.string(), z.boolean())
       }))
       .mutation(async ({ input, ctx }) => {
+        console.log("[setPermissions] Saving for userId:", input.userId, input.permissions);
         await db.setUserPermissions(input.userId, input.permissions);
+        console.log("[setPermissions] Saved successfully");
         await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`);
         return { success: true };
       }),
