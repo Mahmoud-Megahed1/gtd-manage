@@ -519,7 +519,22 @@ export async function createAuditLog(log: InsertAuditLog) {
 export async function getAuditLogs(limit: number = 100) {
   const db = await getDb();
   if (!db) return [];
-  return await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit);
+  const logs = await db.select({
+    id: auditLogs.id,
+    userId: auditLogs.userId,
+    action: auditLogs.action,
+    entityType: auditLogs.entityType,
+    entityId: auditLogs.entityId,
+    details: auditLogs.details,
+    ipAddress: auditLogs.ipAddress,
+    createdAt: auditLogs.createdAt,
+    userName: users.name
+  })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
+  return logs;
 }
 
 export async function getEntityAuditLogs(entityType: string, entityId: number) {
