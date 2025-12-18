@@ -66,8 +66,12 @@ export default function Accounting() {
   });
 
   // ========== Advanced Reports States ==========
-  const [reportFrom, setReportFrom] = useState<string>("");
-  const [reportTo, setReportTo] = useState<string>("");
+  const [reportFrom, setReportFrom] = useState<string>(() => {
+    const d = new Date();
+    d.setMonth(0, 1); // January 1st
+    return d.toISOString().split('T')[0];
+  });
+  const [reportTo, setReportTo] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [reportClientId, setReportClientId] = useState<string>("all");
   const [reportProjectId, setReportProjectId] = useState<string>("all");
   const [invoiceStatus, setInvoiceStatus] = useState<string>("all");
