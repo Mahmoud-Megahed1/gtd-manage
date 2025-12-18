@@ -322,8 +322,30 @@ export async function createInvoice(invoice: InsertInvoice) {
 
 export async function getAllInvoices() {
   const db = await getDb();
-  if (!db) return demo.list("invoices");
-  return await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+  if (!db) return demo.list("invoices").map((inv: any) => {
+    const { formData, ...rest } = inv;
+    return rest;
+  });
+  // Select only necessary columns for list view, exclude large formData field
+  return await db.select({
+    id: invoices.id,
+    invoiceNumber: invoices.invoiceNumber,
+    type: invoices.type,
+    clientId: invoices.clientId,
+    projectId: invoices.projectId,
+    issueDate: invoices.issueDate,
+    dueDate: invoices.dueDate,
+    status: invoices.status,
+    subtotal: invoices.subtotal,
+    tax: invoices.tax,
+    discount: invoices.discount,
+    total: invoices.total,
+    notes: invoices.notes,
+    terms: invoices.terms,
+    createdBy: invoices.createdBy,
+    createdAt: invoices.createdAt,
+    updatedAt: invoices.updatedAt
+  }).from(invoices).orderBy(desc(invoices.createdAt));
 }
 
 export async function getInvoiceById(id: number) {
@@ -381,8 +403,22 @@ export async function createForm(form: InsertForm) {
 
 export async function getAllForms() {
   const db = await getDb();
-  if (!db) return demo.list("forms");
-  return await db.select().from(forms).orderBy(desc(forms.createdAt));
+  if (!db) return demo.list("forms").map((f: any) => {
+    const { formData, ...rest } = f;
+    return rest;
+  });
+  // Select only necessary columns for list view, exclude large formData field
+  return await db.select({
+    id: forms.id,
+    formNumber: forms.formNumber,
+    formType: forms.formType,
+    clientId: forms.clientId,
+    projectId: forms.projectId,
+    status: forms.status,
+    createdBy: forms.createdBy,
+    createdAt: forms.createdAt,
+    updatedAt: forms.updatedAt
+  }).from(forms).orderBy(desc(forms.createdAt));
 }
 
 export async function getFormById(id: number) {
