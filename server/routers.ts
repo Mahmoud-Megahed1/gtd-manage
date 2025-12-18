@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -21,15 +21,27 @@ function generateUniqueNumber(prefix: string): string {
   return `${prefix}-${timestamp}-${random}`.toUpperCase();
 }
 
-// Helper for audit logging
+// Helper for audit logging - extracts IP from context
 async function logAudit(
   userId: number,
   action: string,
   entityType?: string,
   entityId?: number,
   details?: string,
-  ipAddress?: string
+  ctx?: { req?: { ip?: string; headers?: { 'x-forwarded-for'?: string; 'x-real-ip'?: string } } }
 ) {
+  let ipAddress: string | undefined;
+  if (ctx?.req) {
+    // Get IP from X-Forwarded-For (nginx), X-Real-IP, or req.ip
+    const xForwardedFor = ctx.req.headers?.['x-forwarded-for'];
+    if (xForwardedFor) {
+      ipAddress = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor.split(',')[0].trim();
+    } else if (ctx.req.headers?.['x-real-ip']) {
+      ipAddress = ctx.req.headers['x-real-ip'] as string;
+    } else if (ctx.req.ip) {
+      ipAddress = ctx.req.ip;
+    }
+  }
   await db.createAuditLog({
     userId,
     action,
@@ -110,7 +122,7 @@ export const appRouter = router({
         expires: new Date(0)
       });
       if (ctx.user) {
-        logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id);
+        logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id, undefined, ctx);
       }
       return { success: true } as const;
     }),
@@ -131,16 +143,16 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const user = await db.getUserByEmail(input.email);
         if (!user) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'بيانات الدخول غير صحيحة' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ­ÙŠØ­Ø©' });
         }
         if (!user.passwordHash) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'لم يتم تعيين كلمة سر لهذا الحساب' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Ù„Ù… ÙŠØªÙ… ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø³Ø± Ù„Ù‡Ø°Ø§ Ø§Ù„Ø­Ø³Ø§Ø¨' });
         }
         // Use simple hash comparison (bcrypt-style)
         const crypto = await import('crypto');
         const hashInput = crypto.createHash('sha256').update(input.password).digest('hex');
         if (hashInput !== user.passwordHash) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'بيانات الدخول غير صحيحة' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ­ÙŠØ­Ø©' });
         }
         // Create session token
         const jwtModule = await import('jsonwebtoken');
@@ -156,7 +168,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
         // Update last signed in
         await db.updateUserLastSignedIn(user.id);
-        await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id);
+        await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id, ctx);
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
   }),
@@ -202,7 +214,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`);
+        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`, ctx);
         return { success: true, clientNumber };
       }),
 
@@ -220,7 +232,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'clients');
         const { id, ...data } = input;
         await db.updateClient(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`);
+        await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`, ctx);
         return { success: true };
       }),
 
@@ -229,7 +241,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'clients');
         await db.deleteClient(input.id);
-        await logAudit(ctx.user.id, 'DELETE_CLIENT', 'client', input.id);
+        await logAudit(ctx.user.id, 'DELETE_CLIENT', 'client', input.id, ctx);
         return { success: true };
       })
   }),
@@ -277,7 +289,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`);
+        await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`, ctx);
         return { success: true, projectNumber };
       }),
 
@@ -296,7 +308,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
         const { id, ...data } = input;
         await db.updateProject(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id);
+        await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id, ctx);
         return { success: true };
       }),
 
@@ -305,7 +317,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.deleteProject(input.id);
-        await logAudit(ctx.user.id, 'DELETE_PROJECT', 'project', input.id);
+        await logAudit(ctx.user.id, 'DELETE_PROJECT', 'project', input.id, ctx);
         return { success: true };
       }),
 
@@ -343,7 +355,7 @@ export const appRouter = router({
           endDate: input.endDate,
           status: 'planned'
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`);
+        await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, ctx);
         return { success: true };
       }),
 
@@ -359,7 +371,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.deleteProjectTask(input.id);
-        await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id);
+        await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, ctx);
         return { success: true };
       }),
   }),
@@ -389,7 +401,7 @@ export const appRouter = router({
           status: "open",
           submittedBy: ctx.user.id
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber);
+        await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber, ctx);
         return { success: true, rfiNumber };
       }),
     answer: protectedProcedure
@@ -400,7 +412,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
         await conn.update(rfis).set({ answer: input.answer, answeredBy: ctx.user.id, answeredAt: new Date(), status: "answered" }).where(eq(rfis.id, input.id));
-        await logAudit(ctx.user.id, 'ANSWER_RFI', 'rfi', input.id);
+        await logAudit(ctx.user.id, 'ANSWER_RFI', 'rfi', input.id, ctx);
         return { success: true };
       }),
     close: protectedProcedure
@@ -411,7 +423,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
         await conn.update(rfis).set({ status: "closed" }).where(eq(rfis.id, input.id));
-        await logAudit(ctx.user.id, 'CLOSE_RFI', 'rfi', input.id);
+        await logAudit(ctx.user.id, 'CLOSE_RFI', 'rfi', input.id, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -422,7 +434,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
         await conn.delete(rfis).where(eq(rfis.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_RFI', 'rfi', input.id);
+        await logAudit(ctx.user.id, 'DELETE_RFI', 'rfi', input.id, ctx);
         return { success: true };
       }),
   }),
@@ -451,7 +463,7 @@ export const appRouter = router({
           status: "submitted",
           submittedBy: ctx.user.id
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code);
+        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code, ctx);
         return { success: true, code };
       }),
     approve: protectedProcedure
@@ -462,7 +474,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
         await conn.update(submittals).set({ status: "approved", approvedBy: ctx.user.id, approvedAt: new Date(), notes: input.notes }).where(eq(submittals.id, input.id));
-        await logAudit(ctx.user.id, 'APPROVE_SUBMITTAL', 'submittal', input.id);
+        await logAudit(ctx.user.id, 'APPROVE_SUBMITTAL', 'submittal', input.id, ctx);
         return { success: true };
       }),
     reject: protectedProcedure
@@ -473,7 +485,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
         await conn.update(submittals).set({ status: "rejected", approvedBy: ctx.user.id, approvedAt: new Date(), notes: input.notes }).where(eq(submittals.id, input.id));
-        await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id);
+        await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -484,7 +496,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
         await conn.delete(submittals).where(eq(submittals.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_SUBMITTAL', 'submittal', input.id);
+        await logAudit(ctx.user.id, 'DELETE_SUBMITTAL', 'submittal', input.id, ctx);
         return { success: true };
       }),
   }),
@@ -513,7 +525,7 @@ export const appRouter = router({
           discipline: input.discipline,
           status: "draft"
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode);
+        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode, ctx);
         return { success: true };
       }),
     addVersion: protectedProcedure
@@ -534,7 +546,7 @@ export const appRouter = router({
         if (latest) {
           await conn.update(drawings).set({ currentVersionId: latest.id, status: "issued" }).where(eq(drawings.id, input.drawingId));
         }
-        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version);
+        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version, ctx);
         return { success: true };
       }),
     versions: protectedProcedure
@@ -554,7 +566,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { drawings } = await import("../drizzle/schema");
         await conn.delete(drawings).where(eq(drawings.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_DRAWING', 'drawing', input.id);
+        await logAudit(ctx.user.id, 'DELETE_DRAWING', 'drawing', input.id, ctx);
         return { success: true };
       }),
   }),
@@ -684,13 +696,13 @@ export const appRouter = router({
 
         // Only log audit if invoiceId is valid
         if (invoiceId && !isNaN(invoiceId) && invoiceId > 0) {
-          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`);
+          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`, ctx);
         }
 
         // Notify owner
         await notifyOwner({
-          title: `${input.type === 'invoice' ? 'فاتورة جديدة' : 'عرض سعر جديد'}`,
-          content: `تم إنشاء ${input.type === 'invoice' ? 'فاتورة' : 'عرض سعر'} رقم ${invoiceNumber} بمبلغ ${input.total} ريال`
+          title: `${input.type === 'invoice' ? 'ÙØ§ØªÙˆØ±Ø© Ø¬Ø¯ÙŠØ¯Ø©' : 'Ø¹Ø±Ø¶ Ø³Ø¹Ø± Ø¬Ø¯ÙŠØ¯'}`,
+          content: `ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ ${input.type === 'invoice' ? 'ÙØ§ØªÙˆØ±Ø©' : 'Ø¹Ø±Ø¶ Ø³Ø¹Ø±'} Ø±Ù‚Ù… ${invoiceNumber} Ø¨Ù…Ø¨Ù„Øº ${input.total} Ø±ÙŠØ§Ù„`
         });
 
         // Return the full invoice object
@@ -709,7 +721,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'invoices');
         const { id, ...data } = input;
         await db.updateInvoice(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_INVOICE', 'invoice', id);
+        await logAudit(ctx.user.id, 'UPDATE_INVOICE', 'invoice', id, ctx);
         return { success: true };
       }),
 
@@ -718,7 +730,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'invoices');
         await db.deleteInvoice(input.id);
-        await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id);
+        await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id, ctx);
         return { success: true };
       })
   }),
@@ -764,7 +776,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         } as any);
         const id = Number((result as any)?.insertId) || undefined;
-        await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`);
+        await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`, ctx);
         return { success: true, id, code };
       }),
     submit: managerProcedure
@@ -772,7 +784,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'submitted', submittedBy: ctx.user.id, submittedAt: new Date() });
-        await logAudit(ctx.user.id, 'SUBMIT_CHANGE_ORDER', 'changeOrder', input.id);
+        await logAudit(ctx.user.id, 'SUBMIT_CHANGE_ORDER', 'changeOrder', input.id, ctx);
         return { success: true };
       }),
     approve: protectedProcedure
@@ -783,7 +795,7 @@ export const appRouter = router({
         }
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'approved', approvedBy: ctx.user.id, approvedAt: new Date() });
-        await logAudit(ctx.user.id, 'APPROVE_CHANGE_ORDER', 'changeOrder', input.id);
+        await logAudit(ctx.user.id, 'APPROVE_CHANGE_ORDER', 'changeOrder', input.id, ctx);
         return { success: true };
       }),
     reject: protectedProcedure
@@ -794,7 +806,7 @@ export const appRouter = router({
         }
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'rejected', rejectedBy: ctx.user.id, rejectedAt: new Date(), rejectionReason: input.reason });
-        await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason);
+        await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -802,7 +814,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.deleteChangeOrder(input.id);
-        await logAudit(ctx.user.id, 'DELETE_CHANGE_ORDER', 'changeOrder', input.id);
+        await logAudit(ctx.user.id, 'DELETE_CHANGE_ORDER', 'changeOrder', input.id, ctx);
         return { success: true };
       }),
   }),
@@ -854,13 +866,13 @@ export const appRouter = router({
 
         // Only log audit if formId is valid
         if (formId && !isNaN(formId) && formId > 0) {
-          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`);
+          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`, ctx);
         }
 
         // Notify owner
         await notifyOwner({
-          title: 'استمارة عميل جديدة',
-          content: `تم إضافة استمارة جديدة رقم ${formNumber}`
+          title: 'Ø§Ø³ØªÙ…Ø§Ø±Ø© Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯Ø©',
+          content: `ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø§Ø³ØªÙ…Ø§Ø±Ø© Ø¬Ø¯ÙŠØ¯Ø© Ø±Ù‚Ù… ${formNumber}`
         });
 
         return { success: true, id: formId || undefined, formNumber };
@@ -876,7 +888,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'forms');
         const { id, ...data } = input;
         await db.updateForm(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_FORM', 'form', id);
+        await logAudit(ctx.user.id, 'UPDATE_FORM', 'form', id, ctx);
         return { success: true };
       }),
 
@@ -885,7 +897,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'forms');
         await db.deleteForm(input.id);
-        await logAudit(ctx.user.id, 'DELETE_FORM', 'form', input.id);
+        await logAudit(ctx.user.id, 'DELETE_FORM', 'form', input.id, ctx);
         return { success: true };
       })
   }),
@@ -928,7 +940,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'settings');
         await db.setCompanySetting(input.key, input.value, ctx.user.id);
-        await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`);
+        await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`, ctx);
         return { success: true };
       })
   }),
@@ -964,7 +976,7 @@ export const appRouter = router({
           role: input.role
         });
 
-        await logAudit(ctx.user.id, 'CREATE_USER', 'user', user.id, `Created user ${input.email} with role ${input.role}`);
+        await logAudit(ctx.user.id, 'CREATE_USER', 'user', user.id, `Created user ${input.email} with role ${input.role}`, ctx);
         return user;
       }),
 
@@ -982,7 +994,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const role = (input.role ?? 'designer') as any;
         await db.updateUserRole(input.userId, role);
-        await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`);
+        await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, ctx);
         return { success: true };
       }),
 
@@ -1010,7 +1022,7 @@ export const appRouter = router({
         }
 
         await db.updateUser(userId, updateData);
-        await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`);
+        await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`, ctx);
         return { success: true };
       }),
 
@@ -1025,7 +1037,7 @@ export const appRouter = router({
         }
 
         await db.deleteUser(input.userId);
-        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`);
+        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`, ctx);
         return { success: true };
       })
     ,
@@ -1048,7 +1060,7 @@ export const appRouter = router({
         console.log("[setPermissions] Saving for userId:", input.userId, input.permissions);
         await db.setUserPermissions(input.userId, input.permissions);
         console.log("[setPermissions] Saved successfully");
-        await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`);
+        await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`, ctx);
         return { success: true };
       }),
     // Admin sets password for a user
@@ -1061,7 +1073,7 @@ export const appRouter = router({
         const crypto = await import('crypto');
         const hash = crypto.createHash('sha256').update(input.password).digest('hex');
         await db.setUserPassword(input.userId, hash);
-        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin');
+        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin', ctx);
         return { success: true };
       }),
     // User changes their own password
@@ -1073,16 +1085,16 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'المستخدم غير موجود' });
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯' });
         }
         const crypto = await import('crypto');
         const currentHash = crypto.createHash('sha256').update(input.currentPassword).digest('hex');
         if (user.passwordHash && user.passwordHash !== currentHash) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'كلمة السر الحالية غير صحيحة' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'ÙƒÙ„Ù…Ø© Ø§Ù„Ø³Ø± Ø§Ù„Ø­Ø§Ù„ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©' });
         }
         const newHash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
         await db.setUserPassword(ctx.user.id, newHash);
-        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password');
+        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password', ctx);
         return { success: true };
       }),
     // Get user password info (admin only - shows if password is set)
@@ -1123,7 +1135,7 @@ export const appRouter = router({
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
-      const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      const months = ['ÙŠÙ†Ø§ÙŠØ±', 'ÙØ¨Ø±Ø§ÙŠØ±', 'Ù…Ø§Ø±Ø³', 'Ø£Ø¨Ø±ÙŠÙ„', 'Ù…Ø§ÙŠÙˆ', 'ÙŠÙˆÙ†ÙŠÙˆ', 'ÙŠÙˆÙ„ÙŠÙˆ', 'Ø£ØºØ³Ø·Ø³', 'Ø³Ø¨ØªÙ…Ø¨Ø±', 'Ø£ÙƒØªÙˆØ¨Ø±', 'Ù†ÙˆÙÙ…Ø¨Ø±', 'Ø¯ÙŠØ³Ù…Ø¨Ø±'];
       const now = new Date();
       const start = new Date(now);
       start.setMonth(now.getMonth() - 5);
@@ -1188,7 +1200,7 @@ export const appRouter = router({
         ];
         const MAX_SIZE = 10 * 1024 * 1024; // 10MB
         if (!ALLOWED_TYPES.includes(input.mimeType)) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'نوع الملف غير مسموح' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ù†ÙˆØ¹ Ø§Ù„Ù…Ù„Ù ØºÙŠØ± Ù…Ø³Ù…ÙˆØ­' });
         }
         const safeName = input.fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
         const section =
@@ -1204,10 +1216,10 @@ export const appRouter = router({
         try {
           buffer = Buffer.from(input.fileData, 'base64');
         } catch {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'ملف غير صالح' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ù…Ù„Ù ØºÙŠØ± ØµØ§Ù„Ø­' });
         }
         if (buffer.length > MAX_SIZE) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'حجم الملف يتجاوز الحد المسموح' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ø­Ø¬Ù… Ø§Ù„Ù…Ù„Ù ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„Ù…Ø³Ù…ÙˆØ­' });
         }
         // Verify magic numbers to prevent MIME spoofing
         const head = buffer.subarray(0, 16);
@@ -1229,7 +1241,7 @@ export const appRouter = router({
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && isZip) ||
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && isZip);
         if (!mimeOk) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'نوع الملف لا يطابق المحتوى' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ù†ÙˆØ¹ Ø§Ù„Ù…Ù„Ù Ù„Ø§ ÙŠØ·Ø§Ø¨Ù‚ Ø§Ù„Ù…Ø­ØªÙˆÙ‰' });
         }
         const fileKey = `${input.entityType}/${input.entityId}/${Date.now()}-${input.fileName}`;
         let url: string;
@@ -1252,7 +1264,7 @@ export const appRouter = router({
           uploadedBy: ctx.user.id
         });
         console.log("[files.upload] Attachment created successfully");
-        await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`);
+        await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`, ctx);
 
         return { success: true, url };
       }),
@@ -1271,7 +1283,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'attachments');
         await db.deleteAttachment(input.id);
-        await logAudit(ctx.user.id, 'DELETE_FILE', 'attachment', input.id);
+        await logAudit(ctx.user.id, 'DELETE_FILE', 'attachment', input.id, ctx);
         return { success: true };
       })
   }),
@@ -1293,3 +1305,5 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
+
