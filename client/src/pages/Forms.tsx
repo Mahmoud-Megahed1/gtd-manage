@@ -5,7 +5,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -78,10 +78,21 @@ export default function Forms() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" className="w-full" onClick={() => setLocation(`/forms/${form.id}`)}>
+                        <Button variant="outline" className="flex-1" onClick={() => setLocation(`/forms/${form.id}`)}>
                           عرض التفاصيل
                         </Button>
-                        
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('هل أنت متأكد من حذف هذه الاستمارة؟')) {
+                              deleteForm.mutate({ id: form.id });
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -135,10 +146,21 @@ export default function Forms() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" className="w-full" onClick={() => setLocation(`/forms/${form.id}`)}>
+                        <Button variant="outline" className="flex-1" onClick={() => setLocation(`/forms/${form.id}`)}>
                           عرض التفاصيل
                         </Button>
-                        
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('هل أنت متأكد من حذف هذه الاستمارة؟')) {
+                              deleteForm.mutate({ id: form.id });
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

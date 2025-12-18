@@ -217,15 +217,54 @@ export default function Fatore() {
 
   const handleSaveDraftRecord = async () => {
     try {
-      console.log("[Fatore] Fetching /fatore.HTML...");
-      const res = await fetch("/fatore.HTML");
-      if (!res.ok) {
-        console.error("[Fatore] Failed to fetch:", res.status, res.statusText);
+      let text: string | null = null;
+      const doc = iframeRef.current?.contentDocument;
+
+      // Helper to capture iframe content with user modifications
+      const makeSnapshot = (d: Document) => {
+        try {
+          d.querySelectorAll('input').forEach((el) => {
+            const input = el as HTMLInputElement;
+            if (["checkbox", "radio"].includes(input.type)) {
+              if (input.checked) el.setAttribute("checked", "");
+              else el.removeAttribute("checked");
+            } else {
+              el.setAttribute("value", input.value ?? "");
+            }
+          });
+          d.querySelectorAll('textarea').forEach((el) => {
+            const ta = el as HTMLTextAreaElement;
+            el.textContent = ta.value ?? "";
+          });
+          d.querySelectorAll('select').forEach((el) => {
+            const sel = el as HTMLSelectElement;
+            el.setAttribute("value", sel.value ?? "");
+            Array.from(sel.options).forEach((opt) => {
+              if (opt.selected) opt.setAttribute("selected", "");
+              else opt.removeAttribute("selected");
+            });
+          });
+        } catch { }
+        return "<!DOCTYPE html>\n" + d.documentElement.outerHTML;
+      };
+
+      if (doc) {
+        console.log("[Fatore] Capturing iframe content with user modifications...");
+        text = makeSnapshot(doc);
+      } else {
+        console.log("[Fatore] Iframe not accessible, fetching from server...");
+        const res = await fetch("/fatore.HTML");
+        if (res.ok) {
+          text = await res.text();
+        }
+      }
+
+      if (!text) {
         toast.error("تعذر جلب صفحة الفاتورة");
         return;
       }
-      const text = await res.text();
-      console.log("[Fatore] Creating invoice draft...");
+
+      console.log("[Fatore] Creating invoice draft with content length:", text.length);
       await createInvoice.mutateAsync({
         type: docType,
         clientId: target.clientId || 0,

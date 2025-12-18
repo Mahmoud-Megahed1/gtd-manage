@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt, Plus, FileText, ArrowRight } from "lucide-react";
+import { Receipt, Plus, FileText, ArrowRight, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -119,8 +119,20 @@ export default function Invoices() {
           </div>
         )}
         <div className="flex gap-2 mt-4">
-          <Button variant="outline" className="w-full" onClick={() => setLocation(`/invoices/${invoice.id}`)}>
+          <Button variant="outline" className="flex-1" onClick={() => setLocation(`/invoices/${invoice.id}`)}>
             عرض التفاصيل
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm('هل أنت متأكد من حذف هذا المستند؟')) {
+                deleteInvoice.mutate({ id: invoice.id });
+              }
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </CardContent>
@@ -141,13 +153,13 @@ export default function Invoices() {
         <p className="text-muted-foreground text-center mb-6">
           {type === "invoice" ? "ابدأ بإنشاء فاتورة جديدة" : type === "quote" ? "ابدأ بإنشاء عرض سعر جديد" : "ابدأ بإنشاء فاتورة أو عرض سعر"}
         </p>
-          <Button
-            className="gap-2"
-            onClick={() => setLocation('/fatore')}
-          >
-            <Plus className="w-5 h-5" />
-            {type === "invoice" ? "إنشاء فاتورة" : type === "quote" ? "إنشاء عرض سعر" : "إضافة جديد"}
-          </Button>
+        <Button
+          className="gap-2"
+          onClick={() => setLocation('/fatore')}
+        >
+          <Plus className="w-5 h-5" />
+          {type === "invoice" ? "إنشاء فاتورة" : type === "quote" ? "إنشاء عرض سعر" : "إضافة جديد"}
+        </Button>
       </CardContent>
     </Card>
   );

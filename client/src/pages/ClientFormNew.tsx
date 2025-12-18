@@ -134,22 +134,73 @@ export default function ClientFormNew() {
   const handleSaveFileCopy = async () => {
     try {
       let text: string | null = null;
-      const res = await fetch("/clinthope.raw.html");
-      if (res.ok) {
-        text = await res.text();
-      } else if (containerRef.current) {
+
+      // Capture user input values in the container before creating snapshot
+      if (containerRef.current) {
+        try {
+          containerRef.current.querySelectorAll('input').forEach((el) => {
+            const input = el as HTMLInputElement;
+            if (["checkbox", "radio"].includes(input.type)) {
+              if (input.checked) el.setAttribute("checked", "");
+              else el.removeAttribute("checked");
+            } else {
+              el.setAttribute("value", input.value ?? "");
+            }
+          });
+          containerRef.current.querySelectorAll('textarea').forEach((el) => {
+            const ta = el as HTMLTextAreaElement;
+            el.textContent = ta.value ?? "";
+          });
+          containerRef.current.querySelectorAll('select').forEach((el) => {
+            const sel = el as HTMLSelectElement;
+            el.setAttribute("value", sel.value ?? "");
+            Array.from(sel.options).forEach((opt) => {
+              if (opt.selected) opt.setAttribute("selected", "");
+              else opt.removeAttribute("selected");
+            });
+          });
+        } catch { }
+        console.log("[ClientFormNew] Capturing container content with user modifications...");
         text = "<!DOCTYPE html>\n" + containerRef.current.innerHTML;
       }
+
+      // Fallback to server fetch if container not available
+      if (!text) {
+        console.log("[ClientFormNew] Container not available, fetching from server...");
+        const res = await fetch("/clinthope.raw.html");
+        if (res.ok) {
+          text = await res.text();
+        }
+      }
+
       if (!text) throw new Error("fetch_failed");
+
+      console.log("[ClientFormNew] Creating form with content length:", text.length);
       const base64 = btoa(unescape(encodeURIComponent(text)));
-      await uploadFile.mutateAsync({
-        entityType: "form_copy",
-        entityId: 0,
-        fileName: `clinthope-${Date.now()}.html`,
-        fileData: base64,
-        mimeType: "text/html",
+
+      // Create form record first
+      const result = await createForm.mutateAsync({
+        clientId: 0,
+        projectId: undefined,
+        formType: "request",
+        formData: text,
       });
-      toast.success("تم حفظ نسخة الصفحة");
+
+      const formId = (result as any)?.id;
+      if (formId) {
+        // Upload HTML file
+        await uploadFile.mutateAsync({
+          entityType: "form",
+          entityId: formId,
+          fileName: `clinthope-${Date.now()}.html`,
+          fileData: base64,
+          mimeType: "text/html",
+        });
+        toast.success("تم جلب الصفحة وحفظها بنجاح");
+        setLocation("/forms");
+      } else {
+        toast.success("تم حفظ نسخة الصفحة");
+      }
     } catch (error) {
       console.error("[ClientFormNew] handleSaveFileCopy error:", error);
       toast.error("تعذر جلب الصفحة وحفظها");
