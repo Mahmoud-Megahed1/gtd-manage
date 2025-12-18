@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getDb } from "../db";
+import { getDb, getEmployeeByUserId } from "../db";
 import {
   employees, attendance, payroll, leaves, performanceReviews, users,
   InsertEmployee, InsertAttendance, InsertPayroll, InsertLeave, InsertPerformanceReview
@@ -30,6 +30,114 @@ const adminProcedure = protectedProcedure
   });
 
 export const hrRouter = router({
+  // ============= MY PROFILE (Self-Service for All Employees) =============
+  myProfile: router({
+    // Get current user's employee record
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const emp = await getEmployeeByUserId(ctx.user.id);
+      if (!emp) return null;
+      return emp;
+    }),
+
+    // Get current user's attendance records
+    myAttendance: protectedProcedure
+      .input(z.object({
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const emp = await getEmployeeByUserId(ctx.user.id);
+        if (!emp) return [];
+
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          let rows = demo.list("attendance").filter((r: any) => r.employeeId === emp.id);
+          if (input.startDate) rows = rows.filter((r: any) => new Date(r.date) >= input.startDate!);
+          if (input.endDate) rows = rows.filter((r: any) => new Date(r.date) <= input.endDate!);
+          return rows.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+
+        const conditions = [eq(attendance.employeeId, emp.id)];
+        if (input.startDate) conditions.push(gte(attendance.date, input.startDate));
+        if (input.endDate) conditions.push(lte(attendance.date, input.endDate));
+
+        return await db.select().from(attendance).where(and(...conditions)).orderBy(desc(attendance.date));
+      }),
+
+    // Get current user's payroll records
+    myPayroll: protectedProcedure.query(async ({ ctx }) => {
+      const emp = await getEmployeeByUserId(ctx.user.id);
+      if (!emp) return [];
+
+      const db = await getDb();
+      if (!db) {
+        const demo = await import("../_core/demoStore");
+        return demo.list("payroll").filter((r: any) => r.employeeId === emp.id);
+      }
+
+      return await db.select().from(payroll).where(eq(payroll.employeeId, emp.id)).orderBy(desc(payroll.createdAt));
+    }),
+
+    // Get current user's leave requests
+    myLeaves: protectedProcedure.query(async ({ ctx }) => {
+      const emp = await getEmployeeByUserId(ctx.user.id);
+      if (!emp) return [];
+
+      const db = await getDb();
+      if (!db) {
+        const demo = await import("../_core/demoStore");
+        return demo.list("leaves").filter((r: any) => r.employeeId === emp.id);
+      }
+
+      return await db.select().from(leaves).where(eq(leaves.employeeId, emp.id)).orderBy(desc(leaves.createdAt));
+    }),
+
+    // Get current user's performance reviews
+    myReviews: protectedProcedure.query(async ({ ctx }) => {
+      const emp = await getEmployeeByUserId(ctx.user.id);
+      if (!emp) return [];
+
+      const db = await getDb();
+      if (!db) {
+        const demo = await import("../_core/demoStore");
+        return demo.list("performanceReviews").filter((r: any) => r.employeeId === emp.id);
+      }
+
+      return await db.select().from(performanceReviews).where(eq(performanceReviews.employeeId, emp.id)).orderBy(desc(performanceReviews.reviewDate));
+    }),
+
+    // Request a new leave (self-service)
+    requestLeave: protectedProcedure
+      .input(z.object({
+        leaveType: z.enum(['annual', 'sick', 'emergency', 'unpaid']),
+        startDate: z.date(),
+        endDate: z.date(),
+        days: z.number(),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const emp = await getEmployeeByUserId(ctx.user.id);
+        if (!emp) throw new TRPCError({ code: 'FORBIDDEN', message: 'Employee record not found' });
+
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.insert("leaves", { ...input, employeeId: emp.id, status: "pending" });
+          return { success: true };
+        }
+
+        const values: InsertLeave = {
+          ...input,
+          employeeId: emp.id,
+          status: 'pending'
+        };
+
+        await db.insert(leaves).values(values);
+        return { success: true };
+      }),
+  }),
+
   // ============= EMPLOYEES =============
   employees: router({
     list: adminProcedure.query(async () => {

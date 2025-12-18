@@ -21,6 +21,50 @@ function generateUniqueNumber(prefix: string): string {
   return `${prefix}-${timestamp}-${random}`.toUpperCase();
 }
 
+// Permission levels for granular access control
+type PermissionLevel = 'full' | 'own' | 'readonly' | 'none';
+
+function getPermissionLevel(role: string, section: string): PermissionLevel {
+  // Admin has full access everywhere
+  if (role === 'admin') return 'full';
+
+  // Define permission matrix: role -> section -> level
+  const permissionMatrix: Record<string, Record<string, PermissionLevel>> = {
+    // HR Manager - full access to HR
+    hr_manager: { hr: 'full', dashboard: 'full' },
+    // Finance roles
+    finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full' },
+    accountant: { accounting: 'full', reports: 'full', dashboard: 'readonly' },
+    // Project roles
+    project_manager: { projects: 'full', dashboard: 'full' },
+    site_engineer: { projects: 'own', dashboard: 'readonly' },
+    planning_engineer: { projects: 'own', dashboard: 'readonly' },
+    architect: { projects: 'own', dashboard: 'readonly' },
+    interior_designer: { projects: 'own', dashboard: 'readonly' },
+    designer: { projects: 'own', hr: 'own', dashboard: 'readonly' },
+    // Regular employees - can only see their own data in HR
+    employee: { hr: 'own', dashboard: 'readonly' },
+    // Other roles
+    sales_manager: { clients: 'full', invoices: 'full', dashboard: 'full' },
+    procurement_officer: { procurement: 'full', purchases: 'full', dashboard: 'readonly' },
+    document_controller: { documents: 'full', attachments: 'full', dashboard: 'readonly' },
+    qa_qc: { qaqc: 'full', dashboard: 'readonly' },
+    storekeeper: { procurement: 'readonly', dashboard: 'readonly' },
+    viewer: { dashboard: 'readonly' },
+  };
+
+  const rolePerms = permissionMatrix[role];
+  if (!rolePerms) return 'none';
+
+  return rolePerms[section] || 'none';
+}
+
+// Get employee ID linked to user
+async function getEmployeeIdForUser(userId: number): Promise<number | null> {
+  const emp = await db.getEmployeeByUserId(userId);
+  return emp?.id || null;
+}
+
 // Helper for audit logging - extracts IP from context
 async function logAudit(
   userId: number,
@@ -250,7 +294,19 @@ export const appRouter = router({
   projects: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'projects');
+      const permLevel = getPermissionLevel(ctx.user.role, 'projects');
+
+      // For 'own' permission level, only show assigned projects
+      if (permLevel === 'own') {
+        return await db.getProjectsForAssignee(ctx.user.id);
+      }
+
       return await db.getAllProjects();
+    }),
+
+    // Get projects assigned to current user (for limited access roles)
+    myProjects: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getProjectsForAssignee(ctx.user.id);
     }),
 
     getById: protectedProcedure

@@ -4,7 +4,7 @@ import {
   InsertUser, users,
   clients, InsertClient,
   projects, InsertProject,
-
+  employees,
   invoices, InsertInvoice,
   invoiceItems, InsertInvoiceItem,
   forms, InsertForm,
@@ -798,4 +798,25 @@ export async function deleteChangeOrder(id: number) {
     return;
   }
   await db.delete(changeOrders).where(eq(changeOrders.id, id));
+}
+
+// ============= EMPLOYEE HELPERS =============
+export async function getEmployeeByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    const all = demo.list("employees");
+    return all.find((e: any) => e.userId === userId) || null;
+  }
+  const result = await db.select().from(employees).where(eq(employees.userId, userId)).limit(1);
+  return result[0] || null;
+}
+
+export async function getProjectsForAssignee(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    const all = demo.list("projects");
+    return all.filter((p: any) => p.assignedTo === userId);
+  }
+  const result = await db.select().from(projects).where(eq(projects.assignedTo, userId));
+  return result;
 }
