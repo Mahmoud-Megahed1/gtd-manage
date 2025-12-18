@@ -17,8 +17,12 @@ export default function Projects() {
   const { data: projects, isLoading } = trpc.projects.list.useQuery();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const deleteProject = trpc.projects.delete.useMutation({
-    onSuccess: () => toast.success("تم حذف المشروع"),
+    onSuccess: () => {
+      toast.success("تم حذف المشروع");
+      utils.projects.list.invalidate();
+    },
     onError: () => toast.error("تعذر حذف المشروع"),
   });
 
@@ -77,8 +81,8 @@ export default function Projects() {
         ) : projects && projects.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card 
-                key={project.id} 
+              <Card
+                key={project.id}
                 className="hover:shadow-lg transition-shadow"
               >
                 <CardHeader>
@@ -114,8 +118,8 @@ export default function Projects() {
                       {project.description}
                     </p>
                   )}
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full mt-4"
                     onClick={(e) => {
                       e.stopPropagation();

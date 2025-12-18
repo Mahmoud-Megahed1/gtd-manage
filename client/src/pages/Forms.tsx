@@ -18,9 +18,11 @@ export default function Forms() {
   const [activeTab, setActiveTab] = useState<"requests" | "modifications">("requests");
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const deleteForm = trpc.forms.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الاستمارة بنجاح");
+      utils.forms.list.invalidate();
     },
     onError: () => {
       toast.error("تعذر حذف الاستمارة");

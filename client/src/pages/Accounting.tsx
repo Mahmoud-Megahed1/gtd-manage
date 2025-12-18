@@ -59,7 +59,11 @@ export default function Accounting() {
     }
   });
   const cancelExpense = trpc.accounting.expenses.cancel.useMutation({
-    onSuccess: () => toast.success("تم إلغاء المصروف"),
+    onSuccess: () => {
+      toast.success("تم إلغاء المصروف");
+      utils.accounting.expenses.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
+    },
     onError: () => toast.error("تعذر إلغاء المصروف"),
   });
   const deleteExpense = trpc.accounting.expenses.delete.useMutation({
@@ -72,43 +76,60 @@ export default function Accounting() {
   const cancelSale = trpc.accounting.sales.cancel.useMutation({
     onSuccess: () => {
       toast.success("تم إلغاء عملية البيع");
+      utils.accounting.sales.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
     },
     onError: () => {
       toast.error("تعذر إلغاء عملية البيع");
     }
   });
   const updateSale = trpc.accounting.sales.update.useMutation({
-    onSuccess: () => toast.success("تم تحديث عملية البيع"),
+    onSuccess: () => {
+      toast.success("تم تحديث عملية البيع");
+      utils.accounting.sales.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
+    },
     onError: () => toast.error("تعذر تحديث عملية البيع"),
   });
   const deleteSale = trpc.accounting.sales.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف عملية البيع");
       utils.accounting.sales.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
     },
     onError: () => toast.error("تعذر حذف عملية البيع"),
   });
   const cancelPurchase = trpc.accounting.purchases.cancel.useMutation({
     onSuccess: () => {
       toast.success("تم إلغاء عملية الشراء");
+      utils.accounting.purchases.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
     },
     onError: () => {
       toast.error("تعذر إلغاء عملية الشراء");
     }
   });
   const updatePurchase = trpc.accounting.purchases.update.useMutation({
-    onSuccess: () => toast.success("تم تحديث عملية الشراء"),
+    onSuccess: () => {
+      toast.success("تم تحديث عملية الشراء");
+      utils.accounting.purchases.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
+    },
     onError: () => toast.error("تعذر تحديث عملية الشراء"),
   });
   const deletePurchase = trpc.accounting.purchases.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف عملية الشراء");
       utils.accounting.purchases.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
     },
     onError: () => toast.error("تعذر حذف عملية الشراء"),
   });
   const cancelInstallment = trpc.accounting.installments.cancel.useMutation({
-    onSuccess: () => toast.success("تم إلغاء القسط"),
+    onSuccess: () => {
+      toast.success("تم إلغاء القسط");
+      utils.accounting.reports.overallFinancials.invalidate();
+    },
     onError: () => toast.error("تعذر إلغاء القسط"),
   });
 

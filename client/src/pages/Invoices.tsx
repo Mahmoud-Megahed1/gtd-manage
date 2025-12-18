@@ -24,9 +24,11 @@ export default function Invoices() {
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
   const deleteInvoice = trpc.invoices.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف المستند بنجاح");
+      utils.invoices.list.invalidate();
     },
     onError: () => {
       toast.error("تعذر حذف المستند");
