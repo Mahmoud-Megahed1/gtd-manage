@@ -2,12 +2,17 @@
  © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
  Unauthorized use or reproduction is prohibited.
 */
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ArrowLeft,
   User,
@@ -19,16 +24,62 @@ import {
   Phone,
   MapPin,
   Briefcase,
-  CreditCard
+  CreditCard,
+  Edit
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function EmployeeProfile() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const employeeId = params.id ? parseInt(params.id) : 0;
 
-  const { data, isLoading } = trpc.hr.employees.getDetails.useQuery({ id: employeeId });
+  const { data, isLoading, refetch } = trpc.hr.employees.getDetails.useQuery({ id: employeeId });
+
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    department: "",
+    position: "",
+    salary: 0,
+    bankAccount: "",
+    emergencyContact: "",
+    status: "active" as "active" | "on_leave" | "terminated"
+  });
+
+  // Initialize edit form when data loads
+  const initEditForm = () => {
+    const details: any = data;
+    if (details?.employee) {
+      setEditForm({
+        department: details.employee.department || "",
+        position: details.employee.position || "",
+        salary: details.employee.salary || 0,
+        bankAccount: details.employee.bankAccount || "",
+        emergencyContact: details.employee.emergencyContact || "",
+        status: details.employee.status as any || "active"
+      });
+    }
+    setEditOpen(true);
+  };
+
+  // Update mutation
+  const updateEmployee = trpc.hr.employees.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث بيانات الموظف");
+      setEditOpen(false);
+      refetch();
+    },
+    onError: (err) => toast.error("فشل التحديث: " + err.message)
+  });
+
+  const handleSave = () => {
+    updateEmployee.mutate({
+      id: employeeId,
+      ...editForm
+    });
+  };
 
   const getStatusColor = (status: string) => {
     const colorMap: Record<string, string> = {
@@ -111,9 +162,80 @@ export default function EmployeeProfile() {
               </Badge>
             </div>
           </div>
-          <Button size="lg" className="gap-2">
-            تعديل البيانات
-          </Button>
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="gap-2" onClick={initEditForm}>
+                <Edit className="h-4 w-4" />
+                تعديل البيانات
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>تعديل بيانات الموظف</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>القسم</Label>
+                    <Input
+                      value={editForm.department}
+                      onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>المنصب</Label>
+                    <Input
+                      value={editForm.position}
+                      onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>الراتب</Label>
+                    <Input
+                      type="number"
+                      value={editForm.salary}
+                      onChange={(e) => setEditForm({ ...editForm, salary: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label>الحالة</Label>
+                    <Select
+                      value={editForm.status}
+                      onValueChange={(v) => setEditForm({ ...editForm, status: v as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">نشط</SelectItem>
+                        <SelectItem value="on_leave">في إجازة</SelectItem>
+                        <SelectItem value="terminated">منتهي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>الحساب البنكي</Label>
+                  <Input
+                    value={editForm.bankAccount}
+                    onChange={(e) => setEditForm({ ...editForm, bankAccount: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>رقم الطوارئ</Label>
+                  <Input
+                    value={editForm.emergencyContact}
+                    onChange={(e) => setEditForm({ ...editForm, emergencyContact: e.target.value })}
+                  />
+                </div>
+                <Button onClick={handleSave} className="w-full" disabled={updateEmployee.isPending}>
+                  {updateEmployee.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Info Cards */}
@@ -271,14 +393,12 @@ export default function EmployeeProfile() {
                     {recentAttendance.map((record: any) => (
                       <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            record.status === "present" ? "bg-green-500/10" : 
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${record.status === "present" ? "bg-green-500/10" :
                             record.status === "late" ? "bg-yellow-500/10" : "bg-red-500/10"
-                          }`}>
-                            <Clock className={`w-5 h-5 ${
-                              record.status === "present" ? "text-green-500" : 
+                            }`}>
+                            <Clock className={`w-5 h-5 ${record.status === "present" ? "text-green-500" :
                               record.status === "late" ? "text-yellow-500" : "text-red-500"
-                            }`} />
+                              }`} />
                           </div>
                           <div>
                             <p className="font-medium">{new Date(record.date).toLocaleDateString("ar-SA")}</p>
@@ -293,8 +413,8 @@ export default function EmployeeProfile() {
                           <p className="font-medium">{record.hoursWorked || 0} ساعة</p>
                           <Badge className={
                             record.status === "present" ? "bg-green-500/10 text-green-500" :
-                            record.status === "late" ? "bg-yellow-500/10 text-yellow-500" :
-                            "bg-red-500/10 text-red-500"
+                              record.status === "late" ? "bg-yellow-500/10 text-yellow-500" :
+                                "bg-red-500/10 text-red-500"
                           }>
                             {record.status === "present" ? "حاضر" : record.status === "late" ? "متأخر" : "غائب"}
                           </Badge>
@@ -329,8 +449,8 @@ export default function EmployeeProfile() {
                           <div>
                             <p className="font-medium">{record.month}/{record.year}</p>
                             <p className="text-sm text-muted-foreground">
-                              أساسي: {record.baseSalary.toLocaleString()} • 
-                              مكافآت: {(record.bonuses || 0).toLocaleString()} • 
+                              أساسي: {record.baseSalary.toLocaleString()} •
+                              مكافآت: {(record.bonuses || 0).toLocaleString()} •
                               خصومات: {(record.deductions || 0).toLocaleString()}
                             </p>
                           </div>
@@ -339,7 +459,7 @@ export default function EmployeeProfile() {
                           <p className="font-bold text-lg">{record.netSalary.toLocaleString()} ريال</p>
                           <Badge className={
                             record.status === "paid" ? "bg-green-500/10 text-green-500" :
-                            "bg-yellow-500/10 text-yellow-500"
+                              "bg-yellow-500/10 text-yellow-500"
                           }>
                             {record.status === "paid" ? "مدفوع" : "معلق"}
                           </Badge>
@@ -381,9 +501,9 @@ export default function EmployeeProfile() {
                         <div className="text-left">
                           <p className="font-medium">{leave.days} يوم</p>
                           <Badge className="bg-green-500/10 text-green-500">
-                            {leave.leaveType === "annual" ? "سنوية" : 
-                             leave.leaveType === "sick" ? "مرضية" :
-                             leave.leaveType === "emergency" ? "طارئة" : "بدون راتب"}
+                            {leave.leaveType === "annual" ? "سنوية" :
+                              leave.leaveType === "sick" ? "مرضية" :
+                                leave.leaveType === "emergency" ? "طارئة" : "بدون راتب"}
                           </Badge>
                         </div>
                       </div>
@@ -457,6 +577,6 @@ export default function EmployeeProfile() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }
