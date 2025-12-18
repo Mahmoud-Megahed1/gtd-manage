@@ -122,7 +122,7 @@ export const appRouter = router({
         expires: new Date(0)
       });
       if (ctx.user) {
-        logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id, undefined, ctx);
+        logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id, undefined, undefined, ctx);
       }
       return { success: true } as const;
     }),
@@ -168,7 +168,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, token, cookieOptions);
         // Update last signed in
         await db.updateUserLastSignedIn(user.id);
-        await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id, ctx);
+        await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id, undefined, ctx);
         return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
       }),
   }),
@@ -214,7 +214,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`, ctx);
+        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`, undefined, ctx);
         return { success: true, clientNumber };
       }),
 
@@ -232,7 +232,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'clients');
         const { id, ...data } = input;
         await db.updateClient(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`, undefined, ctx);
         return { success: true };
       }),
 
@@ -241,7 +241,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'clients');
         await db.deleteClient(input.id);
-        await logAudit(ctx.user.id, 'DELETE_CLIENT', 'client', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_CLIENT', 'client', input.id, undefined, ctx);
         return { success: true };
       })
   }),
@@ -289,7 +289,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`, ctx);
+        await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`, undefined, ctx);
         return { success: true, projectNumber };
       }),
 
@@ -308,7 +308,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
         const { id, ...data } = input;
         await db.updateProject(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id, undefined, ctx);
         return { success: true };
       }),
 
@@ -317,7 +317,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.deleteProject(input.id);
-        await logAudit(ctx.user.id, 'DELETE_PROJECT', 'project', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_PROJECT', 'project', input.id, undefined, ctx);
         return { success: true };
       }),
 
@@ -355,7 +355,7 @@ export const appRouter = router({
           endDate: input.endDate,
           status: 'planned'
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, ctx);
+        await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, undefined, ctx);
         return { success: true };
       }),
 
@@ -371,7 +371,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.deleteProjectTask(input.id);
-        await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, undefined, ctx);
         return { success: true };
       }),
   }),
@@ -401,7 +401,7 @@ export const appRouter = router({
           status: "open",
           submittedBy: ctx.user.id
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber, ctx);
+        await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber, undefined, ctx);
         return { success: true, rfiNumber };
       }),
     answer: protectedProcedure
@@ -412,7 +412,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
         await conn.update(rfis).set({ answer: input.answer, answeredBy: ctx.user.id, answeredAt: new Date(), status: "answered" }).where(eq(rfis.id, input.id));
-        await logAudit(ctx.user.id, 'ANSWER_RFI', 'rfi', input.id, ctx);
+        await logAudit(ctx.user.id, 'ANSWER_RFI', 'rfi', input.id, undefined, ctx);
         return { success: true };
       }),
     close: protectedProcedure
@@ -423,7 +423,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
         await conn.update(rfis).set({ status: "closed" }).where(eq(rfis.id, input.id));
-        await logAudit(ctx.user.id, 'CLOSE_RFI', 'rfi', input.id, ctx);
+        await logAudit(ctx.user.id, 'CLOSE_RFI', 'rfi', input.id, undefined, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -434,7 +434,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
         await conn.delete(rfis).where(eq(rfis.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_RFI', 'rfi', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_RFI', 'rfi', input.id, undefined, ctx);
         return { success: true };
       }),
   }),
@@ -463,7 +463,7 @@ export const appRouter = router({
           status: "submitted",
           submittedBy: ctx.user.id
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code, ctx);
+        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code, undefined, ctx);
         return { success: true, code };
       }),
     approve: protectedProcedure
@@ -474,7 +474,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
         await conn.update(submittals).set({ status: "approved", approvedBy: ctx.user.id, approvedAt: new Date(), notes: input.notes }).where(eq(submittals.id, input.id));
-        await logAudit(ctx.user.id, 'APPROVE_SUBMITTAL', 'submittal', input.id, ctx);
+        await logAudit(ctx.user.id, 'APPROVE_SUBMITTAL', 'submittal', input.id, undefined, ctx);
         return { success: true };
       }),
     reject: protectedProcedure
@@ -485,7 +485,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
         await conn.update(submittals).set({ status: "rejected", approvedBy: ctx.user.id, approvedAt: new Date(), notes: input.notes }).where(eq(submittals.id, input.id));
-        await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id, ctx);
+        await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id, undefined, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -496,7 +496,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
         await conn.delete(submittals).where(eq(submittals.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_SUBMITTAL', 'submittal', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_SUBMITTAL', 'submittal', input.id, undefined, ctx);
         return { success: true };
       }),
   }),
@@ -525,7 +525,7 @@ export const appRouter = router({
           discipline: input.discipline,
           status: "draft"
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode, ctx);
+        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode, undefined, ctx);
         return { success: true };
       }),
     addVersion: protectedProcedure
@@ -546,7 +546,7 @@ export const appRouter = router({
         if (latest) {
           await conn.update(drawings).set({ currentVersionId: latest.id, status: "issued" }).where(eq(drawings.id, input.drawingId));
         }
-        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version, ctx);
+        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version, undefined, ctx);
         return { success: true };
       }),
     versions: protectedProcedure
@@ -566,7 +566,7 @@ export const appRouter = router({
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { drawings } = await import("../drizzle/schema");
         await conn.delete(drawings).where(eq(drawings.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_DRAWING', 'drawing', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_DRAWING', 'drawing', input.id, undefined, ctx);
         return { success: true };
       }),
   }),
@@ -696,7 +696,7 @@ export const appRouter = router({
 
         // Only log audit if invoiceId is valid
         if (invoiceId && !isNaN(invoiceId) && invoiceId > 0) {
-          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`, ctx);
+          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`, undefined, ctx);
         }
 
         // Notify owner
@@ -721,7 +721,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'invoices');
         const { id, ...data } = input;
         await db.updateInvoice(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_INVOICE', 'invoice', id, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_INVOICE', 'invoice', id, undefined, ctx);
         return { success: true };
       }),
 
@@ -730,7 +730,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'invoices');
         await db.deleteInvoice(input.id);
-        await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id, undefined, ctx);
         return { success: true };
       })
   }),
@@ -776,7 +776,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         } as any);
         const id = Number((result as any)?.insertId) || undefined;
-        await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`, ctx);
+        await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`, undefined, ctx);
         return { success: true, id, code };
       }),
     submit: managerProcedure
@@ -784,7 +784,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'submitted', submittedBy: ctx.user.id, submittedAt: new Date() });
-        await logAudit(ctx.user.id, 'SUBMIT_CHANGE_ORDER', 'changeOrder', input.id, ctx);
+        await logAudit(ctx.user.id, 'SUBMIT_CHANGE_ORDER', 'changeOrder', input.id, undefined, ctx);
         return { success: true };
       }),
     approve: protectedProcedure
@@ -795,7 +795,7 @@ export const appRouter = router({
         }
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'approved', approvedBy: ctx.user.id, approvedAt: new Date() });
-        await logAudit(ctx.user.id, 'APPROVE_CHANGE_ORDER', 'changeOrder', input.id, ctx);
+        await logAudit(ctx.user.id, 'APPROVE_CHANGE_ORDER', 'changeOrder', input.id, undefined, ctx);
         return { success: true };
       }),
     reject: protectedProcedure
@@ -806,7 +806,7 @@ export const appRouter = router({
         }
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'rejected', rejectedBy: ctx.user.id, rejectedAt: new Date(), rejectionReason: input.reason });
-        await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason, ctx);
+        await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason, undefined, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -814,7 +814,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await db.deleteChangeOrder(input.id);
-        await logAudit(ctx.user.id, 'DELETE_CHANGE_ORDER', 'changeOrder', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_CHANGE_ORDER', 'changeOrder', input.id, undefined, ctx);
         return { success: true };
       }),
   }),
@@ -866,7 +866,7 @@ export const appRouter = router({
 
         // Only log audit if formId is valid
         if (formId && !isNaN(formId) && formId > 0) {
-          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`, ctx);
+          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`, undefined, ctx);
         }
 
         // Notify owner
@@ -888,7 +888,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'forms');
         const { id, ...data } = input;
         await db.updateForm(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_FORM', 'form', id, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_FORM', 'form', id, undefined, ctx);
         return { success: true };
       }),
 
@@ -897,7 +897,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'forms');
         await db.deleteForm(input.id);
-        await logAudit(ctx.user.id, 'DELETE_FORM', 'form', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_FORM', 'form', input.id, undefined, ctx);
         return { success: true };
       })
   }),
@@ -940,7 +940,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'settings');
         await db.setCompanySetting(input.key, input.value, ctx.user.id);
-        await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`, undefined, ctx);
         return { success: true };
       })
   }),
@@ -976,7 +976,7 @@ export const appRouter = router({
           role: input.role
         });
 
-        await logAudit(ctx.user.id, 'CREATE_USER', 'user', user.id, `Created user ${input.email} with role ${input.role}`, ctx);
+        await logAudit(ctx.user.id, 'CREATE_USER', 'user', user.id, `Created user ${input.email} with role ${input.role}`, undefined, ctx);
         return user;
       }),
 
@@ -994,7 +994,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const role = (input.role ?? 'designer') as any;
         await db.updateUserRole(input.userId, role);
-        await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, undefined, ctx);
         return { success: true };
       }),
 
@@ -1022,7 +1022,7 @@ export const appRouter = router({
         }
 
         await db.updateUser(userId, updateData);
-        await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`, undefined, ctx);
         return { success: true };
       }),
 
@@ -1037,7 +1037,7 @@ export const appRouter = router({
         }
 
         await db.deleteUser(input.userId);
-        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`, ctx);
+        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`, undefined, ctx);
         return { success: true };
       })
     ,
@@ -1060,7 +1060,7 @@ export const appRouter = router({
         console.log("[setPermissions] Saving for userId:", input.userId, input.permissions);
         await db.setUserPermissions(input.userId, input.permissions);
         console.log("[setPermissions] Saved successfully");
-        await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`, undefined, ctx);
         return { success: true };
       }),
     // Admin sets password for a user
@@ -1073,7 +1073,7 @@ export const appRouter = router({
         const crypto = await import('crypto');
         const hash = crypto.createHash('sha256').update(input.password).digest('hex');
         await db.setUserPassword(input.userId, hash);
-        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin', ctx);
+        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin', undefined, ctx);
         return { success: true };
       }),
     // User changes their own password
@@ -1094,7 +1094,7 @@ export const appRouter = router({
         }
         const newHash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
         await db.setUserPassword(ctx.user.id, newHash);
-        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password', ctx);
+        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password', undefined, ctx);
         return { success: true };
       }),
     // Get user password info (admin only - shows if password is set)
@@ -1264,7 +1264,7 @@ export const appRouter = router({
           uploadedBy: ctx.user.id
         });
         console.log("[files.upload] Attachment created successfully");
-        await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`, ctx);
+        await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`, undefined, ctx);
 
         return { success: true, url };
       }),
@@ -1283,7 +1283,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'attachments');
         await db.deleteAttachment(input.id);
-        await logAudit(ctx.user.id, 'DELETE_FILE', 'attachment', input.id, ctx);
+        await logAudit(ctx.user.id, 'DELETE_FILE', 'attachment', input.id, undefined, ctx);
         return { success: true };
       })
   }),
@@ -1305,5 +1305,6 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
 
 
