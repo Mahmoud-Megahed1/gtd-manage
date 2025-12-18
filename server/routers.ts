@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -28,7 +28,7 @@ async function logAudit(
   entityType?: string,
   entityId?: number,
   details?: string,
-  ctx?: { req?: { ip?: string; headers?: { 'x-forwarded-for'?: string; 'x-real-ip'?: string } } }
+  ctx?: any
 ) {
   let ipAddress: string | undefined;
   if (ctx?.req) {
@@ -122,7 +122,7 @@ export const appRouter = router({
         expires: new Date(0)
       });
       if (ctx.user) {
-        logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id, undefined, undefined, ctx);
+        logAudit(ctx.user.id, 'LOGOUT', 'user', ctx.user.id, undefined, ctx);
       }
       return { success: true } as const;
     }),
@@ -143,16 +143,16 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const user = await db.getUserByEmail(input.email);
         if (!user) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ­ÙŠØ­Ø©' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'بيانات الدخول غير صحيحة' });
         }
         if (!user.passwordHash) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Ù„Ù… ÙŠØªÙ… ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø³Ø± Ù„Ù‡Ø°Ø§ Ø§Ù„Ø­Ø³Ø§Ø¨' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'لم يتم تعيين كلمة سر لهذا الحساب' });
         }
         // Use simple hash comparison (bcrypt-style)
         const crypto = await import('crypto');
         const hashInput = crypto.createHash('sha256').update(input.password).digest('hex');
         if (hashInput !== user.passwordHash) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ­ÙŠØ­Ø©' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'بيانات الدخول غير صحيحة' });
         }
         // Create session token
         const jwtModule = await import('jsonwebtoken');
@@ -214,7 +214,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`, ctx);
         return { success: true, clientNumber };
       }),
 
@@ -232,7 +232,7 @@ export const appRouter = router({
         await ensurePerm(ctx, 'clients');
         const { id, ...data } = input;
         await db.updateClient(id, data);
-        await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`, undefined, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`, ctx);
         return { success: true };
       }),
 
@@ -289,7 +289,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_PROJECT', 'project', undefined, `Created project: ${input.name}`, ctx);
         return { success: true, projectNumber };
       }),
 
@@ -355,7 +355,7 @@ export const appRouter = router({
           endDate: input.endDate,
           status: 'planned'
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, ctx);
         return { success: true };
       }),
 
@@ -401,7 +401,7 @@ export const appRouter = router({
           status: "open",
           submittedBy: ctx.user.id
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber, ctx);
         return { success: true, rfiNumber };
       }),
     answer: protectedProcedure
@@ -463,7 +463,7 @@ export const appRouter = router({
           status: "submitted",
           submittedBy: ctx.user.id
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code, ctx);
         return { success: true, code };
       }),
     approve: protectedProcedure
@@ -525,7 +525,7 @@ export const appRouter = router({
           discipline: input.discipline,
           status: "draft"
         } as any);
-        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode, ctx);
         return { success: true };
       }),
     addVersion: protectedProcedure
@@ -546,7 +546,7 @@ export const appRouter = router({
         if (latest) {
           await conn.update(drawings).set({ currentVersionId: latest.id, status: "issued" }).where(eq(drawings.id, input.drawingId));
         }
-        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version, undefined, ctx);
+        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version, ctx);
         return { success: true };
       }),
     versions: protectedProcedure
@@ -696,13 +696,13 @@ export const appRouter = router({
 
         // Only log audit if invoiceId is valid
         if (invoiceId && !isNaN(invoiceId) && invoiceId > 0) {
-          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`, undefined, ctx);
+          await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`, ctx);
         }
 
         // Notify owner
         await notifyOwner({
-          title: `${input.type === 'invoice' ? 'ÙØ§ØªÙˆØ±Ø© Ø¬Ø¯ÙŠØ¯Ø©' : 'Ø¹Ø±Ø¶ Ø³Ø¹Ø± Ø¬Ø¯ÙŠØ¯'}`,
-          content: `ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ ${input.type === 'invoice' ? 'ÙØ§ØªÙˆØ±Ø©' : 'Ø¹Ø±Ø¶ Ø³Ø¹Ø±'} Ø±Ù‚Ù… ${invoiceNumber} Ø¨Ù…Ø¨Ù„Øº ${input.total} Ø±ÙŠØ§Ù„`
+          title: `${input.type === 'invoice' ? 'فاتورة جديدة' : 'عرض سعر جديد'}`,
+          content: `تم إنشاء ${input.type === 'invoice' ? 'فاتورة' : 'عرض سعر'} رقم ${invoiceNumber} بمبلغ ${input.total} ريال`
         });
 
         // Return the full invoice object
@@ -776,7 +776,7 @@ export const appRouter = router({
           createdBy: ctx.user.id
         } as any);
         const id = Number((result as any)?.insertId) || undefined;
-        await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`, ctx);
         return { success: true, id, code };
       }),
     submit: managerProcedure
@@ -806,7 +806,7 @@ export const appRouter = router({
         }
         await ensurePerm(ctx, 'projects');
         await db.updateChangeOrder(input.id, { status: 'rejected', rejectedBy: ctx.user.id, rejectedAt: new Date(), rejectionReason: input.reason });
-        await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason, undefined, ctx);
+        await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason, ctx);
         return { success: true };
       }),
     delete: adminProcedure
@@ -871,8 +871,8 @@ export const appRouter = router({
 
         // Notify owner
         await notifyOwner({
-          title: 'Ø§Ø³ØªÙ…Ø§Ø±Ø© Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯Ø©',
-          content: `ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø§Ø³ØªÙ…Ø§Ø±Ø© Ø¬Ø¯ÙŠØ¯Ø© Ø±Ù‚Ù… ${formNumber}`
+          title: 'استمارة عميل جديدة',
+          content: `تم إضافة استمارة جديدة رقم ${formNumber}`
         });
 
         return { success: true, id: formId || undefined, formNumber };
@@ -940,7 +940,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'settings');
         await db.setCompanySetting(input.key, input.value, ctx.user.id);
-        await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`, ctx);
         return { success: true };
       })
   }),
@@ -976,7 +976,7 @@ export const appRouter = router({
           role: input.role
         });
 
-        await logAudit(ctx.user.id, 'CREATE_USER', 'user', user.id, `Created user ${input.email} with role ${input.role}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'CREATE_USER', 'user', user.id, `Created user ${input.email} with role ${input.role}`, ctx);
         return user;
       }),
 
@@ -994,7 +994,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const role = (input.role ?? 'designer') as any;
         await db.updateUserRole(input.userId, role);
-        await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, ctx);
         return { success: true };
       }),
 
@@ -1022,7 +1022,7 @@ export const appRouter = router({
         }
 
         await db.updateUser(userId, updateData);
-        await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`, undefined, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`, ctx);
         return { success: true };
       }),
 
@@ -1037,7 +1037,7 @@ export const appRouter = router({
         }
 
         await db.deleteUser(input.userId);
-        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`, undefined, ctx);
+        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`, ctx);
         return { success: true };
       })
     ,
@@ -1060,7 +1060,7 @@ export const appRouter = router({
         console.log("[setPermissions] Saving for userId:", input.userId, input.permissions);
         await db.setUserPermissions(input.userId, input.permissions);
         console.log("[setPermissions] Saved successfully");
-        await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`, undefined, ctx);
+        await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`, ctx);
         return { success: true };
       }),
     // Admin sets password for a user
@@ -1073,7 +1073,7 @@ export const appRouter = router({
         const crypto = await import('crypto');
         const hash = crypto.createHash('sha256').update(input.password).digest('hex');
         await db.setUserPassword(input.userId, hash);
-        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin', undefined, ctx);
+        await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin', ctx);
         return { success: true };
       }),
     // User changes their own password
@@ -1085,16 +1085,16 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const user = await db.getUserById(ctx.user.id);
         if (!user) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯' });
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'المستخدم غير موجود' });
         }
         const crypto = await import('crypto');
         const currentHash = crypto.createHash('sha256').update(input.currentPassword).digest('hex');
         if (user.passwordHash && user.passwordHash !== currentHash) {
-          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'ÙƒÙ„Ù…Ø© Ø§Ù„Ø³Ø± Ø§Ù„Ø­Ø§Ù„ÙŠØ© ØºÙŠØ± ØµØ­ÙŠØ­Ø©' });
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'كلمة السر الحالية غير صحيحة' });
         }
         const newHash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
         await db.setUserPassword(ctx.user.id, newHash);
-        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password', undefined, ctx);
+        await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password', ctx);
         return { success: true };
       }),
     // Get user password info (admin only - shows if password is set)
@@ -1135,7 +1135,7 @@ export const appRouter = router({
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
-      const months = ['ÙŠÙ†Ø§ÙŠØ±', 'ÙØ¨Ø±Ø§ÙŠØ±', 'Ù…Ø§Ø±Ø³', 'Ø£Ø¨Ø±ÙŠÙ„', 'Ù…Ø§ÙŠÙˆ', 'ÙŠÙˆÙ†ÙŠÙˆ', 'ÙŠÙˆÙ„ÙŠÙˆ', 'Ø£ØºØ³Ø·Ø³', 'Ø³Ø¨ØªÙ…Ø¨Ø±', 'Ø£ÙƒØªÙˆØ¨Ø±', 'Ù†ÙˆÙÙ…Ø¨Ø±', 'Ø¯ÙŠØ³Ù…Ø¨Ø±'];
+      const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
       const now = new Date();
       const start = new Date(now);
       start.setMonth(now.getMonth() - 5);
@@ -1200,7 +1200,7 @@ export const appRouter = router({
         ];
         const MAX_SIZE = 10 * 1024 * 1024; // 10MB
         if (!ALLOWED_TYPES.includes(input.mimeType)) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ù†ÙˆØ¹ Ø§Ù„Ù…Ù„Ù ØºÙŠØ± Ù…Ø³Ù…ÙˆØ­' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'نوع الملف غير مسموح' });
         }
         const safeName = input.fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
         const section =
@@ -1216,10 +1216,10 @@ export const appRouter = router({
         try {
           buffer = Buffer.from(input.fileData, 'base64');
         } catch {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ù…Ù„Ù ØºÙŠØ± ØµØ§Ù„Ø­' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'ملف غير صالح' });
         }
         if (buffer.length > MAX_SIZE) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ø­Ø¬Ù… Ø§Ù„Ù…Ù„Ù ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„Ù…Ø³Ù…ÙˆØ­' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'حجم الملف يتجاوز الحد المسموح' });
         }
         // Verify magic numbers to prevent MIME spoofing
         const head = buffer.subarray(0, 16);
@@ -1241,7 +1241,7 @@ export const appRouter = router({
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && isZip) ||
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && isZip);
         if (!mimeOk) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Ù†ÙˆØ¹ Ø§Ù„Ù…Ù„Ù Ù„Ø§ ÙŠØ·Ø§Ø¨Ù‚ Ø§Ù„Ù…Ø­ØªÙˆÙ‰' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'نوع الملف لا يطابق المحتوى' });
         }
         const fileKey = `${input.entityType}/${input.entityId}/${Date.now()}-${input.fileName}`;
         let url: string;
@@ -1264,7 +1264,7 @@ export const appRouter = router({
           uploadedBy: ctx.user.id
         });
         console.log("[files.upload] Attachment created successfully");
-        await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`, undefined, ctx);
+        await logAudit(ctx.user.id, 'UPLOAD_FILE', input.entityType, input.entityId, `Uploaded file: ${input.fileName}`, ctx);
 
         return { success: true, url };
       }),

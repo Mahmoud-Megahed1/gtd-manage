@@ -62,12 +62,7 @@ const navItems: NavItem[] = [
     icon: <Calculator className="w-5 h-5" />,
     roles: ["admin", "accountant"]
   },
-  {
-    title: "التقارير",
-    href: "/reports",
-    icon: <Calculator className="w-5 h-5" />,
-    roles: ["admin", "accountant"]
-  },
+
   {
     title: "الإشعارات",
     href: "/notifications",

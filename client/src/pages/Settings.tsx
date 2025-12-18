@@ -537,7 +537,7 @@ export default function Settings() {
                     </div>
                     <Button
                       variant="outline"
-                      onClick={() => window.location.href = "/reports"}
+                      onClick={() => window.location.href = "/accounting"}
                     >
                       فتح التقارير
                     </Button>

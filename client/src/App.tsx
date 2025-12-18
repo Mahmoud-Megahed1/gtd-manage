@@ -30,7 +30,6 @@ import Modifications from "./pages/Modifications";
 import AIAssistant from "./pages/AIAssistant";
 import ClientFormNew from "./pages/ClientFormNew";
 import ChangeOrders from "./pages/ChangeOrders";
-import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import Tasks from "./pages/Tasks";
 import TaskDetails from "./pages/TaskDetails";
@@ -62,7 +61,7 @@ function Router() {
       <Route path={"/modifications"} component={Modifications} />
       <Route path={"/ai-assistant"} component={AIAssistant} />
       <Route path={"/settings"} component={Settings} />
-      <Route path={"/reports"} component={Reports} />
+      <Route path={"/reports"}>{() => <Redirect to="/accounting" />}</Route>
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/tasks"} component={Tasks} />
       <Route path={"/tasks/:id"} component={TaskDetails} />

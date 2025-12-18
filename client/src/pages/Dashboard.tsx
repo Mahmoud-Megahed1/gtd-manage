@@ -179,7 +179,7 @@ export default function Dashboard() {
                   <span className="font-medium">إدارة المهام</span>
                 </div>
               </Link>
-              <Link href="/reports">
+              <Link href="/accounting">
                 <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
                   <Calculator className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
                   <span className="font-medium">عرض التقارير</span>

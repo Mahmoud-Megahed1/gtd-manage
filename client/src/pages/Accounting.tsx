@@ -16,13 +16,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc";
 import { Plus, Download, TrendingUp, TrendingDown } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { AddSaleDialog } from "@/components/AddSaleDialog";
 import { AddPurchaseDialog } from "@/components/AddPurchaseDialog";
 import { AddInstallmentDialog } from "@/components/AddInstallmentDialog";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 export default function Accounting() {
   const { data: expenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.accounting.expenses.list.useQuery({});
@@ -45,6 +65,195 @@ export default function Accounting() {
     date: new Date().toISOString().split('T')[0]
   });
 
+  // ========== Advanced Reports States ==========
+  const [reportFrom, setReportFrom] = useState<string>("");
+  const [reportTo, setReportTo] = useState<string>("");
+  const [reportClientId, setReportClientId] = useState<string>("all");
+  const [reportProjectId, setReportProjectId] = useState<string>("all");
+  const [invoiceStatus, setInvoiceStatus] = useState<string>("all");
+  const [purchaseStatus, setPurchaseStatus] = useState<string>("all");
+  const [expenseStatus, setExpenseStatus] = useState<string>("all");
+  const [installmentStatus, setInstallmentStatus] = useState<string>("all");
+  const { data: clients } = trpc.clients.list.useQuery(undefined, { refetchOnWindowFocus: false });
+  const { data: reportData, refetch: refetchReportData, isLoading: reportLoading } = trpc.reports.summary.useQuery(
+    {
+      from: reportFrom ? new Date(reportFrom) : undefined,
+      to: reportTo ? new Date(reportTo) : undefined,
+      clientId: reportClientId === "all" ? undefined : Number(reportClientId),
+      projectId: reportProjectId === "all" ? undefined : Number(reportProjectId),
+      invoiceStatus: invoiceStatus === "all" ? undefined : (invoiceStatus as any),
+      purchaseStatus: purchaseStatus === "all" ? undefined : (purchaseStatus as any),
+      expenseStatus: expenseStatus === "all" ? undefined : (expenseStatus as any),
+      installmentStatus: installmentStatus === "all" ? undefined : (installmentStatus as any),
+    },
+    { refetchOnWindowFocus: false }
+  );
+  const { data: timeseries, isLoading: tsLoading, refetch: tsRefetch } = trpc.reports.timeseries.useQuery(
+    {
+      from: reportFrom ? new Date(reportFrom) : new Date(new Date().getFullYear(), 0, 1),
+      to: reportTo ? new Date(reportTo) : new Date(),
+      granularity: "month",
+      clientId: reportClientId === "all" ? undefined : Number(reportClientId),
+      projectId: reportProjectId === "all" ? undefined : Number(reportProjectId),
+      invoiceStatus: invoiceStatus === "all" ? undefined : (invoiceStatus as any),
+      purchaseStatus: purchaseStatus === "all" ? undefined : (purchaseStatus as any),
+      expenseStatus: expenseStatus === "all" ? undefined : (expenseStatus as any),
+      installmentStatus: installmentStatus === "all" ? undefined : (installmentStatus as any),
+    },
+    { refetchOnWindowFocus: false }
+  );
+  const chartRef = useRef<any>(null);
+  const [invSel, setInvSel] = useState<string[]>(["paid", "sent"]);
+  const [purSel, setPurSel] = useState<string[]>(["completed", "pending"]);
+  const [expSel, setExpSel] = useState<string[]>(["active"]);
+  const [instSel, setInstSel] = useState<string[]>(["pending", "paid"]);
+  const { data: breakdown, isLoading: bdLoading, refetch: bdRefetch } = trpc.reports.timeseriesBreakdown.useQuery(
+    {
+      from: reportFrom ? new Date(reportFrom) : new Date(new Date().getFullYear(), 0, 1),
+      to: reportTo ? new Date(reportTo) : new Date(),
+      granularity: "month",
+      clientId: reportClientId === "all" ? undefined : Number(reportClientId),
+      projectId: reportProjectId === "all" ? undefined : Number(reportProjectId),
+      invoiceStatuses: invSel as any,
+      purchaseStatuses: purSel as any,
+      expenseStatuses: expSel as any,
+      installmentStatuses: instSel as any
+    },
+    { refetchOnWindowFocus: false }
+  );
+
+  const buildQuery = () => {
+    const q = new URLSearchParams();
+    if (reportFrom) q.set("from", reportFrom);
+    if (reportTo) q.set("to", reportTo);
+    if (reportClientId !== "all") q.set("clientId", reportClientId);
+    if (reportProjectId !== "all") q.set("projectId", reportProjectId);
+    if (invoiceStatus !== "all") q.set("invoiceStatus", invoiceStatus);
+    if (purchaseStatus !== "all") q.set("purchaseStatus", purchaseStatus);
+    if (expenseStatus !== "all") q.set("expenseStatus", expenseStatus);
+    if (installmentStatus !== "all") q.set("installmentStatus", installmentStatus);
+    return q.toString();
+  };
+  const buildBreakdownQuery = () => {
+    const q = new URLSearchParams();
+    if (reportFrom) q.set("from", reportFrom);
+    if (reportTo) q.set("to", reportTo);
+    if (reportClientId !== "all") q.set("clientId", reportClientId);
+    if (reportProjectId !== "all") q.set("projectId", reportProjectId);
+    invSel.forEach(s => q.append("invoiceStatuses", s));
+    purSel.forEach(s => q.append("purchaseStatuses", s));
+    expSel.forEach(s => q.append("expenseStatuses", s));
+    instSel.forEach(s => q.append("installmentStatuses", s));
+    return q.toString();
+  };
+  const chartData = useMemo(() => {
+    const labels = (timeseries || []).map(r => r.dateKey);
+    return {
+      labels,
+      datasets: [
+        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
+        { label: "الأقساط", data: (timeseries || []).map(r => r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
+        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
+        { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.2 },
+      ],
+    };
+  }, [timeseries]);
+  const breakdownData = useMemo(() => {
+    const rows = ((breakdown || []) as any[]);
+    const labels = rows.map(r => r.dateKey);
+    const ds: any[] = [];
+    const colorsInv: Record<string, string> = { draft: "#9CA3AF", sent: "#F59E0B", paid: "#16A34A", cancelled: "#EF4444" };
+    const colorsPur: Record<string, string> = { pending: "#A78BFA", completed: "#22C55E", cancelled: "#EF4444" };
+    const colorsExp: Record<string, string> = { active: "#EF4444", cancelled: "#9CA3AF" };
+    const colorsInst: Record<string, string> = { pending: "#F59E0B", paid: "#22C55E", overdue: "#DC2626", cancelled: "#9CA3AF" };
+    invSel.forEach(st => {
+      ds.push({
+        label: `الفواتير: ${st}`,
+        data: rows.map(r => (r.invoices || {})[st] || 0),
+        borderColor: colorsInv[st] || "#6B7280",
+        backgroundColor: (colorsInv[st] || "#6B7280") + "40",
+        tension: 0.2
+      });
+    });
+    purSel.forEach(st => {
+      ds.push({
+        label: `المشتريات: ${st}`,
+        data: rows.map(r => (r.purchases || {})[st] || 0),
+        borderColor: colorsPur[st] || "#6B7280",
+        backgroundColor: (colorsPur[st] || "#6B7280") + "40",
+        tension: 0.2
+      });
+    });
+    expSel.forEach(st => {
+      ds.push({
+        label: `المصروفات: ${st}`,
+        data: rows.map(r => (r.expenses || {})[st] || 0),
+        borderColor: colorsExp[st] || "#6B7280",
+        backgroundColor: (colorsExp[st] || "#6B7280") + "40",
+        tension: 0.2
+      });
+    });
+    instSel.forEach(st => {
+      ds.push({
+        label: `الأقساط: ${st}`,
+        data: rows.map(r => (r.installments || {})[st] || 0),
+        borderColor: colorsInst[st] || "#6B7280",
+        backgroundColor: (colorsInst[st] || "#6B7280") + "40",
+        tension: 0.2
+      });
+    });
+    return { labels, datasets: ds };
+  }, [breakdown, invSel, purSel, expSel, instSel]);
+  const canExportCsv = useMemo(() => (timeseries || []).length > 0, [timeseries]);
+  const canExportBreakdown = useMemo(() => (breakdown || []).length > 0, [breakdown]);
+  const exportPdf = () => {
+    try {
+      const img = chartRef.current?.toBase64Image?.() || "";
+      const html = `
+        <html><head><meta charset="utf-8"><title>Reports</title>
+        <style>
+          body{font-family:system-ui,-apple-system,Segoe UI,Roboto; padding:24px}
+          .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+          .card{border:1px solid #ddd;border-radius:8px;padding:12px}
+          img{max-width:100%}
+        </style></head>
+        <body>
+          <h1>التقارير</h1>
+          <div class="grid">
+            <div class="card"><div>إجمالي الفواتير</div><h2>${reportData?.invoicesTotal ?? 0}</h2></div>
+            <div class="card"><div>إجمالي الأقساط</div><h2>${reportData?.installmentsTotal ?? 0}</h2></div>
+            <div class="card"><div>إجمالي المصروفات</div><h2>${reportData?.expensesTotal ?? 0}</h2></div>
+            <div class="card"><div>الصافي</div><h2>${reportData?.net ?? 0}</h2></div>
+          </div>
+          ${img ? `<h2>المخطط</h2><img id="chartImg" src="${img}" />` : "<div style='margin-top:16px;color:#6b7280'>لا يوجد مخطط لطباعته</div>"}
+          <script>
+            function readyToPrint(){
+              try {
+                window.focus();
+                setTimeout(function(){ window.print(); }, 150);
+              } catch {}
+            }
+            var pic = document.getElementById('chartImg');
+            if (pic) {
+              pic.onload = readyToPrint;
+              setTimeout(readyToPrint, 400);
+            } else {
+              setTimeout(readyToPrint, 150);
+            }
+          </script>
+        </body></html>`;
+      const w = window.open("", "_blank");
+      if (!w) return;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    } catch { }
+  };
+  const exportServerPdf = () => {
+    const qs = buildQuery();
+    window.open(`/reports.print.html?${qs}`, "_blank");
+  };
+  // ========== End Advanced Reports ==========
 
   const createExpense = trpc.accounting.expenses.create.useMutation({
     onSuccess: () => {
@@ -617,147 +826,258 @@ export default function Accounting() {
           <TabsContent value="reports" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>التقارير المالية</CardTitle>
+                <CardTitle>نطاق التاريخ</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-7 gap-3">
+                  <div>
+                    <label className="text-sm">من</label>
+                    <Input type="date" value={reportFrom} onChange={(e) => setReportFrom(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-sm">إلى</label>
+                    <Input type="date" value={reportTo} onChange={(e) => setReportTo(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-sm">العميل</label>
+                    <Select value={reportClientId} onValueChange={(v) => setReportClientId(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="الكل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">الكل</SelectItem>
+                        {(clients || []).map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm">المشروع</label>
+                    <Select value={reportProjectId} onValueChange={(v) => setReportProjectId(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="الكل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">الكل</SelectItem>
+                        {(projects || []).map((p: any) => (
+                          <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm">حالة الفاتورة</label>
+                    <Select value={invoiceStatus} onValueChange={(v) => setInvoiceStatus(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="الكل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">الكل</SelectItem>
+                        <SelectItem value="draft">مسودة</SelectItem>
+                        <SelectItem value="sent">مرسلة</SelectItem>
+                        <SelectItem value="paid">مدفوعة</SelectItem>
+                        <SelectItem value="cancelled">ملغاة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm">حالة المشتريات</label>
+                    <Select value={purchaseStatus} onValueChange={(v) => setPurchaseStatus(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="الكل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">الكل</SelectItem>
+                        <SelectItem value="pending">قيد الانتظار</SelectItem>
+                        <SelectItem value="completed">مكتملة</SelectItem>
+                        <SelectItem value="cancelled">ملغاة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={() => { refetchReportData(); tsRefetch(); }} disabled={reportLoading || tsLoading}>تحديث</Button>
+                  </div>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      const html = `
-                        <!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>التقرير المالي</title>
-                        <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto;padding:24px}
-                        .card{border:1px solid #ddd;padding:16px;margin:8px 0;border-radius:8px}
-                        .green{color:#16a34a}.red{color:#dc2626}.blue{color:#2563eb}
-                        table{width:100%;border-collapse:collapse;margin:16px 0}
-                        th,td{border:1px solid #ddd;padding:8px;text-align:right}
-                        th{background:#f3f4f6}</style>
-                        </head><body>
-                        <h1>التقرير المالي الشامل</h1>
-                        <p>تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}</p>
-                        <div class="card">
-                          <h3>ملخص مالي</h3>
-                          <p>إجمالي الإيرادات: <span class="green">${(summary.totalRevenue || 0).toLocaleString()} ر.س</span></p>
-                          <p>إجمالي المصروفات: <span class="red">${(summary.totalExpenses || 0).toLocaleString()} ر.س</span></p>
-                          <p>صافي الربح: <span class="blue">${(((summary.totalRevenue || 0) - (summary.totalExpenses || 0)) || 0).toLocaleString()} ر.س</span></p>
-                        </div>
-                        <div class="card">
-                          <h3>تفاصيل الإيرادات</h3>
-                          <p>عدد عمليات البيع: ${salesList?.length || 0}</p>
-                          <p>إجمالي المبيعات المكتملة: ${salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س</p>
-                        </div>
-                        <div class="card">
-                          <h3>تفاصيل المصروفات</h3>
-                          <p>عدد المصروفات: ${expenses?.length || 0}</p>
-                          <p>عدد المشتريات: ${purchasesList?.length || 0}</p>
-                        </div>
-                        <script>window.onload=function(){window.print()}</script>
-                        </body></html>`;
-                      const w = window.open("", "_blank");
-                      if (!w) return;
-                      w.document.write(html);
-                      w.document.close();
-                    }}
+                    onClick={() => window.open(`/reports.export.csv?${buildQuery()}`, "_blank")}
+                    disabled={!canExportCsv}
                   >
-                    <Download className="w-4 h-4 ml-2" />
-                    طباعة التقرير
+                    تصدير CSV
+                  </Button>
+                  <Button variant="outline" onClick={exportServerPdf} disabled={reportLoading && tsLoading}>
+                    تصدير PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(`/reports.breakdown.csv?${buildBreakdownQuery()}`, "_blank")}
+                    disabled={!canExportBreakdown}
+                  >
+                    تفصيل CSV
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>ملخص مالي</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {/* Financial Summary */}
-                  <div className="grid gap-4 md:grid-cols-4">
-                    <div className="p-4 border rounded-lg bg-green-50">
-                      <h3 className="font-medium text-green-800 mb-1">إجمالي المبيعات</h3>
-                      <p className="text-2xl font-bold text-green-600">
-                        {salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س
-                      </p>
-                      <p className="text-xs text-muted-foreground">{salesList?.filter((s: any) => s.status === 'completed').length || 0} عملية مكتملة</p>
+                {reportLoading ? (
+                  <div className="animate-pulse grid md:grid-cols-2 gap-4">
+                    <div className="h-24 bg-muted rounded"></div>
+                    <div className="h-24 bg-muted rounded"></div>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 border rounded">
+                      <div className="text-sm text-muted-foreground">إجمالي الفواتير</div>
+                      <div className="text-2xl font-bold">{reportData?.invoicesTotal ?? 0}</div>
                     </div>
-                    <div className="p-4 border rounded-lg bg-red-50">
-                      <h3 className="font-medium text-red-800 mb-1">إجمالي المشتريات</h3>
-                      <p className="text-2xl font-bold text-red-600">
-                        {purchasesList?.filter((p: any) => p.status === 'completed').reduce((a: number, p: any) => a + (p.amount || 0), 0).toLocaleString() || 0} ر.س
-                      </p>
-                      <p className="text-xs text-muted-foreground">{purchasesList?.filter((p: any) => p.status === 'completed').length || 0} عملية مكتملة</p>
+                    <div className="p-4 border rounded">
+                      <div className="text-sm text-muted-foreground">إجمالي الأقساط</div>
+                      <div className="text-2xl font-bold">{reportData?.installmentsTotal ?? 0}</div>
                     </div>
-                    <div className="p-4 border rounded-lg bg-orange-50">
-                      <h3 className="font-medium text-orange-800 mb-1">إجمالي التكاليف</h3>
-                      <p className="text-2xl font-bold text-orange-600">
-                        {expenses?.reduce((a: number, e: any) => a + (e.amount || 0), 0).toLocaleString() || 0} ر.س
-                      </p>
-                      <p className="text-xs text-muted-foreground">{expenses?.length || 0} تكلفة</p>
+                    <div className="p-4 border rounded">
+                      <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
+                      <div className="text-2xl font-bold">{reportData?.expensesTotal ?? 0}</div>
                     </div>
-                    <div className="p-4 border rounded-lg bg-blue-50">
-                      <h3 className="font-medium text-blue-800 mb-1">صافي الربح</h3>
-                      <p className="text-2xl font-bold text-blue-600">
-                        {((summary.totalRevenue || 0) - (summary.totalExpenses || 0)).toLocaleString()} ر.س
-                      </p>
-                      <p className="text-xs text-muted-foreground">الإيرادات - المصروفات</p>
+                    <div className="p-4 border rounded">
+                      <div className="text-sm text-muted-foreground">إجمالي المشتريات</div>
+                      <div className="text-2xl font-bold">{reportData?.purchasesTotal ?? 0}</div>
+                    </div>
+                    <div className="p-4 border rounded md:col-span-2">
+                      <div className="text-sm text-muted-foreground">الصافي</div>
+                      <div className="text-3xl font-bold">{reportData?.net ?? 0}</div>
                     </div>
                   </div>
-
-                  {/* Reports List */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">تفاصيل المبيعات</h3>
-                      {salesList && salesList.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>الوصف</TableHead>
-                              <TableHead>المبلغ</TableHead>
-                              <TableHead>الحالة</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {salesList.slice(0, 5).map((sale) => (
-                              <TableRow key={sale.id}>
-                                <TableCell>{sale.description}</TableCell>
-                                <TableCell className="text-green-600">{sale.amount?.toLocaleString()} ر.س</TableCell>
-                                <TableCell>
-                                  <span className={`px-2 py-1 rounded text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                    {sale.status === 'completed' ? 'مكتمل' : 'قيد المعالجة'}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">لا توجد مبيعات</p>
-                      )}
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>مخطط زمني</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tsLoading ? (
+                  <div className="h-64 bg-muted rounded animate-pulse" />
+                ) : (
+                  <Line
+                    ref={chartRef}
+                    data={chartData}
+                    options={{
+                      responsive: true,
+                      plugins: { legend: { position: "bottom" } },
+                      scales: { y: { beginAtZero: true } }
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>تفصيل حسب الحالة</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-5 gap-3">
+                  <div>
+                    <div className="text-sm mb-2">حالات الفواتير</div>
+                    <div className="flex flex-col gap-2">
+                      {["draft", "sent", "paid", "cancelled"].map(s => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={invSel.includes(s)}
+                            onCheckedChange={(v) => {
+                              setInvSel(prev => {
+                                const set = new Set(prev);
+                                if (v) set.add(s); else set.delete(s);
+                                return Array.from(set);
+                              });
+                            }}
+                          />
+                          <span>{s}</span>
+                        </label>
+                      ))}
                     </div>
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">تفاصيل المشتريات</h3>
-                      {purchasesList && purchasesList.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>الوصف</TableHead>
-                              <TableHead>المبلغ</TableHead>
-                              <TableHead>الحالة</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {purchasesList.slice(0, 5).map((purchase) => (
-                              <TableRow key={purchase.id}>
-                                <TableCell>{purchase.description}</TableCell>
-                                <TableCell className="text-red-600">{purchase.amount?.toLocaleString()} ر.س</TableCell>
-                                <TableCell>
-                                  <span className={`px-2 py-1 rounded text-xs ${purchase.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                    {purchase.status === 'completed' ? 'مكتمل' : 'قيد المعالجة'}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">لا توجد مشتريات</p>
-                      )}
+                  </div>
+                  <div>
+                    <div className="text-sm mb-2">حالات المشتريات</div>
+                    <div className="flex flex-col gap-2">
+                      {["pending", "completed", "cancelled"].map(s => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={purSel.includes(s)}
+                            onCheckedChange={(v) => {
+                              setPurSel(prev => {
+                                const set = new Set(prev);
+                                if (v) set.add(s); else set.delete(s);
+                                return Array.from(set);
+                              });
+                            }}
+                          />
+                          <span>{s}</span>
+                        </label>
+                      ))}
                     </div>
+                  </div>
+                  <div>
+                    <div className="text-sm mb-2">حالات المصروفات</div>
+                    <div className="flex flex-col gap-2">
+                      {["active", "cancelled"].map(s => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={expSel.includes(s)}
+                            onCheckedChange={(v) => {
+                              setExpSel(prev => {
+                                const set = new Set(prev);
+                                if (v) set.add(s); else set.delete(s);
+                                return Array.from(set);
+                              });
+                            }}
+                          />
+                          <span>{s}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm mb-2">حالات الأقساط</div>
+                    <div className="flex flex-col gap-2">
+                      {["pending", "paid", "overdue", "cancelled"].map(s => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={instSel.includes(s)}
+                            onCheckedChange={(v) => {
+                              setInstSel(prev => {
+                                const set = new Set(prev);
+                                if (v) set.add(s); else set.delete(s);
+                                return Array.from(set);
+                              });
+                            }}
+                          />
+                          <span>{s}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={() => bdRefetch()} disabled={bdLoading}>تحديث التفصيل</Button>
                   </div>
                 </div>
+                {bdLoading ? (
+                  <div className="h-64 bg-muted rounded animate-pulse" />
+                ) : (
+                  <Line
+                    data={breakdownData}
+                    options={{
+                      responsive: true,
+                      plugins: { legend: { position: "bottom" } },
+                      scales: { y: { beginAtZero: true } }
+                    }}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
