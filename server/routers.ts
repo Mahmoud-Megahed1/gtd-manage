@@ -866,7 +866,7 @@ export const appRouter = router({
 
         // Only log audit if formId is valid
         if (formId && !isNaN(formId) && formId > 0) {
-          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`, undefined, ctx);
+          await logAudit(ctx.user.id, 'CREATE_FORM', 'form', formId, `Created form: ${formNumber}`, ctx);
         }
 
         // Notify owner
