@@ -41,7 +41,7 @@ export default function HR() {
   } | null>(null);
 
   // Queries
-  const { data: employees, isLoading: loadingEmployees } = trpc.hr.employees.list.useQuery();
+  const { data: employees, isLoading: loadingEmployees, refetch: refetchEmployees } = trpc.hr.employees.list.useQuery();
   const { data: attendanceList, isLoading: loadingAttendance } = trpc.hr.attendance.list.useQuery({});
   const [payrollFilter, setPayrollFilter] = useState<{ employeeId?: number; year?: number; month?: number }>({});
   const { data: payrollList, isLoading: loadingPayroll, refetch: refetchPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any);
@@ -49,6 +49,14 @@ export default function HR() {
   const { data: reviewsList, isLoading: loadingReviews } = trpc.hr.reviews.list.useQuery({});
   const { user } = useAuth();
   const utils = trpc.useUtils();
+
+  const deleteEmployee = trpc.hr.employees.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف الموظف");
+      refetchEmployees();
+    },
+    onError: () => toast.error("تعذر حذف الموظف"),
+  });
   const deletePayslip = trpc.hr.payroll.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف كشف الراتب");
@@ -184,17 +192,32 @@ export default function HR() {
                             تاريخ التوظيف: {new Date(emp.hireDate).toLocaleDateString('ar-SA')}
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLocation(`/hr/employees/${emp.id}`);
-                          }}
-                        >
-                          <FileText className="ml-2 h-4 w-4" />
-                          التفاصيل
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/hr/employees/${emp.id}`);
+                            }}
+                          >
+                            <FileText className="ml-2 h-4 w-4" />
+                            التفاصيل
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع بياناته المرتبطة (الحضور، الرواتب، الإجازات، التقييمات).")) {
+                                deleteEmployee.mutate({ id: emp.id });
+                              }
+                            }}
+                          >
+                            <XCircle className="ml-2 h-4 w-4" />
+                            حذف
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>

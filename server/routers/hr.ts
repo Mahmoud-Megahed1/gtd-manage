@@ -152,6 +152,27 @@ export const hrRouter = router({
           reviews
         };
       }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.remove("employees", input.id);
+          return { success: true };
+        }
+
+        // Delete related records first
+        await db.delete(attendance).where(eq(attendance.employeeId, input.id));
+        await db.delete(payroll).where(eq(payroll.employeeId, input.id));
+        await db.delete(leaves).where(eq(leaves.employeeId, input.id));
+        await db.delete(performanceReviews).where(eq(performanceReviews.employeeId, input.id));
+
+        // Delete employee
+        await db.delete(employees).where(eq(employees.id, input.id));
+        return { success: true };
+      }),
   }),
 
   // ============= ATTENDANCE =============
