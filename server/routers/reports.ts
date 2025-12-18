@@ -13,13 +13,13 @@ export const reportsRouter = router({
       to: z.date().optional(),
       clientId: z.number().optional(),
       projectId: z.number().optional(),
-      invoiceStatus: z.enum(["draft","sent","paid","cancelled"]).optional(),
-      purchaseStatus: z.enum(["pending","completed","cancelled"]).optional(),
-      installmentStatus: z.enum(["pending","paid","overdue","cancelled"]).optional(),
-      expenseStatus: z.enum(["active","cancelled"]).optional(),
+      invoiceStatus: z.enum(["draft", "sent", "paid", "cancelled"]).optional(),
+      purchaseStatus: z.enum(["pending", "completed", "cancelled"]).optional(),
+      installmentStatus: z.enum(["pending", "paid", "overdue", "cancelled"]).optional(),
+      expenseStatus: z.enum(["active", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant'].includes(ctx.user.role)) {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       // Basic permission guard if needed
@@ -89,13 +89,13 @@ export const reportsRouter = router({
       granularity: z.enum(["day", "month"]).default("day"),
       clientId: z.number().optional(),
       projectId: z.number().optional(),
-      invoiceStatus: z.enum(["draft","sent","paid","cancelled"]).optional(),
-      purchaseStatus: z.enum(["pending","completed","cancelled"]).optional(),
-      installmentStatus: z.enum(["pending","paid","overdue","cancelled"]).optional(),
-      expenseStatus: z.enum(["active","cancelled"]).optional(),
+      invoiceStatus: z.enum(["draft", "sent", "paid", "cancelled"]).optional(),
+      purchaseStatus: z.enum(["pending", "completed", "cancelled"]).optional(),
+      installmentStatus: z.enum(["pending", "paid", "overdue", "cancelled"]).optional(),
+      expenseStatus: z.enum(["active", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant'].includes(ctx.user.role)) {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       const conn = await db.getDb();
@@ -103,7 +103,7 @@ export const reportsRouter = router({
       const to = input.to;
       const range: Array<{ key: string; date: Date }> = [];
       const cursor = new Date(from);
-      const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth()+1}` : d.toISOString().substring(0, 10);
+      const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth() + 1}` : d.toISOString().substring(0, 10);
       while (cursor <= to) {
         range.push({ key: makeKey(cursor), date: new Date(cursor) });
         if (input.granularity === "month") {
@@ -117,7 +117,7 @@ export const reportsRouter = router({
         const invRows = demo.list("invoices");
         const expRows = demo.list("expenses");
         const instRows = demo.list("installments");
-        const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth()+1}` : d.toISOString().substring(0, 10);
+        const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth() + 1}` : d.toISOString().substring(0, 10);
         const acc: Record<string, { invoices: number; expenses: number; installments: number }> = {};
         range.forEach(r => { acc[r.key] = { invoices: 0, expenses: 0, installments: 0 }; });
         invRows.forEach((r: any) => {
@@ -185,13 +185,13 @@ export const reportsRouter = router({
       granularity: z.enum(["day", "month"]).default("day"),
       clientId: z.number().optional(),
       projectId: z.number().optional(),
-      invoiceStatuses: z.array(z.enum(["draft","sent","paid","cancelled"])).optional(),
-      purchaseStatuses: z.array(z.enum(["pending","completed","cancelled"])).optional(),
-      expenseStatuses: z.array(z.enum(["active","cancelled"])).optional(),
-      installmentStatuses: z.array(z.enum(["pending","paid","overdue","cancelled"])).optional(),
+      invoiceStatuses: z.array(z.enum(["draft", "sent", "paid", "cancelled"])).optional(),
+      purchaseStatuses: z.array(z.enum(["pending", "completed", "cancelled"])).optional(),
+      expenseStatuses: z.array(z.enum(["active", "cancelled"])).optional(),
+      installmentStatuses: z.array(z.enum(["pending", "paid", "overdue", "cancelled"])).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (!['admin', 'accountant'].includes(ctx.user.role)) {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       const conn = await db.getDb();
@@ -199,7 +199,7 @@ export const reportsRouter = router({
       const to = input.to;
       const range: Array<{ key: string; date: Date }> = [];
       const cursor = new Date(from);
-      const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth()+1}` : d.toISOString().substring(0, 10);
+      const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth() + 1}` : d.toISOString().substring(0, 10);
       while (cursor <= to) {
         range.push({ key: makeKey(cursor), date: new Date(cursor) });
         if (input.granularity === "month") {
@@ -209,10 +209,10 @@ export const reportsRouter = router({
           cursor.setDate(cursor.getDate() + 1);
         }
       }
-      const invoiceStatuses = input.invoiceStatuses ?? ["draft","sent","paid","cancelled"];
-      const purchaseStatuses = input.purchaseStatuses ?? ["pending","completed","cancelled"];
-      const expenseStatuses = (input as any).expenseStatuses ?? ["active","cancelled"];
-      const installmentStatuses = (input as any).installmentStatuses ?? ["pending","paid","overdue","cancelled"];
+      const invoiceStatuses = input.invoiceStatuses ?? ["draft", "sent", "paid", "cancelled"];
+      const purchaseStatuses = input.purchaseStatuses ?? ["pending", "completed", "cancelled"];
+      const expenseStatuses = (input as any).expenseStatuses ?? ["active", "cancelled"];
+      const installmentStatuses = (input as any).installmentStatuses ?? ["pending", "paid", "overdue", "cancelled"];
       const initInv: Record<string, number> = Object.fromEntries(invoiceStatuses.map(s => [s, 0]));
       const initPur: Record<string, number> = Object.fromEntries(purchaseStatuses.map(s => [s, 0]));
       const initExp: Record<string, number> = Object.fromEntries(expenseStatuses.map((s: string) => [s, 0]));
