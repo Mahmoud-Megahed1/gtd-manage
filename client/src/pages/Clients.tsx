@@ -33,7 +33,7 @@ export default function Clients() {
   });
 
   const utils = trpc.useUtils();
-  const { data: clients, isLoading } = trpc.clients.list.useQuery();
+  const { data: clients, isLoading, refetch } = trpc.clients.list.useQuery();
   const [, setLocation] = useLocation();
 
   const createMutation = trpc.clients.create.useMutation({
@@ -41,7 +41,7 @@ export default function Clients() {
       toast.success("تم إضافة العميل بنجاح");
       setOpen(false);
       setFormData({ name: "", email: "", phone: "", address: "", city: "", notes: "" });
-      utils.clients.list.invalidate();
+      refetch();
     },
     onError: (error) => {
       toast.error("فشل إضافة العميل: " + error.message);
@@ -51,7 +51,7 @@ export default function Clients() {
   const deleteMutation = trpc.clients.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف العميل بنجاح");
-      utils.clients.list.invalidate();
+      refetch();
     },
     onError: (error: any) => {
       toast.error("فشل حذف العميل: " + error.message);
@@ -223,16 +223,16 @@ export default function Clients() {
                     </div>
                   )}
                   <div className="flex gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1"
                       onClick={() => setLocation(`/clients/${client.id}`)}
                     >
                       <Eye className="w-4 h-4 ml-2" />
                       عرض التفاصيل
                     </Button>
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();

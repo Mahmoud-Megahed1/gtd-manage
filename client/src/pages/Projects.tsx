@@ -14,14 +14,14 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
 export default function Projects() {
-  const { data: projects, isLoading } = trpc.projects.list.useQuery();
+  const { data: projects, isLoading, refetch } = trpc.projects.list.useQuery();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const deleteProject = trpc.projects.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف المشروع");
-      utils.projects.list.invalidate();
+      refetch();
     },
     onError: () => toast.error("تعذر حذف المشروع"),
   });

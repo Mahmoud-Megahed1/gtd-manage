@@ -18,9 +18,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 
 export default function Invoices() {
-  const { data: allInvoices, isLoading: loadingAll } = trpc.invoices.list.useQuery({});
-  const { data: invoices, isLoading: loadingInvoices } = trpc.invoices.list.useQuery({ type: "invoice" });
-  const { data: quotes, isLoading: loadingQuotes } = trpc.invoices.list.useQuery({ type: "quote" });
+  const { data: allInvoices, isLoading: loadingAll, refetch: refetchAll } = trpc.invoices.list.useQuery({});
+  const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = trpc.invoices.list.useQuery({ type: "invoice" });
+  const { data: quotes, isLoading: loadingQuotes, refetch: refetchQuotes } = trpc.invoices.list.useQuery({ type: "quote" });
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -28,7 +28,9 @@ export default function Invoices() {
   const deleteInvoice = trpc.invoices.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف المستند بنجاح");
-      utils.invoices.list.invalidate();
+      refetchAll();
+      refetchInvoices();
+      refetchQuotes();
     },
     onError: () => {
       toast.error("تعذر حذف المستند");

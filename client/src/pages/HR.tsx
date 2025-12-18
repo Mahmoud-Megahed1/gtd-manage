@@ -44,7 +44,7 @@ export default function HR() {
   const { data: employees, isLoading: loadingEmployees } = trpc.hr.employees.list.useQuery();
   const { data: attendanceList, isLoading: loadingAttendance } = trpc.hr.attendance.list.useQuery({});
   const [payrollFilter, setPayrollFilter] = useState<{ employeeId?: number; year?: number; month?: number }>({});
-  const { data: payrollList, isLoading: loadingPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any);
+  const { data: payrollList, isLoading: loadingPayroll, refetch: refetchPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any);
   const { data: leavesList, isLoading: loadingLeaves } = trpc.hr.leaves.list.useQuery({});
   const { data: reviewsList, isLoading: loadingReviews } = trpc.hr.reviews.list.useQuery({});
   const { user } = useAuth();
@@ -52,7 +52,7 @@ export default function HR() {
   const deletePayslip = trpc.hr.payroll.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف كشف الراتب");
-      utils.hr.payroll.list.invalidate();
+      refetchPayroll();
     },
     onError: () => toast.error("تعذر حذف كشف الراتب"),
   });

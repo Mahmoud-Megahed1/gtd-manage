@@ -14,7 +14,7 @@ import { useLocation } from "wouter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function Forms() {
-  const { data: forms, isLoading } = trpc.forms.list.useQuery();
+  const { data: forms, isLoading, refetch } = trpc.forms.list.useQuery();
   const [activeTab, setActiveTab] = useState<"requests" | "modifications">("requests");
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -22,7 +22,7 @@ export default function Forms() {
   const deleteForm = trpc.forms.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الاستمارة بنجاح");
-      utils.forms.list.invalidate();
+      refetch();
     },
     onError: () => {
       toast.error("تعذر حذف الاستمارة");
