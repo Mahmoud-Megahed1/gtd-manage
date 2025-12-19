@@ -50,14 +50,21 @@ export const tasksRouter = router({
       status: z.enum(["planned", "in_progress", "done", "cancelled"]).optional(),
       assignedTo: z.number().optional()
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const role = ctx.user.role;
+      const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
+      const isDesigner = designerRoles.includes(role);
+
+      // For designers, force filter to their own tasks only
+      const effectiveAssignedTo = isDesigner ? ctx.user.id : input?.assignedTo;
+
       const conn = await db.getDb();
       if (!conn) {
         // Demo mode fallback
         let tasks = demo.list("projectTasks") as any[];
         if (input?.projectId) tasks = tasks.filter((t: any) => t.projectId === input.projectId);
         if (input?.status) tasks = tasks.filter((t: any) => t.status === input.status);
-        if (input?.assignedTo) tasks = tasks.filter((t: any) => t.assignedTo === input.assignedTo);
+        if (effectiveAssignedTo) tasks = tasks.filter((t: any) => t.assignedTo === effectiveAssignedTo);
         return tasks;
       }
       const whereClauses: any[] = [];
@@ -65,7 +72,7 @@ export const tasksRouter = router({
       if (input?.from) whereClauses.push(gte(projectTasks.createdAt, input.from));
       if (input?.to) whereClauses.push(lte(projectTasks.createdAt, input.to));
       if (input?.status) whereClauses.push(eq(projectTasks.status, input.status));
-      if (input?.assignedTo) whereClauses.push(eq(projectTasks.assignedTo, input.assignedTo));
+      if (effectiveAssignedTo) whereClauses.push(eq(projectTasks.assignedTo, effectiveAssignedTo));
       const where = whereClauses.length ? and(...whereClauses) : undefined as any;
       const rows = where ? await conn.select().from(projectTasks).where(where) : await conn.select().from(projectTasks);
       return rows;
