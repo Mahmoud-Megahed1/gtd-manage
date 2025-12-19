@@ -417,13 +417,13 @@ export default function Settings() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <Select
-                              value={user.role}
+                              value={user.role || 'designer'}
                               onValueChange={(newRole) => {
                                 updateRoleMutation.mutate({ userId: user.id, role: newRole as any });
                               }}
                             >
                               <SelectTrigger className="w-40">
-                                <SelectValue placeholder={user.role || "اختر الدور"} />
+                                <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">مدير عام</SelectItem>
