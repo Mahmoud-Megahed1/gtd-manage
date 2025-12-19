@@ -90,12 +90,35 @@ export function AddEmployeeDialog() {
     if (existing) {
       proceed(existing.id);
     } else {
+      // Map Arabic position to system role
+      const positionToRole: Record<string, string> = {
+        'مدير عام': 'admin',
+        'مدير قسم': 'department_manager',
+        'مدير مشاريع': 'project_manager',
+        'منسق مشاريع': 'project_coordinator',
+        'مهندس معماري': 'architect',
+        'مصمم داخلي': 'interior_designer',
+        'مهندس موقع': 'site_engineer',
+        'مهندس تخطيط': 'planning_engineer',
+        'مصمم': 'designer',
+        'فني': 'technician',
+        'مدير مالي': 'finance_manager',
+        'محاسب': 'accountant',
+        'مسؤول مبيعات': 'sales_manager',
+        'مسؤول موارد بشرية': 'hr_manager',
+        'مساعد إداري': 'admin_assistant',
+        'مسؤول مشتريات': 'procurement_officer',
+        'أمين مخازن': 'storekeeper',
+        'مسؤول جودة': 'qa_qc',
+      };
+      const userRole = positionToRole[formData.position] || 'designer';
+
       // Generate unique email that won't have Arabic character issues
       const uniqueEmail = `emp-${Date.now()}@gtd-system.local`;
       createUser.mutate({
         name: formData.userName,
         email: uniqueEmail,
-        role: 'designer'
+        role: userRole as any
       }, {
         onSuccess: (user: any) => proceed(user.id),
         onError: () => toast.error("تعذر إنشاء مستخدم جديد")

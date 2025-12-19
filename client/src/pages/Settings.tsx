@@ -403,21 +403,24 @@ export default function Settings() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
-                              {user.role === 'admin' ? 'مدير' :
-                                user.role === 'accountant' ? 'محاسب' :
-                                  user.role === 'finance_manager' ? 'مدير مالي' :
-                                    user.role === 'project_manager' ? 'مدير مشاريع' :
-                                      user.role === 'site_engineer' ? 'مهندس موقع' :
-                                        user.role === 'planning_engineer' ? 'مهندس تخطيط' :
-                                          user.role === 'procurement_officer' ? 'مسؤول مشتريات' :
-                                            user.role === 'qa_qc' ? 'جودة QA/QC' :
-                                              user.role === 'document_controller' ? 'مسؤول وثائق' :
-                                                user.role === 'architect' ? 'معماري' :
-                                                  user.role === 'interior_designer' ? 'مصمم داخلي' :
-                                                    user.role === 'sales_manager' ? 'مدير مبيعات' :
-                                                      user.role === 'hr_manager' ? 'مدير موارد بشرية' :
-                                                        user.role === 'storekeeper' ? 'أمين مستودع' :
-                                                          user.role === 'designer' ? 'مصمم' : user.role}
+                              {user.role === 'admin' ? 'مدير عام' :
+                                user.role === 'department_manager' ? 'مدير قسم' :
+                                  user.role === 'project_manager' ? 'مدير مشاريع' :
+                                    user.role === 'project_coordinator' ? 'منسق مشاريع' :
+                                      user.role === 'architect' ? 'مهندس معماري' :
+                                        user.role === 'interior_designer' ? 'مصمم داخلي' :
+                                          user.role === 'site_engineer' ? 'مهندس موقع' :
+                                            user.role === 'planning_engineer' ? 'مهندس تخطيط' :
+                                              user.role === 'designer' ? 'مصمم' :
+                                                user.role === 'technician' ? 'فني' :
+                                                  user.role === 'finance_manager' ? 'مدير مالي' :
+                                                    user.role === 'accountant' ? 'محاسب' :
+                                                      user.role === 'sales_manager' ? 'مسؤول مبيعات' :
+                                                        user.role === 'hr_manager' ? 'مسؤول موارد بشرية' :
+                                                          user.role === 'admin_assistant' ? 'مساعد إداري' :
+                                                            user.role === 'procurement_officer' ? 'مسؤول مشتريات' :
+                                                              user.role === 'storekeeper' ? 'أمين مخازن' :
+                                                                user.role === 'qa_qc' ? 'مسؤول جودة' : user.role}
                             </span>
                           </TableCell>
                           <TableCell>
