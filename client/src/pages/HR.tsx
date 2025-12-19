@@ -82,454 +82,596 @@ export default function HR() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">إدارة الموارد البشرية</h1>
+            <h1 className="text-3xl font-bold">{hasFullAccess ? 'إدارة الموارد البشرية' : 'بياناتي الشخصية'}</h1>
             <p className="text-muted-foreground mt-1">
-              نظام شامل لإدارة الموظفين والحضور والرواتب
+              {hasFullAccess ? 'نظام شامل لإدارة الموظفين والحضور والرواتب' : 'عرض وإدارة بياناتك الشخصية'}
             </p>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{employees?.length || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">الموظفون النشطون</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">الحضور اليوم</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {attendanceList?.filter(a => {
-                  const today = new Date().toDateString();
-                  return new Date(a.date).toDateString() === today;
-                }).length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">سجلات الحضور</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">الرواتب المعلقة</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {payrollList?.filter(p => p.status === 'pending').length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">بانتظار الدفع</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">طلبات الإجازة</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {leavesList?.filter(l => l.status === 'pending').length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">بانتظار الموافقة</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">التقييمات</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{reviewsList?.length || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">تقييمات الأداء</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="employees">الموظفون</TabsTrigger>
-            <TabsTrigger value="attendance">الحضور والانصراف</TabsTrigger>
-            <TabsTrigger value="payroll">الرواتب</TabsTrigger>
-            <TabsTrigger value="leaves">الإجازات</TabsTrigger>
-            <TabsTrigger value="reviews">تقييم الأداء</TabsTrigger>
-          </TabsList>
-
-          {/* Employees Tab */}
-          <TabsContent value="employees" className="space-y-4">
+        {/* Stats Cards - Admin/HR Only */}
+        {hasFullAccess && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>قائمة الموظفين</CardTitle>
-                    <CardDescription>إدارة ملفات الموظفين وبياناتهم</CardDescription>
-                  </div>
-                  <AddEmployeeDialog />
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {loadingEmployees ? (
-                  <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
-                ) : employees && employees.length > 0 ? (
-                  <div className="space-y-4">
-                    {employees.map((emp) => (
-                      <div
-                        key={emp.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
-                        onClick={() => setLocation(`/hr/employees/${emp.id}`)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{emp.employeeNumber}</h3>
-                            <Badge variant={emp.status === 'active' ? 'default' : 'secondary'}>
-                              {emp.status === 'active' ? 'نشط' : emp.status === 'on_leave' ? 'في إجازة' : 'منتهي'}
+                <div className="text-2xl font-bold">{employees?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">الموظفون النشطون</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">الحضور اليوم</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {attendanceList?.filter(a => {
+                    const today = new Date().toDateString();
+                    return new Date(a.date).toDateString() === today;
+                  }).length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">سجلات الحضور</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">الرواتب المعلقة</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {payrollList?.filter(p => p.status === 'pending').length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">بانتظار الدفع</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">طلبات الإجازة</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {leavesList?.filter(l => l.status === 'pending').length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">بانتظار الموافقة</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">التقييمات</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{reviewsList?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">تقييمات الأداء</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Personal Data View for Regular Employees */}
+        {!hasFullAccess && myProfile && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  معلوماتي الأساسية
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">رقم الموظف</p>
+                    <p className="font-medium">{myProfile.employeeNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">القسم</p>
+                    <p className="font-medium">{myProfile.department || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">المنصب</p>
+                    <p className="font-medium">{myProfile.position || '-'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Data Tabs */}
+            <Tabs defaultValue="attendance" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="attendance">حضوري</TabsTrigger>
+                <TabsTrigger value="payroll">رواتبي</TabsTrigger>
+                <TabsTrigger value="leaves">إجازاتي</TabsTrigger>
+                <TabsTrigger value="reviews">تقييماتي</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="attendance">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>سجل الحضور</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {myAttendance && myAttendance.length > 0 ? (
+                      <div className="space-y-2">
+                        {myAttendance.slice(0, 10).map((a: any) => (
+                          <div key={a.id} className="flex justify-between p-3 border rounded">
+                            <span>{new Date(a.date).toLocaleDateString('ar-SA')}</span>
+                            <Badge>{a.status === 'present' ? 'حاضر' : a.status}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">لا يوجد سجلات</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="payroll">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>كشوفات الرواتب</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {myPayroll && myPayroll.length > 0 ? (
+                      <div className="space-y-2">
+                        {myPayroll.map((p: any) => (
+                          <div key={p.id} className="flex justify-between p-3 border rounded">
+                            <span>{p.month}/{p.year}</span>
+                            <span className="font-bold">{p.netSalary?.toLocaleString()} ريال</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">لا يوجد كشوفات</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="leaves">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>إجازاتي</CardTitle>
+                    <AddLeaveDialog />
+                  </CardHeader>
+                  <CardContent>
+                    {myLeaves && myLeaves.length > 0 ? (
+                      <div className="space-y-2">
+                        {myLeaves.map((l: any) => (
+                          <div key={l.id} className="flex justify-between p-3 border rounded">
+                            <div>
+                              <span>{new Date(l.startDate).toLocaleDateString('ar-SA')}</span>
+                              <span className="mx-2">-</span>
+                              <span>{new Date(l.endDate).toLocaleDateString('ar-SA')}</span>
+                            </div>
+                            <Badge variant={l.status === 'approved' ? 'default' : l.status === 'pending' ? 'secondary' : 'destructive'}>
+                              {l.status === 'approved' ? 'موافق' : l.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {emp.position || 'لا يوجد منصب'} - {emp.department || 'لا يوجد قسم'}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            تاريخ التوظيف: {new Date(emp.hireDate).toLocaleDateString('ar-SA')}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLocation(`/hr/employees/${emp.id}`);
-                            }}
-                          >
-                            <FileText className="ml-2 h-4 w-4" />
-                            التفاصيل
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm("هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع بياناته المرتبطة (الحضور، الرواتب، الإجازات، التقييمات).")) {
-                                deleteEmployee.mutate({ id: emp.id });
-                              }
-                            }}
-                          >
-                            <XCircle className="ml-2 h-4 w-4" />
-                            حذف
-                          </Button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">لا يوجد موظفون حالياً</p>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">لا يوجد إجازات</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="reviews">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>تقييماتي</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {myReviews && myReviews.length > 0 ? (
+                      <div className="space-y-2">
+                        {myReviews.map((r: any) => (
+                          <div key={r.id} className="p-3 border rounded">
+                            <div className="flex justify-between">
+                              <span>{new Date(r.reviewDate).toLocaleDateString('ar-SA')}</span>
+                              <span className="font-bold">{r.rating}/5</span>
+                            </div>
+                            {r.comments && <p className="text-sm text-muted-foreground mt-2">{r.comments}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">لا يوجد تقييمات</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
+
+        {/* Main Content - Admin View */}
+        {hasFullAccess && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="employees">الموظفون</TabsTrigger>
+              <TabsTrigger value="attendance">الحضور والانصراف</TabsTrigger>
+              <TabsTrigger value="payroll">الرواتب</TabsTrigger>
+              <TabsTrigger value="leaves">الإجازات</TabsTrigger>
+              <TabsTrigger value="reviews">تقييم الأداء</TabsTrigger>
+            </TabsList>
+
+            {/* Employees Tab */}
+            <TabsContent value="employees" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>قائمة الموظفين</CardTitle>
+                      <CardDescription>إدارة ملفات الموظفين وبياناتهم</CardDescription>
+                    </div>
                     <AddEmployeeDialog />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Attendance Tab */}
-          <TabsContent value="attendance" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>سجلات الحضور والانصراف</CardTitle>
-                    <CardDescription>تتبع حضور الموظفين وساعات العمل</CardDescription>
-                  </div>
-                  <CheckInDialog />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="p-3 border rounded mb-4">
-                  <p className="text-sm mb-2">استيراد CSV للحضور (employeeNumber,date,checkIn,checkOut)</p>
-                  <AttendanceCsvImport />
-                </div>
-                {loadingAttendance ? (
-                  <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
-                ) : attendanceList && attendanceList.length > 0 ? (
-                  <div className="space-y-2">
-                    {attendanceList.slice(0, 10).map((att) => (
-                      <div key={att.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <p className="font-medium">موظف #{att.employeeId}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(att.date).toLocaleDateString('ar-SA')}
-                          </p>
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm">
-                            دخول: {att.checkIn ? new Date(att.checkIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                          </p>
-                          <p className="text-sm">
-                            خروج: {att.checkOut ? new Date(att.checkOut).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                          </p>
-                        </div>
-                        <Badge variant={att.status === 'present' ? 'default' : 'secondary'}>
-                          {att.status === 'present' ? 'حاضر' : att.status === 'late' ? 'متأخر' : att.status === 'absent' ? 'غائب' : 'نصف يوم'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">لا توجد سجلات حضور</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Payroll Tab */}
-          <TabsContent value="payroll" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>إدارة الرواتب</CardTitle>
-                    <CardDescription>كشوف الرواتب والمكافآت والخصومات</CardDescription>
-                  </div>
-                  <AddPayrollDialog />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm">من شهر</label>
-                    <Input
-                      type="number"
-                      placeholder="1"
-                      onBlur={(e) => setPayrollFilter((f) => ({ ...f, month: e.target.value ? parseInt(e.target.value) : undefined }))}
-                      className="w-24"
-                    />
-                    <label className="text-sm">سنة</label>
-                    <Input
-                      type="number"
-                      placeholder="2025"
-                      onBlur={(e) => setPayrollFilter((f) => ({ ...f, year: e.target.value ? parseInt(e.target.value) : undefined }))}
-                      className="w-28"
-                    />
-                    <PayrollExport payrollList={payrollList || []} />
-                  </div>
-                </div>
-                {loadingPayroll ? (
-                  <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
-                ) : payrollList && payrollList.length > 0 ? (
-                  <div className="space-y-2">
-                    {payrollList.map((pay) => (
-                      <div key={pay.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium">موظف #{pay.employeeId}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {pay.month}/{pay.year}
-                          </p>
-                          <div className="flex gap-4 mt-2 text-sm">
-                            <span>الراتب الأساسي: {pay.baseSalary.toLocaleString()} ريال</span>
-                            {pay.bonuses && pay.bonuses > 0 && <span className="text-green-600">مكافآت: +{pay.bonuses.toLocaleString()}</span>}
-                            {pay.deductions && pay.deductions > 0 && <span className="text-red-600">خصومات: -{pay.deductions.toLocaleString()}</span>}
-                          </div>
-                        </div>
-                        <div className="text-left">
-                          <p className="text-lg font-bold">{pay.netSalary.toLocaleString()} ريال</p>
-                          <Badge variant={pay.status === 'paid' ? 'default' : 'secondary'}>
-                            {pay.status === 'paid' ? 'مدفوع' : 'معلق'}
-                          </Badge>
-                          {user?.role === 'admin' && (
-                            <div className="mt-2">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => deletePayslip.mutate({ id: pay.id })}
-                              >
-                                حذف الكشف
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <DollarSign className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">لا توجد كشوف رواتب</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Leaves Tab */}
-          <TabsContent value="leaves" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>إدارة الإجازات</CardTitle>
-                    <CardDescription>طلبات الإجازات والموافقات</CardDescription>
-                  </div>
-                  <AddLeaveDialog />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="p-3 border rounded mb-4">
-                  <p className="text-sm mb-2">تقويم الفريق</p>
-                  <TeamCalendar leaves={leavesList || []} />
-                </div>
-                {loadingLeaves ? (
-                  <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
-                ) : leavesList && leavesList.length > 0 ? (
-                  <div className="space-y-2">
-                    {leavesList.map((leave) => (
-                      <div key={leave.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">موظف #{leave.employeeId}</p>
-                            <Badge>
-                              {leave.leaveType === 'annual' ? 'سنوية' :
-                                leave.leaveType === 'sick' ? 'مرضية' :
-                                  leave.leaveType === 'emergency' ? 'طارئة' : 'بدون راتب'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            من {new Date(leave.startDate).toLocaleDateString('ar-SA')} إلى {new Date(leave.endDate).toLocaleDateString('ar-SA')}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{leave.days} أيام</p>
-                          {leave.reason && <p className="text-sm mt-1">{leave.reason}</p>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={
-                            leave.status === 'approved' ? 'default' :
-                              leave.status === 'rejected' ? 'destructive' : 'secondary'
-                          }>
-                            {leave.status === 'approved' ? 'موافق' :
-                              leave.status === 'rejected' ? 'مرفوض' : 'معلق'}
-                          </Badge>
-                          {leave.status === 'pending' && (
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setApprovalDialog({
-                                  open: true,
-                                  leaveId: leave.id,
-                                  employeeId: leave.employeeId,
-                                  leaveType: leave.leaveType,
-                                  days: leave.days,
-                                  reason: leave.reason,
-                                  action: "approve"
-                                })}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setApprovalDialog({
-                                  open: true,
-                                  leaveId: leave.id,
-                                  employeeId: leave.employeeId,
-                                  leaveType: leave.leaveType,
-                                  days: leave.days,
-                                  reason: leave.reason,
-                                  action: "reject"
-                                })}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">لا توجد طلبات إجازة</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Reviews Tab */}
-          <TabsContent value="reviews" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>تقييم الأداء</CardTitle>
-                    <CardDescription>تقييمات الموظفين والأهداف</CardDescription>
-                  </div>
-                  <AddPerformanceReviewDialog />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingReviews ? (
-                  <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
-                ) : reviewsList && reviewsList.length > 0 ? (
-                  <div className="space-y-4">
-                    {reviewsList.map((review) => (
-                      <div key={review.id} className="p-4 border rounded-lg space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">موظف #{review.employeeId}</p>
-                          <div className="flex items-center gap-2">
-                            {review.rating && (
-                              <Badge variant="outline">
-                                <Award className="ml-1 h-3 w-3" />
-                                {review.rating}/10
+                </CardHeader>
+                <CardContent>
+                  {loadingEmployees ? (
+                    <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
+                  ) : employees && employees.length > 0 ? (
+                    <div className="space-y-4">
+                      {employees.map((emp) => (
+                        <div
+                          key={emp.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                          onClick={() => setLocation(`/hr/employees/${emp.id}`)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">{emp.employeeNumber}</h3>
+                              <Badge variant={emp.status === 'active' ? 'default' : 'secondary'}>
+                                {emp.status === 'active' ? 'نشط' : emp.status === 'on_leave' ? 'في إجازة' : 'منتهي'}
                               </Badge>
-                            )}
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(review.reviewDate).toLocaleDateString('ar-SA')}
-                            </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {emp.position || 'لا يوجد منصب'} - {emp.department || 'لا يوجد قسم'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              تاريخ التوظيف: {new Date(emp.hireDate).toLocaleDateString('ar-SA')}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/hr/employees/${emp.id}`);
+                              }}
+                            >
+                              <FileText className="ml-2 h-4 w-4" />
+                              التفاصيل
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع بياناته المرتبطة (الحضور، الرواتب، الإجازات، التقييمات).")) {
+                                  deleteEmployee.mutate({ id: emp.id });
+                                }
+                              }}
+                            >
+                              <XCircle className="ml-2 h-4 w-4" />
+                              حذف
+                            </Button>
                           </div>
                         </div>
-                        {review.period && (
-                          <p className="text-sm text-muted-foreground">الفترة: {review.period}</p>
-                        )}
-                        {review.strengths && (
-                          <div className="text-sm">
-                            <p className="font-medium text-green-600">نقاط القوة:</p>
-                            <p className="text-muted-foreground">{review.strengths}</p>
-                          </div>
-                        )}
-                        {review.weaknesses && (
-                          <div className="text-sm">
-                            <p className="font-medium text-orange-600">نقاط التحسين:</p>
-                            <p className="text-muted-foreground">{review.weaknesses}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">لا يوجد موظفون حالياً</p>
+                      <AddEmployeeDialog />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Attendance Tab */}
+            <TabsContent value="attendance" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>سجلات الحضور والانصراف</CardTitle>
+                      <CardDescription>تتبع حضور الموظفين وساعات العمل</CardDescription>
+                    </div>
+                    <CheckInDialog />
                   </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Award className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">لا توجد تقييمات أداء</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-3 border rounded mb-4">
+                    <p className="text-sm mb-2">استيراد CSV للحضور (employeeNumber,date,checkIn,checkOut)</p>
+                    <AttendanceCsvImport />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  {loadingAttendance ? (
+                    <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
+                  ) : attendanceList && attendanceList.length > 0 ? (
+                    <div className="space-y-2">
+                      {attendanceList.slice(0, 10).map((att) => (
+                        <div key={att.id} className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <p className="font-medium">موظف #{att.employeeId}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(att.date).toLocaleDateString('ar-SA')}
+                            </p>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm">
+                              دخول: {att.checkIn ? new Date(att.checkIn).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </p>
+                            <p className="text-sm">
+                              خروج: {att.checkOut ? new Date(att.checkOut).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </p>
+                          </div>
+                          <Badge variant={att.status === 'present' ? 'default' : 'secondary'}>
+                            {att.status === 'present' ? 'حاضر' : att.status === 'late' ? 'متأخر' : att.status === 'absent' ? 'غائب' : 'نصف يوم'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">لا توجد سجلات حضور</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Payroll Tab */}
+            <TabsContent value="payroll" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>إدارة الرواتب</CardTitle>
+                      <CardDescription>كشوف الرواتب والمكافآت والخصومات</CardDescription>
+                    </div>
+                    <AddPayrollDialog />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm">من شهر</label>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        onBlur={(e) => setPayrollFilter((f) => ({ ...f, month: e.target.value ? parseInt(e.target.value) : undefined }))}
+                        className="w-24"
+                      />
+                      <label className="text-sm">سنة</label>
+                      <Input
+                        type="number"
+                        placeholder="2025"
+                        onBlur={(e) => setPayrollFilter((f) => ({ ...f, year: e.target.value ? parseInt(e.target.value) : undefined }))}
+                        className="w-28"
+                      />
+                      <PayrollExport payrollList={payrollList || []} />
+                    </div>
+                  </div>
+                  {loadingPayroll ? (
+                    <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
+                  ) : payrollList && payrollList.length > 0 ? (
+                    <div className="space-y-2">
+                      {payrollList.map((pay) => (
+                        <div key={pay.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">موظف #{pay.employeeId}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {pay.month}/{pay.year}
+                            </p>
+                            <div className="flex gap-4 mt-2 text-sm">
+                              <span>الراتب الأساسي: {pay.baseSalary.toLocaleString()} ريال</span>
+                              {pay.bonuses && pay.bonuses > 0 && <span className="text-green-600">مكافآت: +{pay.bonuses.toLocaleString()}</span>}
+                              {pay.deductions && pay.deductions > 0 && <span className="text-red-600">خصومات: -{pay.deductions.toLocaleString()}</span>}
+                            </div>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-lg font-bold">{pay.netSalary.toLocaleString()} ريال</p>
+                            <Badge variant={pay.status === 'paid' ? 'default' : 'secondary'}>
+                              {pay.status === 'paid' ? 'مدفوع' : 'معلق'}
+                            </Badge>
+                            {user?.role === 'admin' && (
+                              <div className="mt-2">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => deletePayslip.mutate({ id: pay.id })}
+                                >
+                                  حذف الكشف
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <DollarSign className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">لا توجد كشوف رواتب</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Leaves Tab */}
+            <TabsContent value="leaves" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>إدارة الإجازات</CardTitle>
+                      <CardDescription>طلبات الإجازات والموافقات</CardDescription>
+                    </div>
+                    <AddLeaveDialog />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-3 border rounded mb-4">
+                    <p className="text-sm mb-2">تقويم الفريق</p>
+                    <TeamCalendar leaves={leavesList || []} />
+                  </div>
+                  {loadingLeaves ? (
+                    <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
+                  ) : leavesList && leavesList.length > 0 ? (
+                    <div className="space-y-2">
+                      {leavesList.map((leave) => (
+                        <div key={leave.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">موظف #{leave.employeeId}</p>
+                              <Badge>
+                                {leave.leaveType === 'annual' ? 'سنوية' :
+                                  leave.leaveType === 'sick' ? 'مرضية' :
+                                    leave.leaveType === 'emergency' ? 'طارئة' : 'بدون راتب'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              من {new Date(leave.startDate).toLocaleDateString('ar-SA')} إلى {new Date(leave.endDate).toLocaleDateString('ar-SA')}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{leave.days} أيام</p>
+                            {leave.reason && <p className="text-sm mt-1">{leave.reason}</p>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={
+                              leave.status === 'approved' ? 'default' :
+                                leave.status === 'rejected' ? 'destructive' : 'secondary'
+                            }>
+                              {leave.status === 'approved' ? 'موافق' :
+                                leave.status === 'rejected' ? 'مرفوض' : 'معلق'}
+                            </Badge>
+                            {leave.status === 'pending' && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setApprovalDialog({
+                                    open: true,
+                                    leaveId: leave.id,
+                                    employeeId: leave.employeeId,
+                                    leaveType: leave.leaveType,
+                                    days: leave.days,
+                                    reason: leave.reason,
+                                    action: "approve"
+                                  })}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setApprovalDialog({
+                                    open: true,
+                                    leaveId: leave.id,
+                                    employeeId: leave.employeeId,
+                                    leaveType: leave.leaveType,
+                                    days: leave.days,
+                                    reason: leave.reason,
+                                    action: "reject"
+                                  })}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">لا توجد طلبات إجازة</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Reviews Tab */}
+            <TabsContent value="reviews" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>تقييم الأداء</CardTitle>
+                      <CardDescription>تقييمات الموظفين والأهداف</CardDescription>
+                    </div>
+                    <AddPerformanceReviewDialog />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingReviews ? (
+                    <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
+                  ) : reviewsList && reviewsList.length > 0 ? (
+                    <div className="space-y-4">
+                      {reviewsList.map((review) => (
+                        <div key={review.id} className="p-4 border rounded-lg space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium">موظف #{review.employeeId}</p>
+                            <div className="flex items-center gap-2">
+                              {review.rating && (
+                                <Badge variant="outline">
+                                  <Award className="ml-1 h-3 w-3" />
+                                  {review.rating}/10
+                                </Badge>
+                              )}
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(review.reviewDate).toLocaleDateString('ar-SA')}
+                              </span>
+                            </div>
+                          </div>
+                          {review.period && (
+                            <p className="text-sm text-muted-foreground">الفترة: {review.period}</p>
+                          )}
+                          {review.strengths && (
+                            <div className="text-sm">
+                              <p className="font-medium text-green-600">نقاط القوة:</p>
+                              <p className="text-muted-foreground">{review.strengths}</p>
+                            </div>
+                          )}
+                          {review.weaknesses && (
+                            <div className="text-sm">
+                              <p className="font-medium text-orange-600">نقاط التحسين:</p>
+                              <p className="text-muted-foreground">{review.weaknesses}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Award className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">لا توجد تقييمات أداء</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
 
       {/* Leave Approval Dialog */}
