@@ -9,10 +9,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { trpc } from '@/lib/trpc';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 
 export function NotificationBell() {
-    const navigate = useNavigate();
+    const [, setLocation] = useLocation();
     const utils = trpc.useUtils();
 
     // Fetch unread count
@@ -41,7 +41,7 @@ export function NotificationBell() {
         }
         // Navigate to link if exists
         if (notification.link) {
-            navigate(notification.link);
+            setLocation(notification.link);
         }
     };
 
@@ -129,7 +129,7 @@ export function NotificationBell() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             className="text-center justify-center text-primary"
-                            onClick={() => navigate('/notifications')}
+                            onClick={() => setLocation('/notifications')}
                         >
                             عرض كل الإشعارات
                         </DropdownMenuItem>
