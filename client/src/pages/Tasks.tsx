@@ -48,8 +48,15 @@ export default function Tasks() {
   });
   const { data: usersList } = trpc.users.list.useQuery(undefined, {
     refetchOnWindowFocus: false,
-    enabled: user?.role === "admin"
+    enabled: user?.role === "admin" || user?.role === "project_manager"
   });
+
+  // Permission flags
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+  const canCreate = permissions?.permissions.tasks?.create || user?.role === 'admin' || user?.role === 'project_manager';
+  const canDelete = permissions?.permissions.tasks?.delete || user?.role === 'admin' || user?.role === 'project_manager';
+  const isDesigner = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'].includes(user?.role || '');
+
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -92,121 +99,125 @@ export default function Tasks() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">المهام وخط الزمن</h1>
-            <p className="text-muted-foreground">إدارة المهام لكل مشروع وعرض مخطط جانت</p>
+            <h1 className="text-3xl font-bold">{isDesigner ? 'مهامي' : 'المهام وخط الزمن'}</h1>
+            <p className="text-muted-foreground">{isDesigner ? 'عرض المهام المُسندة إليك' : 'إدارة المهام لكل مشروع وعرض مخطط جانت'}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const el = document.getElementById("create-task");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              إنشاء مهمة
-            </Button>
-          </div>
+          {canCreate && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const el = document.getElementById("create-task");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                إنشاء مهمة
+              </Button>
+            </div>
+          )}
         </div>
-        <Card>
-          <CardHeader id="create-task">
-            <CardTitle>إضافة مهمة</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid md:grid-cols-6 gap-3">
-              <div>
-                <label className="text-sm">المشروع</label>
-                <Select
-                  value={projectId ? String(projectId) : ""}
-                  onValueChange={(v) => setProjectId(Number(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر مشروعاً" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(projects || []).map((p: any) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {canCreate && (
+          <Card>
+            <CardHeader id="create-task">
+              <CardTitle>إضافة مهمة</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid md:grid-cols-6 gap-3">
+                <div>
+                  <label className="text-sm">المشروع</label>
+                  <Select
+                    value={projectId ? String(projectId) : ""}
+                    onValueChange={(v) => setProjectId(Number(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر مشروعاً" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(projects || []).map((p: any) => (
+                        <SelectItem key={p.id} value={String(p.id)}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm">اسم المهمة</label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm">تاريخ البدء</label>
+                  <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm">تاريخ الانتهاء</label>
+                  <Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm">الأولوية</label>
+                  <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">منخفضة</SelectItem>
+                      <SelectItem value="medium">متوسطة</SelectItem>
+                      <SelectItem value="high">مرتفعة</SelectItem>
+                      <SelectItem value="critical">حرجة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={() => {
+                      if (!projectId) { toast.error("اختر مشروعاً"); return; }
+                      if (!form.name.trim()) { toast.error("أدخل اسم المهمة"); return; }
+                      createTask.mutate({
+                        projectId: projectId,
+                        name: form.name,
+                        description: form.description || undefined,
+                        startDate: form.startDate ? new Date(form.startDate) : undefined,
+                        endDate: form.endDate ? new Date(form.endDate) : undefined,
+                        status: "planned",
+                        priority: form.priority as any,
+                        estimateHours: form.estimateHours ? Number(form.estimateHours) : undefined,
+                        parentId: form.parentId && form.parentId !== "none" ? Number(form.parentId) : undefined
+                      });
+                    }}
+                  >
+                    إضافة
+                  </Button>
+                </div>
               </div>
               <div>
-                <label className="text-sm">اسم المهمة</label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <label className="text-sm">تفاصيل</label>
+                <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
-              <div>
-                <label className="text-sm">تاريخ البدء</label>
-                <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+              <div className="grid md:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-sm">تقدير الساعات</label>
+                  <Input type="number" min={0} value={form.estimateHours} onChange={(e) => setForm({ ...form, estimateHours: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm">مهمة رئيسية</label>
+                  <Select value={form.parentId} onValueChange={(v) => setForm({ ...form, parentId: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="لا يوجد" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">لا يوجد</SelectItem>
+                      {(tasks || []).map((t: any) => (
+                        <SelectItem key={t.id} value={String(t.id)}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <label className="text-sm">تاريخ الانتهاء</label>
-                <Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm">الأولوية</label>
-                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">منخفضة</SelectItem>
-                    <SelectItem value="medium">متوسطة</SelectItem>
-                    <SelectItem value="high">مرتفعة</SelectItem>
-                    <SelectItem value="critical">حرجة</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  onClick={() => {
-                    if (!projectId) { toast.error("اختر مشروعاً"); return; }
-                    if (!form.name.trim()) { toast.error("أدخل اسم المهمة"); return; }
-                    createTask.mutate({
-                      projectId: projectId,
-                      name: form.name,
-                      description: form.description || undefined,
-                      startDate: form.startDate ? new Date(form.startDate) : undefined,
-                      endDate: form.endDate ? new Date(form.endDate) : undefined,
-                      status: "planned",
-                      priority: form.priority as any,
-                      estimateHours: form.estimateHours ? Number(form.estimateHours) : undefined,
-                      parentId: form.parentId && form.parentId !== "none" ? Number(form.parentId) : undefined
-                    });
-                  }}
-                >
-                  إضافة
-                </Button>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm">تفاصيل</label>
-              <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </div>
-            <div className="grid md:grid-cols-3 gap-3">
-              <div>
-                <label className="text-sm">تقدير الساعات</label>
-                <Input type="number" min={0} value={form.estimateHours} onChange={(e) => setForm({ ...form, estimateHours: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm">مهمة رئيسية</label>
-                <Select value={form.parentId} onValueChange={(v) => setForm({ ...form, parentId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="لا يوجد" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">لا يوجد</SelectItem>
-                    {(tasks || []).map((t: any) => (
-                      <SelectItem key={t.id} value={String(t.id)}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>فلاتر</CardTitle>
@@ -349,7 +360,7 @@ export default function Tasks() {
                         <TableCell>
                           <Input
                             type="date"
-                            defaultValue={t.startDate ? new Date(t.startDate).toISOString().slice(0,10) : ""}
+                            defaultValue={t.startDate ? new Date(t.startDate).toISOString().slice(0, 10) : ""}
                             onBlur={(e) => {
                               const val = e.target.value;
                               updateTask.mutate({ id: t.id, startDate: val ? new Date(val) : undefined });
@@ -359,7 +370,7 @@ export default function Tasks() {
                         <TableCell>
                           <Input
                             type="date"
-                            defaultValue={t.endDate ? new Date(t.endDate).toISOString().slice(0,10) : ""}
+                            defaultValue={t.endDate ? new Date(t.endDate).toISOString().slice(0, 10) : ""}
                             onBlur={(e) => {
                               const val = e.target.value;
                               updateTask.mutate({ id: t.id, endDate: val ? new Date(val) : undefined });
@@ -389,13 +400,15 @@ export default function Tasks() {
                           <Link href={`/tasks/${t.id}`}>
                             <Button variant="secondary">تفاصيل</Button>
                           </Link>
-                          <Button
-                            variant="outline"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => deleteTask.mutate({ id: t.id })}
-                          >
-                            حذف
-                          </Button>
+                          {canDelete && (
+                            <Button
+                              variant="outline"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => deleteTask.mutate({ id: t.id })}
+                            >
+                              حذف
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
