@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function ProjectDetails() {
   const params = useParams();
