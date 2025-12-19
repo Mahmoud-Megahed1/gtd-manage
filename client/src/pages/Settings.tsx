@@ -14,6 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { Save, Upload, Users, Building2, Shield, Database, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -32,6 +39,13 @@ export default function Settings() {
   const setPasswordMutation = trpc.users.setPassword.useMutation({
     onSuccess: () => toast.success("تم تعيين كلمة السر بنجاح"),
     onError: (error) => toast.error(error.message || "فشل تعيين كلمة السر"),
+  });
+  const updateRoleMutation = trpc.users.updateRole.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم تغيير الدور بنجاح");
+      utils.users.list.invalidate();
+    },
+    onError: (error) => toast.error(error.message || "فشل تغيير الدور"),
   });
   const [openPermUserId, setOpenPermUserId] = useState<number | null>(null);
   const [permState, setPermState] = useState<Record<string, boolean>>({
@@ -402,26 +416,36 @@ export default function Settings() {
                           <TableCell className="font-medium">{user.name}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
-                            <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
-                              {user.role === 'admin' ? 'مدير عام' :
-                                user.role === 'department_manager' ? 'مدير قسم' :
-                                  user.role === 'project_manager' ? 'مدير مشاريع' :
-                                    user.role === 'project_coordinator' ? 'منسق مشاريع' :
-                                      user.role === 'architect' ? 'مهندس معماري' :
-                                        user.role === 'interior_designer' ? 'مصمم داخلي' :
-                                          user.role === 'site_engineer' ? 'مهندس موقع' :
-                                            user.role === 'planning_engineer' ? 'مهندس تخطيط' :
-                                              user.role === 'designer' ? 'مصمم' :
-                                                user.role === 'technician' ? 'فني' :
-                                                  user.role === 'finance_manager' ? 'مدير مالي' :
-                                                    user.role === 'accountant' ? 'محاسب' :
-                                                      user.role === 'sales_manager' ? 'مسؤول مبيعات' :
-                                                        user.role === 'hr_manager' ? 'مسؤول موارد بشرية' :
-                                                          user.role === 'admin_assistant' ? 'مساعد إداري' :
-                                                            user.role === 'procurement_officer' ? 'مسؤول مشتريات' :
-                                                              user.role === 'storekeeper' ? 'أمين مخازن' :
-                                                                user.role === 'qa_qc' ? 'مسؤول جودة' : user.role}
-                            </span>
+                            <Select
+                              value={user.role}
+                              onValueChange={(newRole) => {
+                                updateRoleMutation.mutate({ userId: user.id, role: newRole as any });
+                              }}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">مدير عام</SelectItem>
+                                <SelectItem value="department_manager">مدير قسم</SelectItem>
+                                <SelectItem value="project_manager">مدير مشاريع</SelectItem>
+                                <SelectItem value="project_coordinator">منسق مشاريع</SelectItem>
+                                <SelectItem value="architect">مهندس معماري</SelectItem>
+                                <SelectItem value="interior_designer">مصمم داخلي</SelectItem>
+                                <SelectItem value="site_engineer">مهندس موقع</SelectItem>
+                                <SelectItem value="planning_engineer">مهندس تخطيط</SelectItem>
+                                <SelectItem value="designer">مصمم</SelectItem>
+                                <SelectItem value="technician">فني</SelectItem>
+                                <SelectItem value="finance_manager">مدير مالي</SelectItem>
+                                <SelectItem value="accountant">محاسب</SelectItem>
+                                <SelectItem value="sales_manager">مسؤول مبيعات</SelectItem>
+                                <SelectItem value="hr_manager">مسؤول موارد بشرية</SelectItem>
+                                <SelectItem value="admin_assistant">مساعد إداري</SelectItem>
+                                <SelectItem value="procurement_officer">مسؤول مشتريات</SelectItem>
+                                <SelectItem value="storekeeper">أمين مخازن</SelectItem>
+                                <SelectItem value="qa_qc">مسؤول جودة</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
