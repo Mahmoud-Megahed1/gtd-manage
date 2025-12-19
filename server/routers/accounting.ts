@@ -12,7 +12,7 @@ import * as demo from "../_core/demoStore";
 // Admin/Accountant procedure
 const accountingProcedure = protectedProcedure
   .use(({ ctx, next }) => {
-    if (process.env.NODE_ENV === 'production' && ctx.user.role !== 'admin' && ctx.user.role !== 'accountant') {
+    if (process.env.NODE_ENV === 'production' && ctx.user.role !== 'admin' && ctx.user.role !== 'accountant' && ctx.user.role !== 'finance_manager') {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Accounting access required' });
     }
     return next({ ctx });
@@ -29,6 +29,18 @@ const accountingProcedure = protectedProcedure
     } catch { }
     return next({ ctx });
   });
+
+// Admin/Finance Manager only - for mutations (accountant cannot modify directly)
+const adminFinanceProcedure = accountingProcedure.use(({ ctx, next }) => {
+  const allowedRoles = ['admin', 'finance_manager'];
+  if (!allowedRoles.includes(ctx.user.role)) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'يجب رفع طلب للاعتماد - لا يمكنك التعديل مباشرة'
+    });
+  }
+  return next({ ctx });
+});
 
 export const accountingRouter = router({
   // ============= EXPENSES =============
@@ -56,7 +68,7 @@ export const accountingRouter = router({
         return await query;
       }),
 
-    create: accountingProcedure
+    create: adminFinanceProcedure
       .input(z.object({
         projectId: z.number(),
         category: z.string(),
@@ -88,7 +100,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    update: accountingProcedure
+    update: adminFinanceProcedure
       .input(z.object({
         id: z.number(),
         category: z.string().optional(),
@@ -117,7 +129,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    delete: accountingProcedure
+    delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -197,7 +209,7 @@ export const accountingRouter = router({
         return await query;
       }),
 
-    create: accountingProcedure
+    create: adminFinanceProcedure
       .input(z.object({
         projectId: z.number(),
         itemNumber: z.string(),
@@ -240,7 +252,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    update: accountingProcedure
+    update: adminFinanceProcedure
       .input(z.object({
         id: z.number(),
         itemNumber: z.string().optional(),
@@ -276,7 +288,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    delete: accountingProcedure
+    delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -341,7 +353,7 @@ export const accountingRouter = router({
           .orderBy(desc(installments.dueDate));
       }),
 
-    create: accountingProcedure
+    create: adminFinanceProcedure
       .input(z.object({
         projectId: z.number(),
         installmentNumber: z.number(),
@@ -375,7 +387,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    update: accountingProcedure
+    update: adminFinanceProcedure
       .input(z.object({
         id: z.number(),
         amount: z.number().optional(),
@@ -408,7 +420,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    markAsPaid: accountingProcedure
+    markAsPaid: adminFinanceProcedure
       .input(z.object({
         id: z.number(),
         paidDate: z.number().optional()
@@ -430,7 +442,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    delete: accountingProcedure
+    delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -443,7 +455,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    cancel: accountingProcedure
+    cancel: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -512,7 +524,7 @@ export const accountingRouter = router({
       return await db.select().from(sales).orderBy(desc(sales.saleDate));
     }),
 
-    create: accountingProcedure
+    create: adminFinanceProcedure
       .input(z.object({
         clientId: z.number(),
         projectId: z.number().optional(),
@@ -547,7 +559,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    cancel: accountingProcedure
+    cancel: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -561,7 +573,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    update: accountingProcedure
+    update: adminFinanceProcedure
       .input(z.object({
         id: z.number(),
         projectId: z.number().optional(),
@@ -591,7 +603,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    delete: accountingProcedure
+    delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -644,7 +656,7 @@ export const accountingRouter = router({
       return await db.select().from(purchases).orderBy(desc(purchases.purchaseDate));
     }),
 
-    create: accountingProcedure
+    create: adminFinanceProcedure
       .input(z.object({
         supplierId: z.number().optional(),
         supplierName: z.string(),
@@ -680,7 +692,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    cancel: accountingProcedure
+    cancel: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -694,7 +706,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    update: accountingProcedure
+    update: adminFinanceProcedure
       .input(z.object({
         id: z.number(),
         supplierId: z.number().optional(),
@@ -726,7 +738,7 @@ export const accountingRouter = router({
         return { success: true };
       }),
 
-    delete: accountingProcedure
+    delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();

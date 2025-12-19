@@ -424,12 +424,24 @@ export const appRouter = router({
       await ensurePerm(ctx, 'projects');
       const permLevel = getPermissionLevel(ctx.user.role, 'projects');
 
+      // Check if user can view financials
+      const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
+      const isDesigner = designerRoles.includes(ctx.user.role);
+
+      let projects;
       // For 'own' permission level, only show assigned projects
       if (permLevel === 'own') {
-        return await db.getProjectsForAssignee(ctx.user.id);
+        projects = await db.getProjectsForAssignee(ctx.user.id);
+      } else {
+        projects = await db.getAllProjects();
       }
 
-      return await db.getAllProjects();
+      // Strip budget for designers
+      if (isDesigner) {
+        return projects.map((p: any) => ({ ...p, budget: undefined }));
+      }
+
+      return projects;
     }),
 
     // Get projects assigned to current user (for limited access roles)
@@ -512,14 +524,24 @@ export const appRouter = router({
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
 
+        // Check if user can view financials
+        const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
+        const isDesigner = designerRoles.includes(ctx.user.role);
+        const canViewFinancials = !isDesigner;
+
         const [boq, expenses, installments, client] = await Promise.all([
-          db.getProjectBOQ(input.id),
-          db.getProjectExpenses(input.id),
-          db.getProjectInstallments(input.id),
+          canViewFinancials ? db.getProjectBOQ(input.id) : Promise.resolve([]),
+          canViewFinancials ? db.getProjectExpenses(input.id) : Promise.resolve([]),
+          canViewFinancials ? db.getProjectInstallments(input.id) : Promise.resolve([]),
           project.clientId ? db.getClientById(project.clientId) : null
         ]);
 
-        return { project, boq, expenses, installments, client };
+        // Strip budget from project for designers
+        const safeProject = isDesigner
+          ? { ...project, budget: undefined }
+          : project;
+
+        return { project: safeProject, boq, expenses, installments, client };
       }),
 
     createTask: protectedProcedure
