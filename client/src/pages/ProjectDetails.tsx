@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table";
 
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function ProjectDetails() {
   const params = useParams();
@@ -60,6 +61,11 @@ export default function ProjectDetails() {
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
   const client = projectData?.client;
+
+  // Permission check for financial data
+  const { user } = useAuth();
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+  const canViewFinancials = permissions?.permissions.projects.viewFinancials || user?.role === 'admin' || user?.role === 'project_manager';
   const { data: rfis } = trpc.rfi.list.useQuery({ projectId });
   const { data: submittals } = trpc.submittals.list.useQuery({ projectId });
   const { data: drawings } = trpc.drawings.list.useQuery({ projectId });
@@ -178,68 +184,70 @@ export default function ProjectDetails() {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">الميزانية</p>
-                  <p className="text-2xl font-bold">{(project.budget || 0).toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">ريال</p>
+        {/* Stats Cards - Only visible to users with financial access */}
+        {canViewFinancials && (
+          <div className="grid gap-6 md:grid-cols-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">الميزانية</p>
+                    <p className="text-2xl font-bold">{(project.budget || 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">ريال</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-primary" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">إجمالي BOQ</p>
-                  <p className="text-2xl font-bold">{totalBOQ.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">ريال</p>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">إجمالي BOQ</p>
+                    <p className="text-2xl font-bold">{totalBOQ.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">ريال</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-blue-500" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-blue-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">المصروفات</p>
-                  <p className="text-2xl font-bold">{totalExpenses.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">ريال</p>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">المصروفات</p>
+                    <p className="text-2xl font-bold">{totalExpenses.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">ريال</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-red-500" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-red-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">المدفوع</p>
-                  <p className="text-2xl font-bold">{paidInstallments.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">من {totalInstallments.toLocaleString()} ريال</p>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">المدفوع</p>
+                    <p className="text-2xl font-bold">{paidInstallments.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">من {totalInstallments.toLocaleString()} ريال</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -275,12 +283,14 @@ export default function ProjectDetails() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="financials" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-3">
-            <TabsTrigger value="financials" className="gap-2">
-              <DollarSign className="w-4 h-4" />
-              المالية
-            </TabsTrigger>
+        <Tabs defaultValue="tasks" className="w-full">
+          <TabsList className={`grid w-full max-w-3xl ${canViewFinancials ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {canViewFinancials && (
+              <TabsTrigger value="financials" className="gap-2">
+                <DollarSign className="w-4 h-4" />
+                المالية
+              </TabsTrigger>
+            )}
             <TabsTrigger value="tasks" className="gap-2">
               <Clock className="w-4 h-4" />
               المهام الزمنية
@@ -291,82 +301,84 @@ export default function ProjectDetails() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="financials" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>ملخص المالية</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">الميزانية الكلية:</span>
-                    <span className="font-bold">{(project.budget || 0).toLocaleString()} ريال</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">إجمالي BOQ:</span>
-                    <span className="font-bold">{totalBOQ.toLocaleString()} ريال</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">المصروفات:</span>
-                    <span className="font-bold text-red-500">-{totalExpenses.toLocaleString()} ريال</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">الإيرادات المتوقعة:</span>
-                    <span className="font-bold">{totalInstallments.toLocaleString()} ريال</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">المدفوع:</span>
-                    <span className="font-bold text-green-500">{paidInstallments.toLocaleString()} ريال</span>
-                  </div>
-                  <div className="pt-4 border-t">
+          {canViewFinancials && (
+            <TabsContent value="financials" className="mt-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>ملخص المالية</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">الربح المتوقع:</span>
-                      <span className={`font-bold text-lg ${(totalInstallments - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
-                        }`}>
-                        {(totalInstallments - totalExpenses).toLocaleString()} ريال
-                      </span>
+                      <span className="text-muted-foreground">الميزانية الكلية:</span>
+                      <span className="font-bold">{(project.budget || 0).toLocaleString()} ريال</span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">إجمالي BOQ:</span>
+                      <span className="font-bold">{totalBOQ.toLocaleString()} ريال</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">المصروفات:</span>
+                      <span className="font-bold text-red-500">-{totalExpenses.toLocaleString()} ريال</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">الإيرادات المتوقعة:</span>
+                      <span className="font-bold">{totalInstallments.toLocaleString()} ريال</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">المدفوع:</span>
+                      <span className="font-bold text-green-500">{paidInstallments.toLocaleString()} ريال</span>
+                    </div>
+                    <div className="pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">الربح المتوقع:</span>
+                        <span className={`font-bold text-lg ${(totalInstallments - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
+                          }`}>
+                          {(totalInstallments - totalExpenses).toLocaleString()} ريال
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>الأقساط</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {installments && installments.length > 0 ? (
-                    <div className="space-y-3">
-                      {installments.map((inst) => (
-                        <div key={inst.id} className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <p className="font-medium">قسط #{inst.installmentNumber}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(inst.dueDate).toLocaleDateString("ar-SA")}
-                            </p>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>الأقساط</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {installments && installments.length > 0 ? (
+                      <div className="space-y-3">
+                        {installments.map((inst) => (
+                          <div key={inst.id} className="flex items-center justify-between p-3 border rounded">
+                            <div>
+                              <p className="font-medium">قسط #{inst.installmentNumber}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(inst.dueDate).toLocaleDateString("ar-SA")}
+                              </p>
+                            </div>
+                            <div className="text-left">
+                              <p className="font-bold">{inst.amount.toLocaleString()} ريال</p>
+                              <Badge className={
+                                inst.status === "paid" ? "bg-green-500/10 text-green-500" :
+                                  inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
+                                    "bg-yellow-500/10 text-yellow-500"
+                              }>
+                                {inst.status === "paid" ? "مدفوع" : inst.status === "overdue" ? "متأخر" : "معلق"}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="text-left">
-                            <p className="font-bold">{inst.amount.toLocaleString()} ريال</p>
-                            <Badge className={
-                              inst.status === "paid" ? "bg-green-500/10 text-green-500" :
-                                inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
-                                  "bg-yellow-500/10 text-yellow-500"
-                            }>
-                              {inst.status === "paid" ? "مدفوع" : inst.status === "overdue" ? "متأخر" : "معلق"}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>لا توجد أقساط</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>لا توجد أقساط</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
 
           <TabsContent value="team" className="mt-6">
             <Card>
