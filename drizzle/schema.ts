@@ -508,3 +508,24 @@ export type InsertSale = typeof sales.$inferInsert;
 export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = typeof purchases.$inferInsert;
 
+// Approval Requests table for approval workflow
+export const approvalRequests = mysqlTable("approvalRequests", {
+	id: int().autoincrement().notNull(),
+	entityType: mysqlEnum(['expense', 'sale', 'purchase', 'invoice', 'boq', 'installment']).notNull(),
+	entityId: int().notNull(),
+	action: mysqlEnum(['create', 'update', 'delete', 'cancel', 'approve']).notNull(),
+	requestData: text(), // JSON of the requested changes
+	status: mysqlEnum(['pending', 'approved', 'rejected']).default('pending').notNull(),
+	requestedBy: int().notNull(),
+	requestedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+	reviewedBy: int(),
+	reviewedAt: timestamp({ mode: 'date' }),
+	reviewNotes: text(),
+},
+	(table) => [
+		index("idx_approvalRequests_status").on(table.status),
+		index("idx_approvalRequests_requestedBy").on(table.requestedBy),
+	]);
+
+export type ApprovalRequest = typeof approvalRequests.$inferSelect;
+export type InsertApprovalRequest = typeof approvalRequests.$inferInsert;

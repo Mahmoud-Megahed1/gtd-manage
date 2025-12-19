@@ -11,6 +11,7 @@ import { hrRouter } from "./routers/hr";
 import { accountingRouter } from "./routers/accounting";
 import { reportsRouter } from "./routers/reports";
 import { tasksRouter } from "./routers/tasks";
+import { approvalsRouter } from "./routers/approvals";
 import { invoices, expenses } from "../drizzle/schema";
 import { gte, eq, desc } from "drizzle-orm";
 
@@ -1503,6 +1504,7 @@ export const appRouter = router({
   reports: reportsRouter
   ,
   tasks: tasksRouter,
+  approvals: approvalsRouter,
   notifications: router({
     unreadCount: protectedProcedure.query(async ({ ctx }) => {
       // Placeholder: return 0; can be wired to a real store later
