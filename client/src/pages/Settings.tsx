@@ -423,7 +423,7 @@ export default function Settings() {
                               }}
                             >
                               <SelectTrigger className="w-40">
-                                <SelectValue />
+                                <SelectValue placeholder={user.role || "اختر الدور"} />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">مدير عام</SelectItem>
