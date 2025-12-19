@@ -136,6 +136,21 @@ export const tasksRouter = router({
         updatedAt: new Date()
       } as any);
       await db.createAuditLog({ userId: ctx.user.id, action: 'CREATE_TASK', entityType: 'task', details: `Task: ${input.name}` } as any);
+
+      // Notify assigned user about new task
+      if (input.assignedTo) {
+        const { createNotification } = await import('./notifications');
+        await createNotification({
+          userId: input.assignedTo,
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: '📋 مهمة جديدة',
+          message: `تم إسناد مهمة جديدة لك: ${input.name}`,
+          entityType: 'task',
+          link: '/tasks'
+        });
+      }
+
       return { success: true };
     }),
   update: protectedProcedure
@@ -188,11 +203,48 @@ export const tasksRouter = router({
       // Notifications
       const prev = current[0] as any;
       if (prev) {
+        const { createNotification, createNotificationForRoles } = await import('./notifications');
+        const statusLabels: Record<string, string> = {
+          'planned': 'مخطط',
+          'in_progress': 'قيد التنفيذ',
+          'done': 'مكتمل',
+          'cancelled': 'ملغي'
+        };
+
+        // Status change notification → notify project managers
         if (input.status && input.status !== prev.status) {
           await notifyOwner({ title: "تغيير حالة مهمة", content: `تم تغيير حالة المهمة "${prev.name}" إلى ${input.status}` }).catch(() => { });
+
+          // Also send in-app notification to project managers
+          await createNotificationForRoles({
+            roles: ['admin', 'project_manager'],
+            fromUserId: ctx.user.id,
+            type: 'info',
+            title: `تحديث حالة مهمة: ${statusLabels[input.status] || input.status}`,
+            message: `المهمة "${prev.name}" تم تغيير حالتها من ${statusLabels[prev.status] || prev.status} إلى ${statusLabels[input.status] || input.status}`,
+            entityType: 'task',
+            entityId: input.id,
+            link: '/tasks'
+          });
         }
+
+        // Assignment change notification → notify new assignee
         if (input.assignedTo !== undefined && input.assignedTo !== prev.assignedTo) {
           await notifyOwner({ title: "تعيين مسؤول مهمة", content: `تم تعيين/تغيير مسؤول المهمة "${prev.name}"` }).catch(() => { });
+
+          // Notify new assignee
+          if (input.assignedTo) {
+            await createNotification({
+              userId: input.assignedTo,
+              fromUserId: ctx.user.id,
+              type: 'action',
+              title: '📋 تم إسنادك لمهمة',
+              message: `تم إسناد المهمة "${prev.name}" لك`,
+              entityType: 'task',
+              entityId: input.id,
+              link: '/tasks'
+            });
+          }
         }
       }
       await db.createAuditLog({ userId: ctx.user.id, action: 'UPDATE_TASK', entityType: 'task', entityId: input.id, details: `Updated task` } as any);

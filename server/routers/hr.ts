@@ -134,6 +134,25 @@ export const hrRouter = router({
         };
 
         await db.insert(leaves).values(values);
+
+        // Notify admin and hr_manager about new leave request
+        const { createNotificationForRoles } = await import('./notifications');
+        const leaveTypes: Record<string, string> = {
+          'annual': 'سنوية',
+          'sick': 'مرضية',
+          'emergency': 'طارئة',
+          'unpaid': 'بدون راتب'
+        };
+        await createNotificationForRoles({
+          roles: ['admin', 'hr_manager'],
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: 'طلب إجازة جديد',
+          message: `${ctx.user.name || 'موظف'} طلب إجازة ${leaveTypes[input.leaveType] || input.leaveType} لمدة ${input.days} يوم`,
+          entityType: 'leave',
+          link: '/hr'
+        });
+
         return { success: true };
       }),
   }),
@@ -174,7 +193,7 @@ export const hrRouter = router({
         bankAccount: z.string().optional(),
         emergencyContact: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -188,6 +207,19 @@ export const hrRouter = router({
         };
 
         await db.insert(employees).values(values);
+
+        // Notify new employee about their account setup
+        const { createNotification } = await import('./notifications');
+        await createNotification({
+          userId: input.userId,
+          fromUserId: (ctx as any).user?.id,
+          type: 'success',
+          title: 'مرحباً بك في فريق العمل! 🎉',
+          message: `تم إنشاء ملفك كموظف برقم ${input.employeeNumber}`,
+          entityType: 'employee',
+          link: '/hr'
+        });
+
         return { success: true };
       }),
 
@@ -568,6 +600,24 @@ export const hrRouter = router({
         };
 
         await db.insert(payroll).values(values);
+
+        // Get employee's userId and notify them about the payroll
+        const emp = await db.select().from(employees).where(eq(employees.id, input.employeeId)).limit(1);
+        if (emp[0]?.userId) {
+          const { createNotification } = await import('./notifications');
+          const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+            'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+          await createNotification({
+            userId: emp[0].userId,
+            fromUserId: ctx.user.id,
+            type: 'success',
+            title: 'تم صرف الراتب 💰',
+            message: `تم إضافة راتب ${monthNames[input.month - 1] || input.month}/${input.year} بقيمة ${netSalary.toLocaleString()} ريال`,
+            entityType: 'payroll',
+            link: '/hr'
+          });
+        }
+
         return { success: true, netSalary };
       }),
 
@@ -713,6 +763,9 @@ export const hrRouter = router({
           return { success: true };
         }
 
+        // Get leave record to find employee and user
+        const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+
         await db.update(leaves)
           .set({
             status: 'approved',
@@ -721,6 +774,24 @@ export const hrRouter = router({
             notes: input.notes
           })
           .where(eq(leaves.id, input.id));
+
+        // Notify employee about approval
+        if (leaveRecord[0]) {
+          const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
+          if (emp[0]?.userId) {
+            const { createNotification } = await import('./notifications');
+            await createNotification({
+              userId: emp[0].userId,
+              fromUserId: ctx.user.id,
+              type: 'success',
+              title: 'تمت الموافقة على طلب الإجازة ✅',
+              message: input.notes ? `ملاحظات: ${input.notes}` : 'تم قبول طلب إجازتك',
+              entityType: 'leave',
+              entityId: input.id,
+              link: '/hr'
+            });
+          }
+        }
 
         return { success: true };
       }),
@@ -739,6 +810,9 @@ export const hrRouter = router({
           return { success: true };
         }
 
+        // Get leave record to find employee and user
+        const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+
         await db.update(leaves)
           .set({
             status: 'rejected',
@@ -747,6 +821,24 @@ export const hrRouter = router({
             notes: input.notes ?? input.reason
           })
           .where(eq(leaves.id, input.id));
+
+        // Notify employee about rejection
+        if (leaveRecord[0]) {
+          const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
+          if (emp[0]?.userId) {
+            const { createNotification } = await import('./notifications');
+            await createNotification({
+              userId: emp[0].userId,
+              fromUserId: ctx.user.id,
+              type: 'warning',
+              title: 'تم رفض طلب الإجازة ❌',
+              message: input.notes || input.reason || 'تم رفض طلب إجازتك',
+              entityType: 'leave',
+              entityId: input.id,
+              link: '/hr'
+            });
+          }
+        }
 
         return { success: true };
       }),
@@ -801,6 +893,22 @@ export const hrRouter = router({
         };
 
         await db.insert(performanceReviews).values(values);
+
+        // Get employee's userId and notify them about the review
+        const emp = await db.select().from(employees).where(eq(employees.id, input.employeeId)).limit(1);
+        if (emp[0]?.userId) {
+          const { createNotification } = await import('./notifications');
+          await createNotification({
+            userId: emp[0].userId,
+            fromUserId: ctx.user.id,
+            type: 'info',
+            title: 'تقييم أداء جديد 📋',
+            message: `تم إضافة تقييم أداء جديد لك${input.period ? ` - الفترة: ${input.period}` : ''}`,
+            entityType: 'performance_review',
+            link: '/hr'
+          });
+        }
+
         return { success: true };
       }),
 

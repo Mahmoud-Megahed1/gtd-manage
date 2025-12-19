@@ -134,6 +134,19 @@ export const approvalsRouter = router({
                 details: `تمت الموافقة على الطلب #${input.id}`
             });
 
+            // Notify requester about approval
+            const { createNotification } = await import('./notifications');
+            await createNotification({
+                userId: request.requestedBy,
+                fromUserId: ctx.user.id,
+                type: 'success',
+                title: 'تمت الموافقة على طلبك ✅',
+                message: `تمت الموافقة على طلب الاعتماد رقم #${input.id}`,
+                entityType: 'approval',
+                entityId: input.id,
+                link: '/accounting'
+            });
+
             return { success: true, message: 'تمت الموافقة على الطلب' };
         }),
 
@@ -174,6 +187,19 @@ export const approvalsRouter = router({
                 entityType: 'approval',
                 entityId: input.id,
                 details: `تم رفض الطلب #${input.id}: ${input.notes}`
+            });
+
+            // Notify requester about rejection
+            const { createNotification } = await import('./notifications');
+            await createNotification({
+                userId: request.requestedBy,
+                fromUserId: ctx.user.id,
+                type: 'warning',
+                title: 'تم رفض طلبك ❌',
+                message: `تم رفض طلب الاعتماد رقم #${input.id}: ${input.notes}`,
+                entityType: 'approval',
+                entityId: input.id,
+                link: '/accounting'
             });
 
             return { success: true, message: 'تم رفض الطلب' };

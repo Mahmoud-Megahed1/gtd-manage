@@ -531,3 +531,27 @@ export const approvalRequests = mysqlTable("approvalRequests", {
 
 export type ApprovalRequest = typeof approvalRequests.$inferSelect;
 export type InsertApprovalRequest = typeof approvalRequests.$inferInsert;
+
+// Notifications table for in-app notifications
+export const notifications = mysqlTable("notifications", {
+	id: int().autoincrement().notNull(),
+	userId: int().notNull(), // المستقبل
+	fromUserId: int(), // المرسل (null = نظام)
+	type: mysqlEnum(['info', 'warning', 'success', 'action']).default('info').notNull(),
+	title: varchar({ length: 255 }).notNull(),
+	message: text(),
+	link: varchar({ length: 500 }), // رابط للصفحة المتعلقة
+	entityType: varchar({ length: 50 }), // نوع الكيان (leave, task, project, etc.)
+	entityId: int(), // ID الكيان
+	isRead: tinyint().default(0).notNull(),
+	groupKey: varchar({ length: 100 }), // لتجميع الإشعارات المتشابهة
+	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+},
+	(table) => [
+		index("idx_notifications_userId").on(table.userId),
+		index("idx_notifications_isRead").on(table.isRead),
+		index("idx_notifications_createdAt").on(table.createdAt),
+	]);
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

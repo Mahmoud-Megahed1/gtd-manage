@@ -404,6 +404,7 @@ export default function Settings() {
                       <TableHead>الاسم</TableHead>
                       <TableHead>البريد الإلكتروني</TableHead>
                       <TableHead>الدور</TableHead>
+                      <TableHead>كلمة السر</TableHead>
                       <TableHead>الحالة</TableHead>
                       <TableHead>آخر تسجيل دخول</TableHead>
                       <TableHead className="text-left">الصلاحيات</TableHead>
@@ -446,6 +447,13 @@ export default function Settings() {
                                 <SelectItem value="qa_qc">مسؤول جودة</SelectItem>
                               </SelectContent>
                             </Select>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {user.passwordHash ? (
+                              <span className="text-green-600 text-lg" title="لديه كلمة سر">✅</span>
+                            ) : (
+                              <span className="text-red-500 text-lg" title="بدون كلمة سر">❌</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'

@@ -25,6 +25,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { NotificationBell } from "@/components/NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -304,6 +305,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </ScrollArea>
 
           <Separator />
+
+          {/* Notifications */}
+          <div className="px-4 py-2 flex justify-end">
+            <NotificationBell />
+          </div>
 
           {/* User Profile */}
           <div className="p-4">

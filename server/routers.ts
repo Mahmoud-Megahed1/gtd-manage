@@ -12,6 +12,7 @@ import { accountingRouter } from "./routers/accounting";
 import { reportsRouter } from "./routers/reports";
 import { tasksRouter } from "./routers/tasks";
 import { approvalsRouter } from "./routers/approvals";
+import { notificationsRouter } from "./routers/notifications";
 import { invoices, expenses } from "../drizzle/schema";
 import { gte, eq, desc } from "drizzle-orm";
 
@@ -1288,6 +1289,38 @@ export const appRouter = router({
         }
 
         await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, ctx);
+
+        // Send notification to user about role change
+        const { createNotification } = await import('./routers/notifications');
+        const roleNames: Record<string, string> = {
+          'admin': 'مدير عام',
+          'department_manager': 'مدير قسم',
+          'project_manager': 'مدير مشاريع',
+          'project_coordinator': 'منسق مشاريع',
+          'architect': 'مهندس معماري',
+          'interior_designer': 'مصمم داخلي',
+          'site_engineer': 'مهندس موقع',
+          'planning_engineer': 'مهندس تخطيط',
+          'designer': 'مصمم',
+          'technician': 'فني',
+          'finance_manager': 'مدير مالي',
+          'accountant': 'محاسب',
+          'sales_manager': 'مسؤول مبيعات',
+          'hr_manager': 'مسؤول موارد بشرية',
+          'admin_assistant': 'مساعد إداري',
+          'procurement_officer': 'مسؤول مشتريات',
+          'storekeeper': 'أمين مخازن',
+          'qa_qc': 'مسؤول جودة',
+        };
+        await createNotification({
+          userId: input.userId,
+          fromUserId: ctx.user.id,
+          type: 'info',
+          title: 'تم تغيير دورك',
+          message: `تم تغيير دورك إلى: ${roleNames[role] || role}`,
+          link: '/settings'
+        });
+
         // Return requiresRelogin to notify frontend that user needs to re-login
         return { success: true, requiresRelogin: true, message: 'تم تغيير الدور - المستخدم يحتاج تسجيل خروج ودخول للتفعيل' };
       }),
@@ -1391,6 +1424,18 @@ export const appRouter = router({
         await db.setUserPermissions(input.userId, input.permissions);
         console.log("[setPermissions] Saved successfully");
         await logAudit(ctx.user.id, 'UPDATE_USER_PERMISSIONS', 'user', input.userId, `Updated permissions`, ctx);
+
+        // Notify user about permission change
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: input.userId,
+          fromUserId: ctx.user.id,
+          type: 'info',
+          title: 'تم تحديث صلاحياتك',
+          message: 'تم تعديل صلاحياتك في النظام - قد تحتاج لإعادة تسجيل الدخول',
+          link: '/settings'
+        });
+
         return { success: true };
       }),
     // Admin sets password for a user
@@ -1404,6 +1449,18 @@ export const appRouter = router({
         const hash = crypto.createHash('sha256').update(input.password).digest('hex');
         await db.setUserPassword(input.userId, hash);
         await logAudit(ctx.user.id, 'SET_USER_PASSWORD', 'user', input.userId, 'Password set by admin', ctx);
+
+        // Send notification to user about new password
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: input.userId,
+          fromUserId: ctx.user.id,
+          type: 'success',
+          title: 'تم تعيين كلمة سر جديدة',
+          message: `تم تعيين كلمة سر جديدة لحسابك بواسطة ${ctx.user.name || 'المدير'}`,
+          link: '/settings'
+        });
+
         return { success: true };
       }),
     // User changes their own password
@@ -1627,12 +1684,7 @@ export const appRouter = router({
   ,
   tasks: tasksRouter,
   approvals: approvalsRouter,
-  notifications: router({
-    unreadCount: protectedProcedure.query(async ({ ctx }) => {
-      // Placeholder: return 0; can be wired to a real store later
-      return { count: 0 } as const;
-    }),
-  })
+  notifications: notificationsRouter
 });
 
 export type AppRouter = typeof appRouter;
