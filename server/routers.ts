@@ -379,7 +379,12 @@ export const appRouter = router({
         notes: z.string().optional()
       }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'clients');
+        // Only admin and sales_manager can create clients
+        const canCreate = ['admin', 'sales_manager'].includes(ctx.user.role);
+        if (!canCreate) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إضافة عملاء - صلاحية المشاهدة فقط' });
+        }
+
         const clientNumber = generateUniqueNumber('CLT');
         await db.createClient({
           ...input,
@@ -402,7 +407,12 @@ export const appRouter = router({
         notes: z.string().optional()
       }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'clients');
+        // Only admin and sales_manager can update clients
+        const canEdit = ['admin', 'sales_manager'].includes(ctx.user.role);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل بيانات العملاء - صلاحية المشاهدة فقط' });
+        }
+
         const { id, ...data } = input;
         await db.updateClient(id, data);
         await logAudit(ctx.user.id, 'UPDATE_CLIENT', 'client', id, `Updated client`, ctx);
