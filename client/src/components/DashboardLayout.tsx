@@ -49,44 +49,55 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, roles: ["admin"] },
-  { title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: ["admin"] },
-  { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer"] },
-  { title: "المهام", href: "/tasks", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer"] },
+  // Dashboard - visible to all logged in users
+  { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
+  // Clients - admin and sales only
+  { title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: ["admin", "sales_manager"] },
+  // Projects - admin, project managers, and design roles
+  { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer", "site_engineer", "architect", "interior_designer", "planning_engineer"] },
+  // Tasks - admin, project managers, and design roles
+  { title: "المهام", href: "/tasks", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer", "site_engineer", "architect", "interior_designer", "planning_engineer"] },
+  // Change Orders - admin only
   { title: "طلبات التغيير", href: "/change-orders", icon: <FileDiff className="w-5 h-5" />, roles: ["admin"] },
-  { title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: ["admin"] },
-  { title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" />, roles: ["admin"] },
+  // Invoices - admin and finance
+  { title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: ["admin", "accountant", "finance_manager"] },
+  // Forms - all can view
+  { title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" /> },
+  // Accounting - admin and finance
   {
     title: "المحاسبة",
     href: "/accounting",
     icon: <Calculator className="w-5 h-5" />,
-    roles: ["admin", "accountant"]
+    roles: ["admin", "accountant", "finance_manager"]
   },
-
+  // Notifications - admin for now
   {
     title: "الإشعارات",
     href: "/notifications",
     icon: <Bell className="w-5 h-5" />,
     roles: ["admin"]
   },
+  // AI Assistant - admin
   {
     title: "مساعد AI",
     href: "/ai-assistant",
     icon: <Search className="w-5 h-5" />,
     roles: ["admin"]
   },
+  // HR - all employees can see their personal data
   {
     title: "شؤون الموظفين",
     href: "/hr",
-    icon: <UserCog className="w-5 h-5" />,
-    roles: ["admin"]
+    icon: <UserCog className="w-5 h-5" />
   },
+  // Audit Logs - admin only
   {
     title: "سجل النشاطات",
     href: "/audit-logs",
     icon: <History className="w-5 h-5" />,
     roles: ["admin"]
   },
+  // Settings - admin only
   {
     title: "الإعدادات",
     href: "/settings",

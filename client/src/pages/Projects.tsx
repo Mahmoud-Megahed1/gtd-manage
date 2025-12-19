@@ -17,6 +17,14 @@ export default function Projects() {
   const { data: projects, isLoading, refetch } = trpc.projects.list.useQuery();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+
+  // Permission flags
+  const canAdd = permissions?.permissions.projects.create || user?.role === 'admin';
+  const canDelete = permissions?.permissions.projects.delete || user?.role === 'admin';
+  const canViewFinancials = permissions?.permissions.projects.viewFinancials || user?.role === 'admin';
+  const isOwnOnly = permissions?.permissions.projects.viewOwn && !permissions?.permissions.projects.view;
+
   const utils = trpc.useUtils();
   const deleteProject = trpc.projects.delete.useMutation({
     onSuccess: () => {
@@ -54,12 +62,12 @@ export default function Projects() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">إدارة المشاريع</h1>
+            <h1 className="text-3xl font-bold text-foreground">{isOwnOnly ? 'مشاريعي' : 'إدارة المشاريع'}</h1>
             <p className="text-muted-foreground mt-2">
-              عرض وإدارة جميع مشاريع الشركة
+              {isOwnOnly ? 'المشاريع المُسندة إليك' : 'عرض وإدارة جميع مشاريع الشركة'}
             </p>
           </div>
-          <AddProjectDialog />
+          {canAdd && <AddProjectDialog />}
         </div>
 
         {/* Projects Grid */}
@@ -107,7 +115,7 @@ export default function Projects() {
                       {getStatusLabel(project.status)}
                     </Badge>
                   </div>
-                  {project.budget && (
+                  {project.budget && canViewFinancials && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">الميزانية:</span>
                       <span className="text-sm font-medium">{project.budget.toLocaleString()} ريال</span>
@@ -128,7 +136,7 @@ export default function Projects() {
                   >
                     عرض التفاصيل
                   </Button>
-                  {user?.role === 'admin' && (
+                  {canDelete && (
                     <Button
                       variant="destructive"
                       className="w-full"
@@ -149,7 +157,7 @@ export default function Projects() {
               <p className="text-muted-foreground text-center mb-6">
                 ابدأ بإضافة مشروع جديد لإدارة أعمالك
               </p>
-              <AddProjectDialog />
+              {canAdd && <AddProjectDialog />}
             </CardContent>
           </Card>
         )}
