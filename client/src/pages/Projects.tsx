@@ -18,6 +18,13 @@ export default function Projects() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+  const { data: clients } = trpc.clients.list.useQuery();
+
+  // Create a map for quick client lookup
+  const clientMap = (clients || []).reduce((acc: Record<number, string>, c: any) => {
+    acc[c.id] = c.name;
+    return acc;
+  }, {});
 
   // Permission flags
   const canAdd = permissions?.permissions.projects.create || user?.role === 'admin';
@@ -115,6 +122,12 @@ export default function Projects() {
                       {getStatusLabel(project.status)}
                     </Badge>
                   </div>
+                  {project.clientId && clientMap[project.clientId] && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">العميل:</span>
+                      <span className="text-sm font-medium text-primary">{clientMap[project.clientId]}</span>
+                    </div>
+                  )}
                   {project.budget && canViewFinancials && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">الميزانية:</span>

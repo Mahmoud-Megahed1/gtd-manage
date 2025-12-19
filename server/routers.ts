@@ -506,13 +506,14 @@ export const appRouter = router({
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
 
-        const [boq, expenses, installments] = await Promise.all([
+        const [boq, expenses, installments, client] = await Promise.all([
           db.getProjectBOQ(input.id),
           db.getProjectExpenses(input.id),
-          db.getProjectInstallments(input.id)
+          db.getProjectInstallments(input.id),
+          project.clientId ? db.getClientById(project.clientId) : null
         ]);
 
-        return { project, boq, expenses, installments };
+        return { project, boq, expenses, installments, client };
       }),
 
     createTask: protectedProcedure

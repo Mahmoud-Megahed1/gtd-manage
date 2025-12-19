@@ -54,11 +54,12 @@ export default function ProjectDetails() {
     startDate: "",
     endDate: ""
   });
-  
+
   const project = projectData?.project;
   const boq = projectData?.boq || [];
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
+  const client = projectData?.client;
   const { data: rfis } = trpc.rfi.list.useQuery({ projectId });
   const { data: submittals } = trpc.submittals.list.useQuery({ projectId });
   const { data: drawings } = trpc.drawings.list.useQuery({ projectId });
@@ -158,6 +159,9 @@ export default function ProjectDetails() {
               <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
               <p className="text-muted-foreground mt-1">
                 {project.projectNumber}
+                {client && (
+                  <span className="mr-3 text-primary font-medium">• العميل: {client.name}</span>
+                )}
               </p>
             </div>
             <Badge className={getStatusColor(project.status)}>
@@ -317,9 +321,8 @@ export default function ProjectDetails() {
                   <div className="pt-4 border-t">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">الربح المتوقع:</span>
-                      <span className={`font-bold text-lg ${
-                        (totalInstallments - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
-                      }`}>
+                      <span className={`font-bold text-lg ${(totalInstallments - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
+                        }`}>
                         {(totalInstallments - totalExpenses).toLocaleString()} ريال
                       </span>
                     </div>
@@ -346,8 +349,8 @@ export default function ProjectDetails() {
                             <p className="font-bold">{inst.amount.toLocaleString()} ريال</p>
                             <Badge className={
                               inst.status === "paid" ? "bg-green-500/10 text-green-500" :
-                              inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
-                              "bg-yellow-500/10 text-yellow-500"
+                                inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
+                                  "bg-yellow-500/10 text-yellow-500"
                             }>
                               {inst.status === "paid" ? "مدفوع" : inst.status === "overdue" ? "متأخر" : "معلق"}
                             </Badge>
@@ -378,7 +381,7 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="tasks" className="mt-6">
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
@@ -454,15 +457,15 @@ export default function ProjectDetails() {
                           <div>
                             <p className="font-medium">{t.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {t.startDate ? new Date(t.startDate).toLocaleDateString('ar-SA') : '-'} 
+                              {t.startDate ? new Date(t.startDate).toLocaleDateString('ar-SA') : '-'}
                               {t.endDate ? ` — ${new Date(t.endDate).toLocaleDateString('ar-SA')}` : ''}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge>
                               {t.status === 'done' ? 'منجزة' :
-                               t.status === 'in_progress' ? 'جارية' :
-                               t.status === 'cancelled' ? 'ملغاة' : 'مخططة'}
+                                t.status === 'in_progress' ? 'جارية' :
+                                  t.status === 'cancelled' ? 'ملغاة' : 'مخططة'}
                             </Badge>
                             <Button
                               variant="outline"
