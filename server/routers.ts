@@ -1280,7 +1280,7 @@ export const appRouter = router({
           if (employee) {
             const conn = await db.getDb();
             if (conn) {
-              const { employees } = await import('./schema');
+              const { employees } = await import('../drizzle/schema');
               const { eq } = await import('drizzle-orm');
               await conn.update(employees).set({ position: newPosition }).where(eq(employees.id, employee.id));
             }
@@ -1344,7 +1344,7 @@ export const appRouter = router({
             if (employee) {
               const conn = await db.getDb();
               if (conn) {
-                const { employees } = await import('./schema');
+                const { employees } = await import('../drizzle/schema');
                 const { eq } = await import('drizzle-orm');
                 await conn.update(employees).set({ position: newPosition }).where(eq(employees.id, employee.id));
               }
