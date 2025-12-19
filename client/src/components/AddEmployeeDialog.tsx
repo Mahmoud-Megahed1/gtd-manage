@@ -251,20 +251,21 @@ export function AddEmployeeDialog() {
                       <SelectItem value="مدير عام">مدير عام</SelectItem>
                       <SelectItem value="مدير قسم">مدير قسم</SelectItem>
                       <SelectItem value="مدير مشاريع">مدير مشاريع</SelectItem>
+                      <SelectItem value="منسق مشاريع">منسق مشاريع</SelectItem>
                       <SelectItem value="مهندس معماري">مهندس معماري</SelectItem>
                       <SelectItem value="مصمم داخلي">مصمم داخلي</SelectItem>
                       <SelectItem value="مهندس موقع">مهندس موقع</SelectItem>
                       <SelectItem value="مهندس تخطيط">مهندس تخطيط</SelectItem>
-                      <SelectItem value="محاسب">محاسب</SelectItem>
-                      <SelectItem value="مدير مالي">مدير مالي</SelectItem>
-                      <SelectItem value="مسؤول موارد بشرية">مسؤول موارد بشرية</SelectItem>
-                      <SelectItem value="مسؤول مبيعات">مسؤول مبيعات</SelectItem>
-                      <SelectItem value="مسؤول مشتريات">مسؤول مشتريات</SelectItem>
-                      <SelectItem value="مسؤول جودة">مسؤول جودة</SelectItem>
-                      <SelectItem value="أمين مخازن">أمين مخازن</SelectItem>
-                      <SelectItem value="منسق مشاريع">منسق مشاريع</SelectItem>
-                      <SelectItem value="مساعد إداري">مساعد إداري</SelectItem>
+                      <SelectItem value="مصمم">مصمم</SelectItem>
                       <SelectItem value="فني">فني</SelectItem>
+                      <SelectItem value="مدير مالي">مدير مالي</SelectItem>
+                      <SelectItem value="محاسب">محاسب</SelectItem>
+                      <SelectItem value="مسؤول مبيعات">مسؤول مبيعات</SelectItem>
+                      <SelectItem value="مسؤول موارد بشرية">مسؤول موارد بشرية</SelectItem>
+                      <SelectItem value="مساعد إداري">مساعد إداري</SelectItem>
+                      <SelectItem value="مسؤول مشتريات">مسؤول مشتريات</SelectItem>
+                      <SelectItem value="أمين مخازن">أمين مخازن</SelectItem>
+                      <SelectItem value="مسؤول جودة">مسؤول جودة</SelectItem>
                       <SelectItem value="__custom__">✏️ أخرى (أدخل يدوياً)</SelectItem>
                     </SelectContent>
                   </Select>
