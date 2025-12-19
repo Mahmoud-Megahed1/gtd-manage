@@ -24,6 +24,8 @@ import { toast } from "sonner";
 
 export function AddEmployeeDialog() {
   const [open, setOpen] = useState(false);
+  const [customDepartment, setCustomDepartment] = useState(false);
+  const [customPosition, setCustomPosition] = useState(false);
   const [formData, setFormData] = useState({
     userName: "",
     employeeNumber: "",
@@ -42,6 +44,8 @@ export function AddEmployeeDialog() {
       utils.hr.employees.list.invalidate();
       setOpen(false);
       // Reset form
+      setCustomDepartment(false);
+      setCustomPosition(false);
       setFormData({
         userName: "",
         employeeNumber: "",
@@ -141,59 +145,107 @@ export function AddEmployeeDialog() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="department">القسم</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) => setFormData({ ...formData, department: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر القسم" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="التصميم الداخلي">التصميم الداخلي</SelectItem>
-                    <SelectItem value="التصميم المعماري">التصميم المعماري</SelectItem>
-                    <SelectItem value="الهندسة">الهندسة</SelectItem>
-                    <SelectItem value="إدارة المشاريع">إدارة المشاريع</SelectItem>
-                    <SelectItem value="التسويق والمبيعات">التسويق والمبيعات</SelectItem>
-                    <SelectItem value="الموارد البشرية">الموارد البشرية</SelectItem>
-                    <SelectItem value="المالية والمحاسبة">المالية والمحاسبة</SelectItem>
-                    <SelectItem value="تقنية المعلومات">تقنية المعلومات</SelectItem>
-                    <SelectItem value="خدمة العملاء">خدمة العملاء</SelectItem>
-                    <SelectItem value="المشتريات">المشتريات</SelectItem>
-                    <SelectItem value="الجودة">الجودة</SelectItem>
-                    <SelectItem value="المخازن">المخازن</SelectItem>
-                    <SelectItem value="الإدارة العامة">الإدارة العامة</SelectItem>
-                  </SelectContent>
-                </Select>
+                {customDepartment ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      placeholder="أدخل اسم القسم"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => {
+                      setCustomDepartment(false);
+                      setFormData({ ...formData, department: "" });
+                    }}>
+                      قائمة
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => {
+                      if (value === "__custom__") {
+                        setCustomDepartment(true);
+                        setFormData({ ...formData, department: "" });
+                      } else {
+                        setFormData({ ...formData, department: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر القسم" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="التصميم الداخلي">التصميم الداخلي</SelectItem>
+                      <SelectItem value="التصميم المعماري">التصميم المعماري</SelectItem>
+                      <SelectItem value="الهندسة">الهندسة</SelectItem>
+                      <SelectItem value="إدارة المشاريع">إدارة المشاريع</SelectItem>
+                      <SelectItem value="التسويق والمبيعات">التسويق والمبيعات</SelectItem>
+                      <SelectItem value="الموارد البشرية">الموارد البشرية</SelectItem>
+                      <SelectItem value="المالية والمحاسبة">المالية والمحاسبة</SelectItem>
+                      <SelectItem value="تقنية المعلومات">تقنية المعلومات</SelectItem>
+                      <SelectItem value="خدمة العملاء">خدمة العملاء</SelectItem>
+                      <SelectItem value="المشتريات">المشتريات</SelectItem>
+                      <SelectItem value="الجودة">الجودة</SelectItem>
+                      <SelectItem value="المخازن">المخازن</SelectItem>
+                      <SelectItem value="الإدارة العامة">الإدارة العامة</SelectItem>
+                      <SelectItem value="__custom__">✏️ أخرى (أدخل يدوياً)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="position">المنصب</Label>
-                <Select
-                  value={formData.position}
-                  onValueChange={(value) => setFormData({ ...formData, position: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر المنصب" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="مدير عام">مدير عام</SelectItem>
-                    <SelectItem value="مدير قسم">مدير قسم</SelectItem>
-                    <SelectItem value="مدير مشاريع">مدير مشاريع</SelectItem>
-                    <SelectItem value="مهندس معماري">مهندس معماري</SelectItem>
-                    <SelectItem value="مصمم داخلي">مصمم داخلي</SelectItem>
-                    <SelectItem value="مهندس موقع">مهندس موقع</SelectItem>
-                    <SelectItem value="مهندس تخطيط">مهندس تخطيط</SelectItem>
-                    <SelectItem value="محاسب">محاسب</SelectItem>
-                    <SelectItem value="مدير مالي">مدير مالي</SelectItem>
-                    <SelectItem value="مسؤول موارد بشرية">مسؤول موارد بشرية</SelectItem>
-                    <SelectItem value="مسؤول مبيعات">مسؤول مبيعات</SelectItem>
-                    <SelectItem value="مسؤول مشتريات">مسؤول مشتريات</SelectItem>
-                    <SelectItem value="مسؤول جودة">مسؤول جودة</SelectItem>
-                    <SelectItem value="أمين مخازن">أمين مخازن</SelectItem>
-                    <SelectItem value="منسق مشاريع">منسق مشاريع</SelectItem>
-                    <SelectItem value="مساعد إداري">مساعد إداري</SelectItem>
-                    <SelectItem value="فني">فني</SelectItem>
-                  </SelectContent>
-                </Select>
+                {customPosition ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.position}
+                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      placeholder="أدخل اسم المنصب"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => {
+                      setCustomPosition(false);
+                      setFormData({ ...formData, position: "" });
+                    }}>
+                      قائمة
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.position}
+                    onValueChange={(value) => {
+                      if (value === "__custom__") {
+                        setCustomPosition(true);
+                        setFormData({ ...formData, position: "" });
+                      } else {
+                        setFormData({ ...formData, position: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المنصب" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="مدير عام">مدير عام</SelectItem>
+                      <SelectItem value="مدير قسم">مدير قسم</SelectItem>
+                      <SelectItem value="مدير مشاريع">مدير مشاريع</SelectItem>
+                      <SelectItem value="مهندس معماري">مهندس معماري</SelectItem>
+                      <SelectItem value="مصمم داخلي">مصمم داخلي</SelectItem>
+                      <SelectItem value="مهندس موقع">مهندس موقع</SelectItem>
+                      <SelectItem value="مهندس تخطيط">مهندس تخطيط</SelectItem>
+                      <SelectItem value="محاسب">محاسب</SelectItem>
+                      <SelectItem value="مدير مالي">مدير مالي</SelectItem>
+                      <SelectItem value="مسؤول موارد بشرية">مسؤول موارد بشرية</SelectItem>
+                      <SelectItem value="مسؤول مبيعات">مسؤول مبيعات</SelectItem>
+                      <SelectItem value="مسؤول مشتريات">مسؤول مشتريات</SelectItem>
+                      <SelectItem value="مسؤول جودة">مسؤول جودة</SelectItem>
+                      <SelectItem value="أمين مخازن">أمين مخازن</SelectItem>
+                      <SelectItem value="منسق مشاريع">منسق مشاريع</SelectItem>
+                      <SelectItem value="مساعد إداري">مساعد إداري</SelectItem>
+                      <SelectItem value="فني">فني</SelectItem>
+                      <SelectItem value="__custom__">✏️ أخرى (أدخل يدوياً)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
