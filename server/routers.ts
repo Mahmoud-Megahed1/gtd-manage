@@ -205,16 +205,37 @@ async function ensurePerm(ctx: any, sectionKey: string) {
   // SECURITY: Permission checks apply in ALL environments (removed dev bypass)
   const role = ctx.user.role;
   const allowedByRole: Record<string, string[]> = {
+    // === الإدارة العليا ===
     admin: ['*'],
-    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms'],
-    accountant: ['accounting', 'reports', 'dashboard', 'invoices'],
+    department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard'],
+
+    // === إدارة المشاريع ===
     project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms'],
-    site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard'],
-    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard'],
+    project_coordinator: ['projects', 'projectTasks', 'dashboard'],
+
+    // === المهندسين والفنيين ===
     architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard'],
     interior_designer: ['projects', 'drawings', 'dashboard'],
+    site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard'],
+    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard'],
     designer: ['projects', 'projectTasks', 'dashboard'],
+    technician: ['projectTasks', 'dashboard'],
+
+    // === الإدارة المالية ===
+    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms'],
+    accountant: ['accounting', 'reports', 'dashboard', 'invoices'],
+
+    // === المبيعات ===
     sales_manager: ['sales', 'clients', 'invoices', 'dashboard'],
+
+    // === الموارد البشرية ===
+    hr_manager: ['hr', 'dashboard'],
+    admin_assistant: ['hr', 'dashboard'],
+
+    // === المشتريات والمخازن ===
+    procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard'],
+    storekeeper: ['procurement', 'dashboard'],
+    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard'],
   };
   const allowedList = allowedByRole[role] || [];
   const roleAllowed = allowedList.includes('*') || allowedList.includes(sectionKey);
@@ -1185,9 +1206,20 @@ export const appRouter = router({
         name: z.string(),
         email: z.string().email(),
         role: z.enum([
-          'admin', 'project_manager', 'designer', 'architect',
-          'site_engineer', 'interior_designer', 'planning_engineer',
-          'accountant', 'finance_manager', 'sales_manager'
+          // الإدارة العليا
+          'admin', 'department_manager',
+          // إدارة المشاريع
+          'project_manager', 'project_coordinator',
+          // المهندسين والفنيين
+          'architect', 'interior_designer', 'site_engineer', 'planning_engineer', 'designer', 'technician',
+          // الإدارة المالية
+          'finance_manager', 'accountant',
+          // المبيعات
+          'sales_manager',
+          // الموارد البشرية
+          'hr_manager', 'admin_assistant',
+          // المشتريات والمخازن
+          'procurement_officer', 'storekeeper', 'qa_qc'
         ]).default('designer')
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1211,9 +1243,10 @@ export const appRouter = router({
       .input(z.object({
         userId: z.number(),
         role: z.enum([
-          'admin', 'project_manager', 'designer', 'architect',
-          'site_engineer', 'interior_designer', 'planning_engineer',
-          'accountant', 'finance_manager', 'sales_manager'
+          'admin', 'department_manager', 'project_manager', 'project_coordinator',
+          'architect', 'interior_designer', 'site_engineer', 'planning_engineer', 'designer', 'technician',
+          'finance_manager', 'accountant', 'sales_manager',
+          'hr_manager', 'admin_assistant', 'procurement_officer', 'storekeeper', 'qa_qc'
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1230,9 +1263,10 @@ export const appRouter = router({
         name: z.string().optional(),
         email: z.string().email().optional(),
         role: z.enum([
-          'admin', 'project_manager', 'designer', 'architect',
-          'site_engineer', 'interior_designer', 'planning_engineer',
-          'accountant', 'finance_manager', 'sales_manager'
+          'admin', 'department_manager', 'project_manager', 'project_coordinator',
+          'architect', 'interior_designer', 'site_engineer', 'planning_engineer', 'designer', 'technician',
+          'finance_manager', 'accountant', 'sales_manager',
+          'hr_manager', 'admin_assistant', 'procurement_officer', 'storekeeper', 'qa_qc'
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {

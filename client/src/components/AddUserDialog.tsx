@@ -70,21 +70,31 @@ export function AddUserDialog() {
 
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
-      admin: "مدير",
-      accountant: "محاسب",
+      // الإدارة العليا
+      admin: "مدير عام",
+      department_manager: "مدير قسم",
+      // إدارة المشاريع
       project_manager: "مدير مشاريع",
+      project_coordinator: "منسق مشاريع",
+      // المهندسين والفنيين
+      architect: "مهندس معماري",
+      interior_designer: "مصمم داخلي",
       site_engineer: "مهندس موقع",
       planning_engineer: "مهندس تخطيط",
-      procurement_officer: "مسؤول مشتريات",
-      qa_qc: "جودة QA/QC",
-      document_controller: "مسؤول وثائق",
-      architect: "معماري",
-      interior_designer: "مصمم داخلي",
-      sales_manager: "مدير مبيعات",
-      finance_manager: "مدير مالي",
-      hr_manager: "مدير موارد بشرية",
-      storekeeper: "أمين مستودع",
       designer: "مصمم",
+      technician: "فني",
+      // الإدارة المالية
+      finance_manager: "مدير مالي",
+      accountant: "محاسب",
+      // المبيعات
+      sales_manager: "مسؤول مبيعات",
+      // الموارد البشرية
+      hr_manager: "مسؤول موارد بشرية",
+      admin_assistant: "مساعد إداري",
+      // المشتريات والمخازن
+      procurement_officer: "مسؤول مشتريات",
+      storekeeper: "أمين مخازن",
+      qa_qc: "مسؤول جودة",
     };
     return labels[role] || role;
   };
@@ -139,30 +149,52 @@ export function AddUserDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* الأدوار اللي عملنا حسابها فقط */}
+                  {/* الإدارة العليا */}
                   <SelectItem value="admin">{getRoleLabel("admin")}</SelectItem>
+                  <SelectItem value="department_manager">{getRoleLabel("department_manager")}</SelectItem>
+                  {/* إدارة المشاريع */}
                   <SelectItem value="project_manager">{getRoleLabel("project_manager")}</SelectItem>
-                  <SelectItem value="designer">{getRoleLabel("designer")}</SelectItem>
+                  <SelectItem value="project_coordinator">{getRoleLabel("project_coordinator")}</SelectItem>
+                  {/* المهندسين والفنيين */}
                   <SelectItem value="architect">{getRoleLabel("architect")}</SelectItem>
-                  <SelectItem value="site_engineer">{getRoleLabel("site_engineer")}</SelectItem>
                   <SelectItem value="interior_designer">{getRoleLabel("interior_designer")}</SelectItem>
+                  <SelectItem value="site_engineer">{getRoleLabel("site_engineer")}</SelectItem>
                   <SelectItem value="planning_engineer">{getRoleLabel("planning_engineer")}</SelectItem>
-                  <SelectItem value="accountant">{getRoleLabel("accountant")}</SelectItem>
+                  <SelectItem value="designer">{getRoleLabel("designer")}</SelectItem>
+                  <SelectItem value="technician">{getRoleLabel("technician")}</SelectItem>
+                  {/* الإدارة المالية */}
                   <SelectItem value="finance_manager">{getRoleLabel("finance_manager")}</SelectItem>
+                  <SelectItem value="accountant">{getRoleLabel("accountant")}</SelectItem>
+                  {/* المبيعات */}
                   <SelectItem value="sales_manager">{getRoleLabel("sales_manager")}</SelectItem>
+                  {/* الموارد البشرية */}
+                  <SelectItem value="hr_manager">{getRoleLabel("hr_manager")}</SelectItem>
+                  <SelectItem value="admin_assistant">{getRoleLabel("admin_assistant")}</SelectItem>
+                  {/* المشتريات والمخازن */}
+                  <SelectItem value="procurement_officer">{getRoleLabel("procurement_officer")}</SelectItem>
+                  <SelectItem value="storekeeper">{getRoleLabel("storekeeper")}</SelectItem>
+                  <SelectItem value="qa_qc">{getRoleLabel("qa_qc")}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {formData.role === "admin" && "صلاحيات كاملة على النظام"}
+                {formData.role === "department_manager" && "إدارة قسمه + تقارير + HR"}
                 {formData.role === "project_manager" && "إدارة المشاريع والمهام والعملاء (أسماء فقط)"}
-                {formData.role === "designer" && "مشاهدة المشاريع والمهام المُسندة فقط"}
-                {formData.role === "architect" && "مشاهدة المشاريع والمهام المُسندة + RFIs"}
-                {formData.role === "site_engineer" && "مشاهدة المشاريع والمهام المُسندة + RFIs"}
-                {formData.role === "interior_designer" && "مشاهدة المشاريع والمهام المُسندة"}
-                {formData.role === "planning_engineer" && "مشاهدة المشاريع والمهام المُسندة"}
-                {formData.role === "accountant" && "مشاهدة الفواتير والمحاسبة (view only) + رفع طلبات اعتماد"}
-                {formData.role === "finance_manager" && "إدارة مالية كاملة: الفواتير والمحاسبة والاستمارات"}
+                {formData.role === "project_coordinator" && "تنسيق المشاريع والمهام بدون صلاحيات تعديل"}
+                {formData.role === "architect" && "المشاريع المُسندة + الرسومات + RFIs"}
+                {formData.role === "interior_designer" && "المشاريع المُسندة + الرسومات"}
+                {formData.role === "site_engineer" && "المشاريع المُسندة + RFIs + Submittals"}
+                {formData.role === "planning_engineer" && "المشاريع المُسندة + التقارير"}
+                {formData.role === "designer" && "المشاريع والمهام المُسندة فقط"}
+                {formData.role === "technician" && "المهام المُسندة فقط"}
+                {formData.role === "finance_manager" && "إدارة مالية كاملة: فواتير + محاسبة"}
+                {formData.role === "accountant" && "مشاهدة فقط + رفع طلبات اعتماد"}
                 {formData.role === "sales_manager" && "إدارة العملاء والفواتير"}
+                {formData.role === "hr_manager" && "إدارة شؤون الموظفين كاملة"}
+                {formData.role === "admin_assistant" && "بياناته HR + طلب إجازة"}
+                {formData.role === "procurement_officer" && "طلبات الشراء والموردين"}
+                {formData.role === "storekeeper" && "المخزون والتوريدات"}
+                {formData.role === "qa_qc" && "الجودة والفحوصات"}
               </p>
             </div>
           </div>
