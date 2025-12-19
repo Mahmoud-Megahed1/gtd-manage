@@ -202,36 +202,42 @@ async function logAudit(
 }
 
 async function ensurePerm(ctx: any, sectionKey: string) {
-  if (process.env.NODE_ENV !== 'production') {
-    return;
-  }
+  // SECURITY: Permission checks apply in ALL environments (removed dev bypass)
   const role = ctx.user.role;
   const allowedByRole: Record<string, string[]> = {
     admin: ['*'],
-    finance_manager: ['accounting', 'reports', 'dashboard'],
-    accountant: ['accounting', 'reports', 'dashboard'],
-    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard'],
+    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms'],
+    accountant: ['accounting', 'reports', 'dashboard', 'invoices'],
+    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms'],
     site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard'],
     planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard'],
-    procurement_officer: ['procurement', 'purchases', 'boq', 'projectReports', 'dashboard'],
-    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard'],
-    document_controller: ['documents', 'drawings', 'submittals', 'attachments', 'dashboard'],
     architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard'],
     interior_designer: ['projects', 'drawings', 'dashboard'],
     designer: ['projects', 'projectTasks', 'dashboard'],
     sales_manager: ['sales', 'clients', 'invoices', 'dashboard'],
-    hr_manager: ['hr', 'dashboard'],
-    storekeeper: ['procurement', 'dashboard'],
-    viewer: ['dashboard'],
   };
   const allowedList = allowedByRole[role] || [];
   const roleAllowed = allowedList.includes('*') || allowedList.includes(sectionKey);
   if (!roleAllowed) {
+    // Log denied access attempt for security audit
+    await db.createAuditLog({
+      userId: ctx.user.id,
+      action: 'ACCESS_DENIED',
+      entityType: 'section',
+      details: `Role "${role}" attempted to access "${sectionKey}" - DENIED`
+    });
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
   }
   const perms = await db.getUserPermissions(ctx.user.id);
   const record = perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
   if (record.hasOwnProperty(sectionKey) && !record[sectionKey]) {
+    // Log denied access attempt due to user-specific restriction
+    await db.createAuditLog({
+      userId: ctx.user.id,
+      action: 'ACCESS_DENIED',
+      entityType: 'section',
+      details: `User permission override denied access to "${sectionKey}"`
+    });
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
   }
 }
@@ -887,7 +893,12 @@ export const appRouter = router({
         }))
       }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'invoices');
+        // Only admin, finance_manager, sales_manager can CREATE invoices
+        const canCreate = ['admin', 'finance_manager', 'sales_manager'].includes(ctx.user.role);
+        if (!canCreate) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء فواتير - صلاحية المشاهدة فقط' });
+        }
+
         const invoiceNumber = generateUniqueNumber(input.type === 'invoice' ? 'INV' : 'QUO');
         const { items, ...invoiceData } = input;
 
@@ -1174,11 +1185,9 @@ export const appRouter = router({
         name: z.string(),
         email: z.string().email(),
         role: z.enum([
-          'admin', 'accountant', 'finance_manager',
-          'project_manager', 'site_engineer', 'planning_engineer',
-          'procurement_officer', 'qa_qc', 'document_controller',
-          'architect', 'interior_designer', 'sales_manager',
-          'hr_manager', 'storekeeper', 'designer', 'viewer'
+          'admin', 'project_manager', 'designer', 'architect',
+          'site_engineer', 'interior_designer', 'planning_engineer',
+          'accountant', 'finance_manager', 'sales_manager'
         ]).default('designer')
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1202,18 +1211,17 @@ export const appRouter = router({
       .input(z.object({
         userId: z.number(),
         role: z.enum([
-          'admin', 'accountant', 'finance_manager',
-          'project_manager', 'site_engineer', 'planning_engineer',
-          'procurement_officer', 'qa_qc', 'document_controller',
-          'architect', 'interior_designer', 'sales_manager',
-          'hr_manager', 'storekeeper', 'designer', 'viewer'
+          'admin', 'project_manager', 'designer', 'architect',
+          'site_engineer', 'interior_designer', 'planning_engineer',
+          'accountant', 'finance_manager', 'sales_manager'
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {
         const role = (input.role ?? 'designer') as any;
         await db.updateUserRole(input.userId, role);
         await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, ctx);
-        return { success: true };
+        // Return requiresRelogin to notify frontend that user needs to re-login
+        return { success: true, requiresRelogin: true, message: 'تم تغيير الدور - المستخدم يحتاج تسجيل خروج ودخول للتفعيل' };
       }),
 
     update: adminProcedure
@@ -1222,11 +1230,9 @@ export const appRouter = router({
         name: z.string().optional(),
         email: z.string().email().optional(),
         role: z.enum([
-          'admin', 'accountant', 'finance_manager',
-          'project_manager', 'site_engineer', 'planning_engineer',
-          'procurement_officer', 'qa_qc', 'document_controller',
-          'architect', 'interior_designer', 'sales_manager',
-          'hr_manager', 'storekeeper', 'designer', 'viewer'
+          'admin', 'project_manager', 'designer', 'architect',
+          'site_engineer', 'interior_designer', 'planning_engineer',
+          'accountant', 'finance_manager', 'sales_manager'
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {

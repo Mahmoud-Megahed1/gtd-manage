@@ -49,10 +49,20 @@ export function AddUserDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
+    }
+
+    // Warn if using default role
+    if (formData.role === "designer") {
+      const confirmed = confirm(
+        "⚠️ تنبيه: الدور المختار هو 'مصمم' (صلاحيات محدودة جداً)\n\n" +
+        "هل تريد الاستمرار بهذا الدور؟\n" +
+        "اضغط 'إلغاء' لاختيار دور آخر"
+      );
+      if (!confirmed) return;
     }
 
     createUser.mutate(formData);
@@ -129,41 +139,30 @@ export function AddUserDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* الأدوار اللي عملنا حسابها فقط */}
+                  <SelectItem value="admin">{getRoleLabel("admin")}</SelectItem>
+                  <SelectItem value="project_manager">{getRoleLabel("project_manager")}</SelectItem>
                   <SelectItem value="designer">{getRoleLabel("designer")}</SelectItem>
                   <SelectItem value="architect">{getRoleLabel("architect")}</SelectItem>
-                  <SelectItem value="interior_designer">{getRoleLabel("interior_designer")}</SelectItem>
-                  <SelectItem value="project_manager">{getRoleLabel("project_manager")}</SelectItem>
                   <SelectItem value="site_engineer">{getRoleLabel("site_engineer")}</SelectItem>
+                  <SelectItem value="interior_designer">{getRoleLabel("interior_designer")}</SelectItem>
                   <SelectItem value="planning_engineer">{getRoleLabel("planning_engineer")}</SelectItem>
-                  <SelectItem value="document_controller">{getRoleLabel("document_controller")}</SelectItem>
-                  <SelectItem value="procurement_officer">{getRoleLabel("procurement_officer")}</SelectItem>
-                  <SelectItem value="qa_qc">{getRoleLabel("qa_qc")}</SelectItem>
-                  <SelectItem value="sales_manager">{getRoleLabel("sales_manager")}</SelectItem>
                   <SelectItem value="accountant">{getRoleLabel("accountant")}</SelectItem>
                   <SelectItem value="finance_manager">{getRoleLabel("finance_manager")}</SelectItem>
-                  <SelectItem value="hr_manager">{getRoleLabel("hr_manager")}</SelectItem>
-                  <SelectItem value="storekeeper">{getRoleLabel("storekeeper")}</SelectItem>
-                  <SelectItem value="admin">{getRoleLabel("admin")}</SelectItem>
-                  <SelectItem value="viewer">عرض فقط</SelectItem>
+                  <SelectItem value="sales_manager">{getRoleLabel("sales_manager")}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {formData.role === "admin" && "صلاحيات كاملة على النظام"}
-                {formData.role === "accountant" && "الوصول للمحاسبة والتقارير المالية"}
-                {formData.role === "project_manager" && "إدارة المشاريع والمهام"}
-                {formData.role === "designer" && "الوصول الأساسي للنظام"}
-                {formData.role === "architect" && "مهام التصميم وإدارة الرسومات والمراجعات"}
-                {formData.role === "interior_designer" && "التصميم الداخلي والرسومات"}
-                {formData.role === "site_engineer" && "مهام التنفيذ وRFIs/Submittals"}
-                {formData.role === "planning_engineer" && "الجدولة والتحليل (Baseline/Actual)"}
-                {formData.role === "document_controller" && "إدارة الوثائق والرسومات"}
-                {formData.role === "procurement_officer" && "المشتريات وBOQ وتتبع التوريد"}
-                {formData.role === "qa_qc" && "الجودة والاعتمادات"}
-                {formData.role === "sales_manager" && "المبيعات والعملاء والفواتير"}
-                {formData.role === "finance_manager" && "إدارة مالية شاملة"}
-                {formData.role === "hr_manager" && "إدارة الموارد البشرية"}
-                {formData.role === "storekeeper" && "إدارة المخزون والتوريد"}
-                {formData.role === "viewer" && "عرض فقط للصفحات المسموح بها"}
+                {formData.role === "project_manager" && "إدارة المشاريع والمهام والعملاء (أسماء فقط)"}
+                {formData.role === "designer" && "مشاهدة المشاريع والمهام المُسندة فقط"}
+                {formData.role === "architect" && "مشاهدة المشاريع والمهام المُسندة + RFIs"}
+                {formData.role === "site_engineer" && "مشاهدة المشاريع والمهام المُسندة + RFIs"}
+                {formData.role === "interior_designer" && "مشاهدة المشاريع والمهام المُسندة"}
+                {formData.role === "planning_engineer" && "مشاهدة المشاريع والمهام المُسندة"}
+                {formData.role === "accountant" && "مشاهدة الفواتير والمحاسبة (view only) + رفع طلبات اعتماد"}
+                {formData.role === "finance_manager" && "إدارة مالية كاملة: الفواتير والمحاسبة والاستمارات"}
+                {formData.role === "sales_manager" && "إدارة العملاء والفواتير"}
               </p>
             </div>
           </div>

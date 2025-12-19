@@ -25,6 +25,10 @@ export default function Invoices() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const utils = trpc.useUtils();
+
+  // Accountant can only VIEW invoices - admin/finance_manager can add/delete
+  const canModify = ['admin', 'finance_manager'].includes(user?.role || '');
+
   const deleteInvoice = trpc.invoices.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف المستند بنجاح");
@@ -126,18 +130,20 @@ export default function Invoices() {
           <Button variant="outline" className="flex-1" onClick={() => setLocation(`/invoices/${invoice.id}`)}>
             عرض التفاصيل
           </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm('هل أنت متأكد من حذف هذا المستند؟')) {
-                deleteInvoice.mutate({ id: invoice.id });
-              }
-            }}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {canModify && (
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('هل أنت متأكد من حذف هذا المستند؟')) {
+                  deleteInvoice.mutate({ id: invoice.id });
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -179,14 +185,16 @@ export default function Invoices() {
               إدارة الفواتير وعروض الأسعار
             </p>
           </div>
-          <Button
-            size="lg"
-            className="gap-2"
-            onClick={() => setLocation('/fatore')}
-          >
-            <Plus className="w-5 h-5" />
-            فاتورة / عرض سعر جديد
-          </Button>
+          {canModify && (
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={() => setLocation('/fatore')}
+            >
+              <Plus className="w-5 h-5" />
+              فاتورة / عرض سعر جديد
+            </Button>
+          )}
         </div>
 
         {/* Tabs */}

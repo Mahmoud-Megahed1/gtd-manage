@@ -93,6 +93,13 @@ export const tasksRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       await ensureTasksPerm(ctx);
+
+      // Only admin and project_manager can CREATE tasks
+      const canCreate = ['admin', 'project_manager'].includes(ctx.user.role);
+      if (!canCreate) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء مهام - صلاحية المشاهدة فقط' });
+      }
+
       const conn = await db.getDb();
       if (!conn) {
         // Demo mode fallback
@@ -195,6 +202,13 @@ export const tasksRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       await ensureTasksPerm(ctx);
+
+      // Only admin and project_manager can DELETE tasks
+      const canDelete = ['admin', 'project_manager'].includes(ctx.user.role);
+      if (!canDelete) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف مهام - صلاحية المشاهدة فقط' });
+      }
+
       const conn = await db.getDb();
       if (!conn) {
         // Demo mode fallback
