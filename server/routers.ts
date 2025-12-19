@@ -346,6 +346,12 @@ export const appRouter = router({
       return await db.getAllClients();
     }),
 
+    // Lightweight endpoint for client names only - accessible to all authenticated users
+    clientNames: protectedProcedure.query(async () => {
+      const clients = await db.getAllClients();
+      return clients.map(c => ({ id: c.id, name: c.name }));
+    }),
+
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {

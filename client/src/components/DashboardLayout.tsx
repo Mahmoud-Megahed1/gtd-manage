@@ -57,12 +57,12 @@ const navItems: NavItem[] = [
   { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer", "site_engineer", "architect", "interior_designer", "planning_engineer"] },
   // Tasks - admin, project managers, and design roles
   { title: "المهام", href: "/tasks", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "project_manager", "designer", "site_engineer", "architect", "interior_designer", "planning_engineer"] },
-  // Change Orders - admin only
-  { title: "طلبات التغيير", href: "/change-orders", icon: <FileDiff className="w-5 h-5" />, roles: ["admin"] },
+  // Change Orders - admin and project managers only
+  { title: "طلبات التغيير", href: "/change-orders", icon: <FileDiff className="w-5 h-5" />, roles: ["admin", "project_manager"] },
   // Invoices - admin and finance
   { title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: ["admin", "accountant", "finance_manager"] },
-  // Forms - all can view
-  { title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" /> },
+  // Forms - admin, accountant, project_manager (designers/engineers don't create forms)
+  { title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" />, roles: ["admin", "accountant", "finance_manager", "project_manager"] },
   // Accounting - admin and finance
   {
     title: "المحاسبة",

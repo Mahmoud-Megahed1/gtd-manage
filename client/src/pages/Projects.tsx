@@ -18,7 +18,7 @@ export default function Projects() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
-  const { data: clients } = trpc.clients.list.useQuery();
+  const { data: clients } = trpc.clients.clientNames.useQuery();
 
   // Create a map for quick client lookup
   const clientMap = (clients || []).reduce((acc: Record<number, string>, c: any) => {
