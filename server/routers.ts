@@ -1252,6 +1252,41 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const role = (input.role ?? 'designer') as any;
         await db.updateUserRole(input.userId, role);
+
+        // SYNC: Update employee position to match role
+        const roleToPosition: Record<string, string> = {
+          'admin': 'مدير عام',
+          'department_manager': 'مدير قسم',
+          'project_manager': 'مدير مشاريع',
+          'project_coordinator': 'منسق مشاريع',
+          'architect': 'مهندس معماري',
+          'interior_designer': 'مصمم داخلي',
+          'site_engineer': 'مهندس موقع',
+          'planning_engineer': 'مهندس تخطيط',
+          'designer': 'مصمم',
+          'technician': 'فني',
+          'finance_manager': 'مدير مالي',
+          'accountant': 'محاسب',
+          'sales_manager': 'مسؤول مبيعات',
+          'hr_manager': 'مسؤول موارد بشرية',
+          'admin_assistant': 'مساعد إداري',
+          'procurement_officer': 'مسؤول مشتريات',
+          'storekeeper': 'أمين مخازن',
+          'qa_qc': 'مسؤول جودة',
+        };
+        const newPosition = roleToPosition[role];
+        if (newPosition) {
+          const employee = await db.getEmployeeByUserId(input.userId);
+          if (employee) {
+            const conn = await db.getDb();
+            if (conn) {
+              const { employees } = await import('./schema');
+              const { eq } = await import('drizzle-orm');
+              await conn.update(employees).set({ position: newPosition }).where(eq(employees.id, employee.id));
+            }
+          }
+        }
+
         await logAudit(ctx.user.id, 'UPDATE_USER_ROLE', 'user', input.userId, `Changed role to ${input.role}`, ctx);
         // Return requiresRelogin to notify frontend that user needs to re-login
         return { success: true, requiresRelogin: true, message: 'تم تغيير الدور - المستخدم يحتاج تسجيل خروج ودخول للتفعيل' };
@@ -1280,6 +1315,43 @@ export const appRouter = router({
         }
 
         await db.updateUser(userId, updateData);
+
+        // SYNC: If role changed, update employee position too
+        if (updateData.role) {
+          const roleToPosition: Record<string, string> = {
+            'admin': 'مدير عام',
+            'department_manager': 'مدير قسم',
+            'project_manager': 'مدير مشاريع',
+            'project_coordinator': 'منسق مشاريع',
+            'architect': 'مهندس معماري',
+            'interior_designer': 'مصمم داخلي',
+            'site_engineer': 'مهندس موقع',
+            'planning_engineer': 'مهندس تخطيط',
+            'designer': 'مصمم',
+            'technician': 'فني',
+            'finance_manager': 'مدير مالي',
+            'accountant': 'محاسب',
+            'sales_manager': 'مسؤول مبيعات',
+            'hr_manager': 'مسؤول موارد بشرية',
+            'admin_assistant': 'مساعد إداري',
+            'procurement_officer': 'مسؤول مشتريات',
+            'storekeeper': 'أمين مخازن',
+            'qa_qc': 'مسؤول جودة',
+          };
+          const newPosition = roleToPosition[updateData.role];
+          if (newPosition) {
+            const employee = await db.getEmployeeByUserId(userId);
+            if (employee) {
+              const conn = await db.getDb();
+              if (conn) {
+                const { employees } = await import('./schema');
+                const { eq } = await import('drizzle-orm');
+                await conn.update(employees).set({ position: newPosition }).where(eq(employees.id, employee.id));
+              }
+            }
+          }
+        }
+
         await logAudit(ctx.user.id, 'UPDATE_USER', 'user', userId, `Updated user information`, ctx);
         return { success: true };
       }),
