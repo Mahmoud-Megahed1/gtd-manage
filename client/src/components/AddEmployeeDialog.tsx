@@ -141,21 +141,59 @@ export function AddEmployeeDialog() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="department">القسم</Label>
-                <Input
-                  id="department"
+                <Select
                   value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="التصميم الداخلي"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, department: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر القسم" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="التصميم الداخلي">التصميم الداخلي</SelectItem>
+                    <SelectItem value="التصميم المعماري">التصميم المعماري</SelectItem>
+                    <SelectItem value="الهندسة">الهندسة</SelectItem>
+                    <SelectItem value="إدارة المشاريع">إدارة المشاريع</SelectItem>
+                    <SelectItem value="التسويق والمبيعات">التسويق والمبيعات</SelectItem>
+                    <SelectItem value="الموارد البشرية">الموارد البشرية</SelectItem>
+                    <SelectItem value="المالية والمحاسبة">المالية والمحاسبة</SelectItem>
+                    <SelectItem value="تقنية المعلومات">تقنية المعلومات</SelectItem>
+                    <SelectItem value="خدمة العملاء">خدمة العملاء</SelectItem>
+                    <SelectItem value="المشتريات">المشتريات</SelectItem>
+                    <SelectItem value="الجودة">الجودة</SelectItem>
+                    <SelectItem value="المخازن">المخازن</SelectItem>
+                    <SelectItem value="الإدارة العامة">الإدارة العامة</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="position">المنصب</Label>
-                <Input
-                  id="position"
+                <Select
                   value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  placeholder="مصمم داخلي"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, position: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر المنصب" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="مدير عام">مدير عام</SelectItem>
+                    <SelectItem value="مدير قسم">مدير قسم</SelectItem>
+                    <SelectItem value="مدير مشاريع">مدير مشاريع</SelectItem>
+                    <SelectItem value="مهندس معماري">مهندس معماري</SelectItem>
+                    <SelectItem value="مصمم داخلي">مصمم داخلي</SelectItem>
+                    <SelectItem value="مهندس موقع">مهندس موقع</SelectItem>
+                    <SelectItem value="مهندس تخطيط">مهندس تخطيط</SelectItem>
+                    <SelectItem value="محاسب">محاسب</SelectItem>
+                    <SelectItem value="مدير مالي">مدير مالي</SelectItem>
+                    <SelectItem value="مسؤول موارد بشرية">مسؤول موارد بشرية</SelectItem>
+                    <SelectItem value="مسؤول مبيعات">مسؤول مبيعات</SelectItem>
+                    <SelectItem value="مسؤول مشتريات">مسؤول مشتريات</SelectItem>
+                    <SelectItem value="مسؤول جودة">مسؤول جودة</SelectItem>
+                    <SelectItem value="أمين مخازن">أمين مخازن</SelectItem>
+                    <SelectItem value="منسق مشاريع">منسق مشاريع</SelectItem>
+                    <SelectItem value="مساعد إداري">مساعد إداري</SelectItem>
+                    <SelectItem value="فني">فني</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
