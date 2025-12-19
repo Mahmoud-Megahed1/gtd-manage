@@ -41,13 +41,24 @@ export default function HR() {
   } | null>(null);
 
   // Queries
-  const { data: employees, isLoading: loadingEmployees, refetch: refetchEmployees } = trpc.hr.employees.list.useQuery();
-  const { data: attendanceList, isLoading: loadingAttendance } = trpc.hr.attendance.list.useQuery({});
-  const [payrollFilter, setPayrollFilter] = useState<{ employeeId?: number; year?: number; month?: number }>({});
-  const { data: payrollList, isLoading: loadingPayroll, refetch: refetchPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any);
-  const { data: leavesList, isLoading: loadingLeaves } = trpc.hr.leaves.list.useQuery({});
-  const { data: reviewsList, isLoading: loadingReviews } = trpc.hr.reviews.list.useQuery({});
   const { user } = useAuth();
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+  const hasFullAccess = Boolean(permissions?.permissions.hr.view || user?.role === 'admin' || user?.role === 'hr_manager');
+
+  const { data: employees, isLoading: loadingEmployees, refetch: refetchEmployees } = trpc.hr.employees.list.useQuery(undefined, { enabled: !!hasFullAccess });
+  const { data: attendanceList, isLoading: loadingAttendance } = trpc.hr.attendance.list.useQuery({}, { enabled: !!hasFullAccess });
+  const [payrollFilter, setPayrollFilter] = useState<{ employeeId?: number; year?: number; month?: number }>({});
+  const { data: payrollList, isLoading: loadingPayroll, refetch: refetchPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any, { enabled: !!hasFullAccess });
+  const { data: leavesList, isLoading: loadingLeaves } = trpc.hr.leaves.list.useQuery({}, { enabled: !!hasFullAccess });
+  const { data: reviewsList, isLoading: loadingReviews } = trpc.hr.reviews.list.useQuery({}, { enabled: !!hasFullAccess });
+
+  // Personal data queries for limited access users
+  const { data: myProfile } = trpc.hr.myProfile.get.useQuery(undefined, { enabled: !hasFullAccess });
+  const { data: myAttendance } = trpc.hr.myProfile.myAttendance.useQuery({}, { enabled: !hasFullAccess });
+  const { data: myPayroll } = trpc.hr.myProfile.myPayroll.useQuery(undefined, { enabled: !hasFullAccess });
+  const { data: myLeaves } = trpc.hr.myProfile.myLeaves.useQuery(undefined, { enabled: !hasFullAccess });
+  const { data: myReviews } = trpc.hr.myProfile.myReviews.useQuery(undefined, { enabled: !hasFullAccess });
+
   const utils = trpc.useUtils();
 
   const deleteEmployee = trpc.hr.employees.delete.useMutation({

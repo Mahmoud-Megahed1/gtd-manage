@@ -24,6 +24,26 @@ function generateUniqueNumber(prefix: string): string {
 // Permission levels for granular access control
 type PermissionLevel = 'full' | 'own' | 'readonly' | 'none';
 
+// Detailed sub-permissions for each section
+type SubPermissions = {
+  view: boolean;
+  viewOwn: boolean;
+  viewFinancials: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+  approve: boolean;
+  submit: boolean;
+};
+
+type DetailedPermissions = {
+  hr: SubPermissions;
+  projects: SubPermissions;
+  tasks: SubPermissions;
+  accounting: SubPermissions;
+  clients: SubPermissions;
+};
+
 function getPermissionLevel(role: string, section: string): PermissionLevel {
   // Admin has full access everywhere
   if (role === 'admin') return 'full';
@@ -33,23 +53,23 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     // HR Manager - full access to HR
     hr_manager: { hr: 'full', dashboard: 'full' },
     // Finance roles
-    finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full' },
-    accountant: { accounting: 'full', reports: 'full', dashboard: 'readonly' },
+    finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own' },
+    accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', hr: 'own' },
     // Project roles
-    project_manager: { projects: 'full', dashboard: 'full' },
-    site_engineer: { projects: 'own', dashboard: 'readonly' },
-    planning_engineer: { projects: 'own', dashboard: 'readonly' },
-    architect: { projects: 'own', dashboard: 'readonly' },
-    interior_designer: { projects: 'own', dashboard: 'readonly' },
-    designer: { projects: 'own', hr: 'own', dashboard: 'readonly' },
+    project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own' },
+    site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
+    planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
+    architect: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
+    interior_designer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
+    designer: { projects: 'own', tasks: 'own', hr: 'own', dashboard: 'readonly' },
     // Regular employees - can only see their own data in HR
     employee: { hr: 'own', dashboard: 'readonly' },
     // Other roles
-    sales_manager: { clients: 'full', invoices: 'full', dashboard: 'full' },
-    procurement_officer: { procurement: 'full', purchases: 'full', dashboard: 'readonly' },
-    document_controller: { documents: 'full', attachments: 'full', dashboard: 'readonly' },
-    qa_qc: { qaqc: 'full', dashboard: 'readonly' },
-    storekeeper: { procurement: 'readonly', dashboard: 'readonly' },
+    sales_manager: { clients: 'full', invoices: 'full', dashboard: 'full', hr: 'own' },
+    procurement_officer: { procurement: 'full', purchases: 'full', dashboard: 'readonly', hr: 'own' },
+    document_controller: { documents: 'full', attachments: 'full', dashboard: 'readonly', hr: 'own' },
+    qa_qc: { qaqc: 'full', dashboard: 'readonly', hr: 'own' },
+    storekeeper: { procurement: 'readonly', dashboard: 'readonly', hr: 'own' },
     viewer: { dashboard: 'readonly' },
   };
 
@@ -58,6 +78,90 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
 
   return rolePerms[section] || 'none';
 }
+
+// Get detailed sub-permissions for a role
+function getDetailedPermissions(role: string): DetailedPermissions {
+  const fullPerms: SubPermissions = { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: true, approve: true, submit: true };
+  const ownPerms: SubPermissions = { view: false, viewOwn: true, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: true };
+  const readonlyPerms: SubPermissions = { view: true, viewOwn: true, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: false };
+  const nonePerms: SubPermissions = { view: false, viewOwn: false, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: false };
+
+  if (role === 'admin') {
+    return { hr: fullPerms, projects: fullPerms, tasks: fullPerms, accounting: fullPerms, clients: fullPerms };
+  }
+
+  const rolePermsMap: Record<string, DetailedPermissions> = {
+    hr_manager: {
+      hr: fullPerms,
+      projects: readonlyPerms,
+      tasks: readonlyPerms,
+      accounting: nonePerms,
+      clients: readonlyPerms,
+    },
+    finance_manager: {
+      hr: ownPerms,
+      projects: { ...readonlyPerms, viewFinancials: true },
+      tasks: nonePerms,
+      accounting: fullPerms,
+      clients: readonlyPerms,
+    },
+    accountant: {
+      hr: ownPerms,
+      projects: nonePerms,
+      tasks: nonePerms,
+      accounting: { ...readonlyPerms, submit: true }, // Can submit for approval
+      clients: readonlyPerms,
+    },
+    project_manager: {
+      hr: ownPerms,
+      projects: fullPerms,
+      tasks: fullPerms,
+      accounting: { ...readonlyPerms, viewFinancials: true },
+      clients: readonlyPerms,
+    },
+    designer: {
+      hr: { ...ownPerms, submit: true }, // Can request leave
+      projects: { ...ownPerms, view: false, viewOwn: true }, // Only assigned projects
+      tasks: { ...ownPerms, edit: true }, // Can update task status
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+    site_engineer: {
+      hr: { ...ownPerms, submit: true },
+      projects: { ...ownPerms, view: false, viewOwn: true },
+      tasks: { ...ownPerms, edit: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+    interior_designer: {
+      hr: { ...ownPerms, submit: true },
+      projects: { ...ownPerms, view: false, viewOwn: true },
+      tasks: { ...ownPerms, edit: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+    architect: {
+      hr: { ...ownPerms, submit: true },
+      projects: { ...ownPerms, view: false, viewOwn: true },
+      tasks: { ...ownPerms, edit: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+    employee: {
+      hr: { ...ownPerms, submit: true }, // Can request leave
+      projects: nonePerms,
+      tasks: nonePerms,
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+  };
+
+  return rolePermsMap[role] || { hr: nonePerms, projects: nonePerms, tasks: nonePerms, accounting: nonePerms, clients: nonePerms };
+}
+
+// Export permissions for frontend
+export { getPermissionLevel, getDetailedPermissions };
+export type { PermissionLevel, SubPermissions, DetailedPermissions };
 
 // Get employee ID linked to user
 async function getEmployeeIdForUser(userId: number): Promise<number | null> {
@@ -157,6 +261,24 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+
+    // Get current user's detailed permissions
+    getMyPermissions: protectedProcedure.query(({ ctx }) => {
+      const perms = getDetailedPermissions(ctx.user.role);
+      return {
+        role: ctx.user.role,
+        permissions: perms,
+        permissionLevel: {
+          hr: getPermissionLevel(ctx.user.role, 'hr'),
+          projects: getPermissionLevel(ctx.user.role, 'projects'),
+          tasks: getPermissionLevel(ctx.user.role, 'tasks'),
+          accounting: getPermissionLevel(ctx.user.role, 'accounting'),
+          clients: getPermissionLevel(ctx.user.role, 'clients'),
+          dashboard: getPermissionLevel(ctx.user.role, 'dashboard'),
+        }
+      };
+    }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       // Clear cookie by setting it to empty with immediate expiration

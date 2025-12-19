@@ -5,7 +5,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Users, FolderKanban, Receipt, FileText, UserCog, Edit, Trash2, Calculator } from "lucide-react";
+import { Users, FolderKanban, Receipt, FileText, UserCog, Edit, Trash2, Calculator, Clock, Calendar, DollarSign, ClipboardList } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { AddUserDialog } from "@/components/AddUserDialog";
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery();
   const { data: projectsData } = trpc.dashboard.projectsByStatus.useQuery();
   const { data: revenueData } = trpc.dashboard.monthlyRevenue.useQuery();
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
   const { data: users, isLoading: loadingUsers } = trpc.users.list.useQuery(undefined, {
     enabled: currentUser?.role === 'admin',
   });
@@ -37,32 +38,53 @@ export default function Dashboard() {
     email: string | null;
   } | null>(null);
 
-  const statCards = [
-    {
-      title: "إجمالي العملاء",
-      value: stats?.totalClients || 0,
-      icon: <Users className="w-8 h-8 text-primary" />,
-      description: "عدد العملاء المسجلين"
-    },
-    {
-      title: "المشاريع النشطة",
-      value: stats?.totalProjects || 0,
-      icon: <FolderKanban className="w-8 h-8 text-primary" />,
-      description: "مشاريع قيد التنفيذ"
-    },
-    {
-      title: "الفواتير والعروض",
-      value: stats?.totalInvoices || 0,
-      icon: <Receipt className="w-8 h-8 text-primary" />,
-      description: "إجمالي الفواتير والعروض"
-    },
-    {
+  // Get role-based stat cards
+  const getStatCards = () => {
+    const isAdmin = currentUser?.role === 'admin';
+    const canViewClients = permissions?.permissions.clients.view || isAdmin;
+    const canViewProjects = permissions?.permissions.projects.view || permissions?.permissions.projects.viewOwn || isAdmin;
+    const canViewAccounting = permissions?.permissions.accounting.view || isAdmin;
+
+    const cards = [];
+
+    if (canViewClients) {
+      cards.push({
+        title: "إجمالي العملاء",
+        value: stats?.totalClients || 0,
+        icon: <Users className="w-8 h-8 text-primary" />,
+        description: "عدد العملاء المسجلين"
+      });
+    }
+
+    if (canViewProjects) {
+      cards.push({
+        title: "المشاريع النشطة",
+        value: stats?.totalProjects || 0,
+        icon: <FolderKanban className="w-8 h-8 text-primary" />,
+        description: "مشاريع قيد التنفيذ"
+      });
+    }
+
+    if (canViewAccounting) {
+      cards.push({
+        title: "الفواتير والعروض",
+        value: stats?.totalInvoices || 0,
+        icon: <Receipt className="w-8 h-8 text-primary" />,
+        description: "إجمالي الفواتير والعروض"
+      });
+    }
+
+    cards.push({
       title: "الاستمارات",
       value: stats?.totalForms || 0,
       icon: <FileText className="w-8 h-8 text-primary" />,
       description: "استمارات العملاء"
-    }
-  ];
+    });
+
+    return cards;
+  };
+
+  const statCards = getStatCards();
 
   return (
     <DashboardLayout>
@@ -142,47 +164,77 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Role Based */}
         <Card>
           <CardHeader>
             <CardTitle>إجراءات سريعة</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Link href="/clients">
+              {/* HR Self-Service for all employees */}
+              <Link href="/hr">
                 <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <Users className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">إضافة عميل جديد</span>
+                  <Calendar className="w-10 h-10 text-green-500 mb-3 group-hover:scale-110 transition-transform" />
+                  <span className="font-medium">بياناتي الشخصية</span>
+                  <span className="text-xs text-muted-foreground">HR - إجازات، رواتب</span>
                 </div>
               </Link>
-              <Link href="/projects">
-                <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <FolderKanban className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">إنشاء مشروع جديد</span>
-                </div>
-              </Link>
-              <Link href="/invoices">
-                <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <Receipt className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">إصدار فاتورة</span>
-                </div>
-              </Link>
+
+              {/* Clients - only for those with access */}
+              {(permissions?.permissions.clients.view || currentUser?.role === 'admin') && (
+                <Link href="/clients">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <Users className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">العملاء</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Projects - for those with project access */}
+              {(permissions?.permissions.projects.view || permissions?.permissions.projects.viewOwn || currentUser?.role === 'admin') && (
+                <Link href="/projects">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <FolderKanban className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">{permissions?.permissions.projects.viewOwn && !permissions?.permissions.projects.view ? 'مشاريعي' : 'المشاريع'}</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Tasks - for those with task access */}
+              {(permissions?.permissions.tasks.view || permissions?.permissions.tasks.viewOwn || currentUser?.role === 'admin') && (
+                <Link href="/tasks">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <ClipboardList className="w-10 h-10 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">{permissions?.permissions.tasks.viewOwn && !permissions?.permissions.tasks.view ? 'مهامي' : 'المهام'}</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Invoices - for those with accounting access */}
+              {(permissions?.permissions.accounting.view || currentUser?.role === 'admin') && (
+                <Link href="/invoices">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <Receipt className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">الفواتير</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Accounting - for accountants and admins */}
+              {(permissions?.permissions.accounting.view || currentUser?.role === 'admin') && (
+                <Link href="/accounting">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <Calculator className="w-10 h-10 text-yellow-500 mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">المحاسبة</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Forms - generally available */}
               <Link href="/forms">
                 <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
                   <FileText className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">استمارة جديدة</span>
-                </div>
-              </Link>
-              <Link href="/tasks">
-                <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <FolderKanban className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">إدارة المهام</span>
-                </div>
-              </Link>
-              <Link href="/accounting">
-                <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <Calculator className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">عرض التقارير</span>
+                  <span className="font-medium">الاستمارات</span>
                 </div>
               </Link>
             </div>
