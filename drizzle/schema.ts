@@ -33,6 +33,8 @@ export const auditLogs = mysqlTable("auditLogs", {
 	entityType: varchar({ length: 50 }),
 	entityId: int(),
 	details: text(),
+	oldValue: text(), // JSON of previous value
+	newValue: text(), // JSON of new value
 	ipAddress: varchar({ length: 45 }),
 	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 },

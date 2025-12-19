@@ -42,6 +42,9 @@ const adminFinanceProcedure = accountingProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+// Status values that lock an item from being edited/deleted
+const LOCKED_STATUSES = ['approved', 'locked', 'paid'];
+
 export const accountingRouter = router({
   // ============= EXPENSES =============
   expenses: router({
@@ -118,6 +121,12 @@ export const accountingRouter = router({
           return { success: true };
         }
 
+        // State locking: check if item is locked/approved
+        const [existing] = await db.select().from(expenses).where(eq(expenses.id, input.id)).limit(1);
+        if (existing && LOCKED_STATUSES.includes(existing.status as string)) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكن تعديل عنصر معتمد. قم بإلغاء الاعتماد أولاً.' });
+        }
+
         const { id, expenseDate, ...data } = input;
         const updateData: any = { ...data };
         if (expenseDate) {
@@ -136,6 +145,12 @@ export const accountingRouter = router({
         if (!db) {
           demo.remove("expenses", input.id);
           return { success: true };
+        }
+
+        // State locking: check if item is locked/approved
+        const [existing] = await db.select().from(expenses).where(eq(expenses.id, input.id)).limit(1);
+        if (existing && LOCKED_STATUSES.includes(existing.status as string)) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكن حذف عنصر معتمد. قم بإلغاء الاعتماد أولاً.' });
         }
 
         await db.delete(expenses).where(eq(expenses.id, input.id));

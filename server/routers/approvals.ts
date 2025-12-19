@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb, createAuditLog } from "../db";
 import { approvalRequests } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { notifyOwner } from "../_core/notification";
 
 // Only admin/finance_manager can review
 const reviewerProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -80,6 +81,12 @@ export const approvalsRouter = router({
                 entityType: 'approval',
                 details: `طلب ${input.action} على ${input.entityType}`
             });
+
+            // Notify admins about new pending request
+            await notifyOwner({
+                title: '📋 طلب اعتماد جديد',
+                content: `طلب ${input.action === 'create' ? 'إنشاء' : input.action === 'update' ? 'تعديل' : input.action === 'delete' ? 'حذف' : input.action} على ${input.entityType} - يحتاج مراجعة`
+            }).catch(() => { });
 
             return { success: true, message: 'تم إرسال الطلب للمراجعة' };
         }),

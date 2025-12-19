@@ -562,6 +562,8 @@ export async function getAuditLogs(limit: number = 100) {
     entityType: auditLogs.entityType,
     entityId: auditLogs.entityId,
     details: auditLogs.details,
+    oldValue: auditLogs.oldValue,
+    newValue: auditLogs.newValue,
     ipAddress: auditLogs.ipAddress,
     createdAt: auditLogs.createdAt,
     userName: users.name

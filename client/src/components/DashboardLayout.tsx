@@ -134,7 +134,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const filteredNavItems = navItems.filter(item => {
+    // First check: role-based access (primary)
     const byRole = !item.roles || (user && item.roles.includes(user.role));
+
+    // If role doesn't allow, stop here
+    if (!byRole) return false;
+
+    // Second check: user-specific permissions (can only restrict, not grant)
     const keyMap: Record<string, string> = {
       "/dashboard": "dashboard",
       "/clients": "clients",
@@ -149,8 +155,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       "/settings": "settings",
     };
     const permKey = keyMap[item.href];
-    const byPerm = mePermissions ? (mePermissions[permKey] ?? true) : true;
-    return byRole && byPerm;
+
+    // Only check user perms if they exist and explicitly deny
+    // Default is true (allowed) if not specified
+    const byPerm = !mePermissions || mePermissions[permKey] !== false;
+
+    return byPerm;
   });
 
   const getUserInitials = (name?: string | null) => {
