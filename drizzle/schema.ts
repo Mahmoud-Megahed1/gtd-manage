@@ -555,3 +555,20 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+// Password reset tokens for forgot password feature
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+	id: int().autoincrement().notNull(),
+	userId: int().notNull(),
+	token: varchar({ length: 100 }).notNull(),
+	expiresAt: timestamp({ mode: 'date' }).notNull(),
+	used: tinyint().default(0).notNull(),
+	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+},
+	(table) => [
+		index("idx_password_reset_token").on(table.token),
+		index("idx_password_reset_userId").on(table.userId),
+	]);
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

@@ -40,6 +40,10 @@ export default function Settings() {
     onSuccess: () => toast.success("تم تعيين كلمة السر بنجاح"),
     onError: (error) => toast.error(error.message || "فشل تعيين كلمة السر"),
   });
+  const sendResetLinkMutation = trpc.users.sendResetLink.useMutation({
+    onSuccess: () => toast.success("تم إرسال رابط تعيين كلمة السر للمستخدم"),
+    onError: (error) => toast.error(error.message || "فشل إرسال الرابط"),
+  });
   const updateRoleMutation = trpc.users.updateRole.useMutation({
     onSuccess: (data) => {
       toast.success(data.message || "تم تغيير الدور بنجاح");
@@ -502,7 +506,20 @@ export default function Settings() {
                                 }
                               }}
                             >
-                              {setPasswordMutation.isPending ? "جاري..." : "كلمة سر"}
+                              {setPasswordMutation.isPending ? "جاري..." : "تعيين كلمة سر"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={sendResetLinkMutation.isPending}
+                              onClick={() => {
+                                if (confirm(`إرسال رابط تعيين كلمة سر لـ ${user.name || user.email}؟`)) {
+                                  sendResetLinkMutation.mutate({ userId: user.id });
+                                }
+                              }}
+                              title="إرسال رابط للمستخدم لتعيين كلمة سر بنفسه"
+                            >
+                              {sendResetLinkMutation.isPending ? "جاري..." : "📧 إرسال رابط"}
                             </Button>
                           </TableCell>
                         </TableRow>

@@ -1490,6 +1490,170 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const user = await db.getUserById(input.userId);
         return { hasPassword: !!user?.passwordHash };
+      }),
+
+    // User requests password reset (sends notification to admin)
+    requestPasswordReset: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        // Find user by email
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          // Don't reveal if email exists or not
+          return { success: true, message: 'إذا كان البريد الإلكتروني موجوداً، سيتم إرسال طلب للمدير' };
+        }
+
+        // Generate token
+        const crypto = await import('crypto');
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Save token
+        const conn = await db.getDb();
+        if (conn) {
+          const { passwordResetTokens } = await import('../drizzle/schema');
+          await conn.insert(passwordResetTokens).values({
+            userId: user.id,
+            token,
+            expiresAt,
+            used: 0
+          });
+        }
+
+        // Notify admin about password reset request
+        const { createNotificationForRoles } = await import('./routers/notifications');
+        await createNotificationForRoles({
+          roles: ['admin'],
+          type: 'action',
+          title: '🔐 طلب إعادة تعيين كلمة سر',
+          message: `المستخدم ${user.name || user.email} طلب إعادة تعيين كلمة السر`,
+          link: '/settings'
+        });
+
+        return { success: true, message: 'تم إرسال طلبك للمدير' };
+      }),
+
+    // Validate reset token (for UI to show reset form)
+    validateResetToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const conn = await db.getDb();
+        if (!conn) return { valid: false };
+
+        const { passwordResetTokens, users } = await import('../drizzle/schema');
+        const { eq, and, gt } = await import('drizzle-orm');
+
+        const result = await conn.select({
+          token: passwordResetTokens,
+          user: users
+        })
+          .from(passwordResetTokens)
+          .leftJoin(users, eq(passwordResetTokens.userId, users.id))
+          .where(and(
+            eq(passwordResetTokens.token, input.token),
+            eq(passwordResetTokens.used, 0),
+            gt(passwordResetTokens.expiresAt, new Date())
+          ))
+          .limit(1);
+
+        if (!result[0]) return { valid: false };
+
+        return {
+          valid: true,
+          userName: result[0].user?.name,
+          userEmail: result[0].user?.email
+        };
+      }),
+
+    // Reset password using token (user sets their own password)
+    resetPasswordWithToken: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        newPassword: z.string().min(4)
+      }))
+      .mutation(async ({ input }) => {
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+        const { passwordResetTokens, users } = await import('../drizzle/schema');
+        const { eq, and, gt } = await import('drizzle-orm');
+
+        // Validate token
+        const result = await conn.select()
+          .from(passwordResetTokens)
+          .where(and(
+            eq(passwordResetTokens.token, input.token),
+            eq(passwordResetTokens.used, 0),
+            gt(passwordResetTokens.expiresAt, new Date())
+          ))
+          .limit(1);
+
+        if (!result[0]) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'رابط غير صالح أو منتهي الصلاحية' });
+        }
+
+        // Set new password
+        const crypto = await import('crypto');
+        const hash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
+        await db.setUserPassword(result[0].userId, hash);
+
+        // Mark token as used
+        await conn.update(passwordResetTokens)
+          .set({ used: 1 })
+          .where(eq(passwordResetTokens.id, result[0].id));
+
+        // Notify user
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: result[0].userId,
+          type: 'success',
+          title: 'تم تغيير كلمة السر ✅',
+          message: 'تم تغيير كلمة السر بنجاح',
+          link: '/'
+        });
+
+        return { success: true, message: 'تم تغيير كلمة السر بنجاح' };
+      }),
+
+    // Admin sends a reset link to user
+    sendResetLink: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        // Generate token
+        const crypto = await import('crypto');
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days - لا ينتهي إلا بعد الاستخدام أو 30 يوم
+
+        // Save token
+        const conn = await db.getDb();
+        if (conn) {
+          const { passwordResetTokens } = await import('../drizzle/schema');
+          await conn.insert(passwordResetTokens).values({
+            userId: input.userId,
+            token,
+            expiresAt,
+            used: 0
+          });
+        }
+
+        // Get server origin
+        const origin = process.env.VITE_SERVER_ORIGIN || 'http://localhost:5000';
+        const resetLink = `${origin}/reset-password/${token}`;
+
+        // Send notification with link
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: input.userId,
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: '🔗 رابط تعيين كلمة سر جديدة',
+          message: `تم إنشاء رابط لتعيين كلمة سر جديدة لحسابك. الرابط صالح لمدة 24 ساعة.`,
+          link: `/reset-password/${token}`
+        });
+
+        await logAudit(ctx.user.id, 'SEND_RESET_LINK', 'user', input.userId, 'Admin sent password reset link', ctx);
+
+        return { success: true, message: 'تم إرسال رابط التعيين للمستخدم' };
       })
   }),
 

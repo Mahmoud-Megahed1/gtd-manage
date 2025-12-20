@@ -33,12 +33,14 @@ import ChangeOrders from "./pages/ChangeOrders";
 import Notifications from "./pages/Notifications";
 import Tasks from "./pages/Tasks";
 import TaskDetails from "./pages/TaskDetails";
+import ResetPassword from "./pages/ResetPassword";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/login"} component={Home} />
+      <Route path={"/reset-password/:token"} component={ResetPassword} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/clients"} component={Clients} />
       <Route path={"/clients/:id"} component={ClientDetails} />
