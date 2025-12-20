@@ -532,19 +532,6 @@ export default function Settings() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={sendTempPasswordMutation.isPending}
-                              onClick={() => {
-                                if (confirm(`إرسال كلمة سر مؤقتة لـ ${user.name || user.email}؟ سيجب عليه تغييرها بعد الدخول.`)) {
-                                  sendTempPasswordMutation.mutate({ userId: user.id });
-                                }
-                              }}
-                              title="إرسال كلمة سر مؤقتة للمستخدم"
-                            >
-                              {sendTempPasswordMutation.isPending ? "جاري..." : "🔑 مؤقتة"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
                               disabled={sendNotificationMutation.isPending}
                               onClick={() => {
                                 const title = prompt("عنوان الإشعار:");
@@ -926,15 +913,6 @@ function PasswordResetRequestsCard() {
                   <TableCell>{roleLabels[req.userRole] || req.userRole}</TableCell>
                   <TableCell>{new Date(req.createdAt).toLocaleDateString('ar-SA')}</TableCell>
                   <TableCell className="space-x-2 space-x-reverse">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      disabled={approveWithLinkMutation.isPending}
-                      onClick={() => approveWithLinkMutation.mutate({ requestId: req.id })}
-                      title="إرسال رابط للمستخدم لتعيين كلمة سر بنفسه"
-                    >
-                      📧 رابط
-                    </Button>
                     <Button
                       size="sm"
                       variant="secondary"
