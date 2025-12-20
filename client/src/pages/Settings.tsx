@@ -551,7 +551,7 @@ export default function Settings() {
                                 if (!title) return;
                                 const message = prompt("محتوى الإشعار (اختياري):");
                                 sendNotificationMutation.mutate({
-                                  userId: user.id,
+                                  userIds: [user.id],
                                   title,
                                   message: message || undefined,
                                   type: 'info'

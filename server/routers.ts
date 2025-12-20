@@ -1949,29 +1949,35 @@ export const appRouter = router({
         const tempPassword = crypto.randomBytes(4).toString('hex');
         const hash = crypto.createHash('sha256').update(tempPassword).digest('hex');
 
+        // Generate 10-minute reset link
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
         // Update user password and set mustChangePassword
         await conn.update(users)
           .set({ passwordHash: hash, mustChangePassword: 1 })
           .where(eq(users.id, request[0].userId));
 
-        // Update request
+        // Update request with both temp password and reset token
         await conn.update(passwordResetRequests)
           .set({
             status: 'approved_temp',
             adminId: ctx.user.id,
-            tempPassword: tempPassword // Store plain for showing to user
+            tempPassword: tempPassword,
+            resetToken: resetToken,
+            tokenExpiresAt: tokenExpiresAt
           })
           .where(eq(passwordResetRequests.id, input.requestId));
 
-        // Send notification to user with temp password
+        // Send notification to user with temp password AND reset link
         const { createNotification } = await import('./routers/notifications');
         await createNotification({
           userId: request[0].userId,
           fromUserId: ctx.user.id,
           type: 'success',
           title: '✅ تم الموافقة على طلبك',
-          message: `كلمة السر المؤقتة: ${tempPassword} - يجب تغييرها بعد الدخول`,
-          link: '/'
+          message: `كلمة السر المؤقتة: ${tempPassword} (أو استخدم الرابط لتغييرها بنفسك - صالح 10 دقائق)`,
+          link: `/reset-password/${resetToken}`
         });
 
         await logAudit(ctx.user.id, 'APPROVE_RESET_WITH_TEMP', 'passwordResetRequest', input.requestId, '', ctx);
