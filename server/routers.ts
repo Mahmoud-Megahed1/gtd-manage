@@ -1569,7 +1569,7 @@ export const appRouter = router({
         return { hasPassword: !!user?.passwordHash };
       }),
 
-    // User requests password reset (sends notification to admin)
+    // User requests password reset (creates pending request for admin approval)
     requestPasswordReset: publicProcedure
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {
@@ -1577,37 +1577,41 @@ export const appRouter = router({
         const user = await db.getUserByEmail(input.email);
         if (!user) {
           // Don't reveal if email exists or not
-          return { success: true, message: 'إذا كان البريد الإلكتروني موجوداً، سيتم إرسال طلب للمدير' };
+          return { success: true, requestId: null, message: 'إذا كان البريد الإلكتروني موجوداً، سيتم إرسال طلب للمدير' };
         }
 
-        // Generate token
-        const crypto = await import('crypto');
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-        // Save token
         const conn = await db.getDb();
-        if (conn) {
-          const { passwordResetTokens } = await import('../drizzle/schema');
-          await conn.insert(passwordResetTokens).values({
-            userId: user.id,
-            token,
-            expiresAt,
-            used: 0
-          });
-        }
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+        // Create pending password reset request
+        const { passwordResetRequests, users } = await import('../drizzle/schema');
+        const result = await conn.insert(passwordResetRequests).values({
+          userId: user.id,
+          status: 'pending'
+        });
+        const requestId = Number((result as any)[0]?.insertId);
+
+        // Get user role for notification
+        const userRole = (user as any).role || 'موظف';
+        const roleNames: Record<string, string> = {
+          admin: 'مدير النظام',
+          hr_manager: 'مدير الموارد البشرية',
+          project_manager: 'مدير مشاريع',
+          accountant: 'محاسب',
+          designer: 'مصمم',
+        };
 
         // Notify admin about password reset request
         const { createNotificationForRoles } = await import('./routers/notifications');
         await createNotificationForRoles({
-          roles: ['admin'],
+          roles: ['admin', 'hr_manager'],
           type: 'action',
           title: '🔐 طلب إعادة تعيين كلمة سر',
-          message: `المستخدم ${user.name || user.email} طلب إعادة تعيين كلمة السر`,
-          link: '/settings'
+          message: `${user.name || user.email} (${roleNames[userRole] || userRole}) أرسل طلب نسيان كلمة المرور`,
+          link: `/settings?resetRequest=${requestId}`
         });
 
-        return { success: true, message: 'تم إرسال طلبك للمدير' };
+        return { success: true, requestId, message: 'تم إرسال طلبك للمدير، يرجى الانتظار' };
       }),
 
     // Validate reset token (for UI to show reset form)
@@ -1617,10 +1621,35 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) return { valid: false };
 
-        const { passwordResetTokens, users } = await import('../drizzle/schema');
-        const { eq, and, gt } = await import('drizzle-orm');
+        const { passwordResetTokens, passwordResetRequests, users } = await import('../drizzle/schema');
+        const { eq, and, gt, or } = await import('drizzle-orm');
 
-        const result = await conn.select({
+        // First check passwordResetRequests table (new flow)
+        const requestResult = await conn.select({
+          request: passwordResetRequests,
+          user: users
+        })
+          .from(passwordResetRequests)
+          .leftJoin(users, eq(passwordResetRequests.userId, users.id))
+          .where(and(
+            eq(passwordResetRequests.resetToken, input.token),
+            eq(passwordResetRequests.status, 'approved_link'),
+            gt(passwordResetRequests.tokenExpiresAt, new Date())
+          ))
+          .limit(1);
+
+        if (requestResult[0]) {
+          return {
+            valid: true,
+            source: 'request',
+            requestId: requestResult[0].request.id,
+            userName: requestResult[0].user?.name,
+            userEmail: requestResult[0].user?.email
+          };
+        }
+
+        // Fallback to old passwordResetTokens table
+        const tokenResult = await conn.select({
           token: passwordResetTokens,
           user: users
         })
@@ -1633,12 +1662,13 @@ export const appRouter = router({
           ))
           .limit(1);
 
-        if (!result[0]) return { valid: false };
+        if (!tokenResult[0]) return { valid: false };
 
         return {
           valid: true,
-          userName: result[0].user?.name,
-          userEmail: result[0].user?.email
+          source: 'token',
+          userName: tokenResult[0].user?.name,
+          userEmail: tokenResult[0].user?.email
         };
       }),
 
@@ -1652,37 +1682,66 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
-        const { passwordResetTokens, users } = await import('../drizzle/schema');
+        const { passwordResetTokens, passwordResetRequests, users } = await import('../drizzle/schema');
         const { eq, and, gt } = await import('drizzle-orm');
 
-        // Validate token
-        const result = await conn.select()
-          .from(passwordResetTokens)
+        // First check passwordResetRequests table (new flow)
+        const requestResult = await conn.select()
+          .from(passwordResetRequests)
           .where(and(
-            eq(passwordResetTokens.token, input.token),
-            eq(passwordResetTokens.used, 0),
-            gt(passwordResetTokens.expiresAt, new Date())
+            eq(passwordResetRequests.resetToken, input.token),
+            eq(passwordResetRequests.status, 'approved_link'),
+            gt(passwordResetRequests.tokenExpiresAt, new Date())
           ))
           .limit(1);
 
-        if (!result[0]) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'رابط غير صالح أو منتهي الصلاحية' });
+        let userId: number;
+
+        if (requestResult[0]) {
+          // New flow
+          userId = requestResult[0].userId;
+
+          // Set new password
+          const crypto = await import('crypto');
+          const hash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
+          await db.setUserPassword(userId, hash);
+
+          // Mark request as completed
+          await conn.update(passwordResetRequests)
+            .set({ status: 'completed', completedAt: new Date() })
+            .where(eq(passwordResetRequests.id, requestResult[0].id));
+        } else {
+          // Fallback to old passwordResetTokens table
+          const tokenResult = await conn.select()
+            .from(passwordResetTokens)
+            .where(and(
+              eq(passwordResetTokens.token, input.token),
+              eq(passwordResetTokens.used, 0),
+              gt(passwordResetTokens.expiresAt, new Date())
+            ))
+            .limit(1);
+
+          if (!tokenResult[0]) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'رابط غير صالح أو منتهي الصلاحية' });
+          }
+
+          userId = tokenResult[0].userId;
+
+          // Set new password
+          const crypto = await import('crypto');
+          const hash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
+          await db.setUserPassword(userId, hash);
+
+          // Mark token as used
+          await conn.update(passwordResetTokens)
+            .set({ used: 1 })
+            .where(eq(passwordResetTokens.id, tokenResult[0].id));
         }
-
-        // Set new password
-        const crypto = await import('crypto');
-        const hash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
-        await db.setUserPassword(result[0].userId, hash);
-
-        // Mark token as used
-        await conn.update(passwordResetTokens)
-          .set({ used: 1 })
-          .where(eq(passwordResetTokens.id, result[0].id));
 
         // Notify user
         const { createNotification } = await import('./routers/notifications');
         await createNotification({
-          userId: result[0].userId,
+          userId,
           type: 'success',
           title: 'تم تغيير كلمة السر ✅',
           message: 'تم تغيير كلمة السر بنجاح',
@@ -1765,6 +1824,223 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'SEND_TEMP_PASSWORD', 'user', input.userId, 'Admin sent temp password', ctx);
 
         return { success: true, message: 'تم إرسال كلمة سر مؤقتة للمستخدم' };
+      }),
+
+    // Get all pending password reset requests (admin)
+    listResetRequests: adminProcedure
+      .query(async () => {
+        const conn = await db.getDb();
+        if (!conn) return [];
+
+        const { passwordResetRequests, users } = await import('../drizzle/schema');
+        const result = await conn.select({
+          id: passwordResetRequests.id,
+          userId: passwordResetRequests.userId,
+          status: passwordResetRequests.status,
+          createdAt: passwordResetRequests.createdAt,
+          userName: users.name,
+          userEmail: users.email,
+          userRole: users.role,
+        })
+          .from(passwordResetRequests)
+          .leftJoin(users, eq(passwordResetRequests.userId, users.id))
+          .orderBy(desc(passwordResetRequests.createdAt));
+
+        return result;
+      }),
+
+    // Get single request details
+    getResetRequest: adminProcedure
+      .input(z.object({ requestId: z.number() }))
+      .query(async ({ input }) => {
+        const conn = await db.getDb();
+        if (!conn) return null;
+
+        const { passwordResetRequests, users } = await import('../drizzle/schema');
+        const result = await conn.select({
+          id: passwordResetRequests.id,
+          userId: passwordResetRequests.userId,
+          status: passwordResetRequests.status,
+          createdAt: passwordResetRequests.createdAt,
+          userName: users.name,
+          userEmail: users.email,
+          userRole: users.role,
+        })
+          .from(passwordResetRequests)
+          .leftJoin(users, eq(passwordResetRequests.userId, users.id))
+          .where(eq(passwordResetRequests.id, input.requestId))
+          .limit(1);
+
+        return result[0] || null;
+      }),
+
+    // Approve with reset link
+    approveResetWithLink: adminProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+        const { passwordResetRequests } = await import('../drizzle/schema');
+
+        // Get request
+        const request = await conn.select()
+          .from(passwordResetRequests)
+          .where(eq(passwordResetRequests.id, input.requestId))
+          .limit(1);
+
+        if (!request[0]) throw new TRPCError({ code: 'NOT_FOUND' });
+        if (request[0].status !== 'pending') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'هذا الطلب تمت معالجته مسبقاً' });
+        }
+
+        // Generate token
+        const crypto = await import('crypto');
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+        // Update request
+        await conn.update(passwordResetRequests)
+          .set({
+            status: 'approved_link',
+            adminId: ctx.user.id,
+            resetToken: token,
+            tokenExpiresAt: expiresAt
+          })
+          .where(eq(passwordResetRequests.id, input.requestId));
+
+        // Send notification to user
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: request[0].userId,
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: '🔗 رابط تعيين كلمة سر جديدة',
+          message: 'تم الموافقة على طلبك. يرجى استخدام الرابط لتعيين كلمة سر جديدة.',
+          link: `/reset-password/${token}`
+        });
+
+        await logAudit(ctx.user.id, 'APPROVE_RESET_WITH_LINK', 'passwordResetRequest', input.requestId, '', ctx);
+        return { success: true };
+      }),
+
+    // Approve with temp password
+    approveResetWithTempPassword: adminProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+        const { passwordResetRequests, users } = await import('../drizzle/schema');
+
+        // Get request
+        const request = await conn.select()
+          .from(passwordResetRequests)
+          .where(eq(passwordResetRequests.id, input.requestId))
+          .limit(1);
+
+        if (!request[0]) throw new TRPCError({ code: 'NOT_FOUND' });
+        if (request[0].status !== 'pending') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'هذا الطلب تمت معالجته مسبقاً' });
+        }
+
+        // Generate temp password
+        const crypto = await import('crypto');
+        const tempPassword = crypto.randomBytes(4).toString('hex');
+        const hash = crypto.createHash('sha256').update(tempPassword).digest('hex');
+
+        // Update user password and set mustChangePassword
+        await conn.update(users)
+          .set({ passwordHash: hash, mustChangePassword: 1 })
+          .where(eq(users.id, request[0].userId));
+
+        // Update request
+        await conn.update(passwordResetRequests)
+          .set({
+            status: 'approved_temp',
+            adminId: ctx.user.id,
+            tempPassword: tempPassword // Store plain for showing to user
+          })
+          .where(eq(passwordResetRequests.id, input.requestId));
+
+        await logAudit(ctx.user.id, 'APPROVE_RESET_WITH_TEMP', 'passwordResetRequest', input.requestId, '', ctx);
+        return { success: true };
+      }),
+
+    // Reject reset request
+    rejectResetRequest: adminProcedure
+      .input(z.object({ requestId: z.number(), reason: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+        const { passwordResetRequests } = await import('../drizzle/schema');
+
+        // Get request
+        const request = await conn.select()
+          .from(passwordResetRequests)
+          .where(eq(passwordResetRequests.id, input.requestId))
+          .limit(1);
+
+        if (!request[0]) throw new TRPCError({ code: 'NOT_FOUND' });
+
+        // Update request
+        await conn.update(passwordResetRequests)
+          .set({
+            status: 'rejected',
+            adminId: ctx.user.id,
+            adminResponse: input.reason
+          })
+          .where(eq(passwordResetRequests.id, input.requestId));
+
+        // Notify user
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: request[0].userId,
+          fromUserId: ctx.user.id,
+          type: 'warning',
+          title: '❌ تم رفض طلب إعادة تعيين كلمة السر',
+          message: input.reason || 'تم رفض طلبك. يرجى التواصل مع الإدارة.',
+        });
+
+        await logAudit(ctx.user.id, 'REJECT_RESET_REQUEST', 'passwordResetRequest', input.requestId, '', ctx);
+        return { success: true };
+      }),
+
+    // User checks their request status (polling)
+    checkResetRequest: publicProcedure
+      .input(z.object({ requestId: z.number() }))
+      .query(async ({ input }) => {
+        const conn = await db.getDb();
+        if (!conn) return { status: 'not_found', tempPassword: null };
+
+        const { passwordResetRequests } = await import('../drizzle/schema');
+        const result = await conn.select()
+          .from(passwordResetRequests)
+          .where(eq(passwordResetRequests.id, input.requestId))
+          .limit(1);
+
+        if (!result[0]) return { status: 'not_found', tempPassword: null };
+
+        const r = result[0];
+        if (r.status === 'approved_temp') {
+          // Return temp password and mark as completed
+          await conn.update(passwordResetRequests)
+            .set({ status: 'completed', completedAt: new Date() })
+            .where(eq(passwordResetRequests.id, input.requestId));
+
+          return { status: 'approved_temp', tempPassword: r.tempPassword };
+        }
+
+        if (r.status === 'approved_link') {
+          return { status: 'approved_link', tempPassword: null, message: 'تم إرسال رابط لبريدك الإلكتروني' };
+        }
+
+        if (r.status === 'rejected') {
+          return { status: 'rejected', tempPassword: null, message: r.adminResponse || 'تم رفض طلبك' };
+        }
+
+        return { status: r.status, tempPassword: null };
       })
   }),
 

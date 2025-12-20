@@ -452,5 +452,33 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   INDEX `idx_notifications_isRead` (`isRead`)
 );
 
+-- 30. Password Reset Tokens
+CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
+  `id` int AUTO_INCREMENT PRIMARY KEY,
+  `userId` int NOT NULL,
+  `token` varchar(100) NOT NULL,
+  `expiresAt` timestamp NOT NULL,
+  `used` tinyint NOT NULL DEFAULT 0,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_password_reset_token` (`token`),
+  INDEX `idx_password_reset_userId` (`userId`)
+);
+
+-- 31. Password Reset Requests (Admin Approval Workflow)
+CREATE TABLE IF NOT EXISTS `password_reset_requests` (
+  `id` int AUTO_INCREMENT PRIMARY KEY,
+  `userId` int NOT NULL,
+  `status` enum('pending','approved_link','approved_temp','completed','rejected') NOT NULL DEFAULT 'pending',
+  `adminId` int,
+  `adminResponse` text,
+  `tempPassword` varchar(255),
+  `resetToken` varchar(255),
+  `tokenExpiresAt` timestamp NULL,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `completedAt` timestamp NULL,
+  INDEX `idx_password_reset_requests_userId` (`userId`),
+  INDEX `idx_password_reset_requests_status` (`status`)
+);
+
 -- Done! All tables created.
 SELECT 'All tables created successfully!' AS status;

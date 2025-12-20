@@ -589,3 +589,24 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+// Password reset requests for admin approval workflow
+export const passwordResetRequests = mysqlTable("password_reset_requests", {
+	id: int().autoincrement().notNull(),
+	userId: int().notNull(),
+	status: mysqlEnum(['pending', 'approved_link', 'approved_temp', 'completed', 'rejected']).default('pending').notNull(),
+	adminId: int(),
+	adminResponse: text(),
+	tempPassword: varchar({ length: 255 }),
+	resetToken: varchar({ length: 255 }),
+	tokenExpiresAt: timestamp({ mode: 'date' }),
+	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+	completedAt: timestamp({ mode: 'date' }),
+},
+	(table) => [
+		index("idx_password_reset_requests_userId").on(table.userId),
+		index("idx_password_reset_requests_status").on(table.status),
+	]);
+
+export type PasswordResetRequest = typeof passwordResetRequests.$inferSelect;
+export type InsertPasswordResetRequest = typeof passwordResetRequests.$inferInsert;
