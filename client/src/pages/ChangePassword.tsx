@@ -11,7 +11,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function ChangePassword() {
     const [, setLocation] = useLocation();
-    const { refresh } = useAuth({ redirectOnUnauthenticated: true });
+    const { user, loading, refresh } = useAuth({ redirectOnUnauthenticated: false });
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -54,6 +54,21 @@ export default function ChangePassword() {
             newPassword
         });
     };
+
+    // Show loading while checking auth
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    // Redirect to login if not authenticated
+    if (!user) {
+        setLocation("/");
+        return null;
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4" dir="rtl">
