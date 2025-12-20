@@ -330,6 +330,19 @@ export const projectTasks = mysqlTable("projectTasks", {
 		index("idx_projectTasks_parentId").on(table.parentId),
 	]);
 
+// Project Team Members - for assigning multiple team members to projects
+export const projectTeam = mysqlTable("projectTeam", {
+	id: int().autoincrement().notNull(),
+	projectId: int().notNull(),
+	userId: int().notNull(),
+	role: varchar({ length: 100 }), // e.g., 'manager', 'engineer', 'designer'
+	joinedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+},
+	(table) => [
+		index("idx_projectTeam_projectId").on(table.projectId),
+		unique("projectTeam_projectUser_unique").on(table.projectId, table.userId),
+	]);
+
 export const purchases = mysqlTable("purchases", {
 	id: int().autoincrement().notNull(),
 	purchaseNumber: varchar({ length: 50 }).notNull(),
@@ -509,6 +522,9 @@ export type InsertSale = typeof sales.$inferInsert;
 
 export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = typeof purchases.$inferInsert;
+
+export type ProjectTeamMember = typeof projectTeam.$inferSelect;
+export type InsertProjectTeamMember = typeof projectTeam.$inferInsert;
 
 // Approval Requests table for approval workflow
 export const approvalRequests = mysqlTable("approvalRequests", {

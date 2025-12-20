@@ -620,6 +620,65 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, undefined, ctx);
         return { success: true };
       }),
+
+    // Team management
+    listTeam: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) return [];
+        const { projectTeam, users } = await import("../drizzle/schema");
+        const rows = await conn
+          .select({
+            id: projectTeam.id,
+            projectId: projectTeam.projectId,
+            userId: projectTeam.userId,
+            role: projectTeam.role,
+            joinedAt: projectTeam.joinedAt,
+            userName: users.name,
+            userEmail: users.email
+          })
+          .from(projectTeam)
+          .leftJoin(users, eq(projectTeam.userId, users.id))
+          .where(eq(projectTeam.projectId, input.projectId));
+        return rows;
+      }),
+
+    addTeamMember: managerProcedure
+      .input(z.object({ projectId: z.number(), userId: z.number(), role: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const { projectTeam } = await import("../drizzle/schema");
+        try {
+          await conn.insert(projectTeam).values({
+            projectId: input.projectId,
+            userId: input.userId,
+            role: input.role || 'member'
+          } as any);
+          await logAudit(ctx.user.id, 'ADD_TEAM_MEMBER', 'project', input.projectId, `Added user ${input.userId}`, ctx);
+          return { success: true };
+        } catch (e: any) {
+          if (e.code === 'ER_DUP_ENTRY') {
+            throw new TRPCError({ code: 'CONFLICT', message: 'هذا المستخدم موجود بالفعل في الفريق' });
+          }
+          throw e;
+        }
+      }),
+
+    removeTeamMember: managerProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const { projectTeam } = await import("../drizzle/schema");
+        await conn.delete(projectTeam).where(eq(projectTeam.id, input.id));
+        await logAudit(ctx.user.id, 'REMOVE_TEAM_MEMBER', 'projectTeam', input.id, undefined, ctx);
+        return { success: true };
+      }),
   }),
   rfi: router({
     list: protectedProcedure

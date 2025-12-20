@@ -422,5 +422,16 @@ CREATE TABLE IF NOT EXISTS `submittals` (
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 28. Project Team Members
+CREATE TABLE IF NOT EXISTS `projectTeam` (
+  `id` int AUTO_INCREMENT PRIMARY KEY,
+  `projectId` int NOT NULL,
+  `userId` int NOT NULL,
+  `role` varchar(100),
+  `joinedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_projectTeam_projectId` (`projectId`),
+  UNIQUE KEY `projectTeam_projectUser_unique` (`projectId`, `userId`)
+);
+
 -- Done! All tables created.
 SELECT 'All tables created successfully!' AS status;

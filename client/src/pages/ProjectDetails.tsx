@@ -48,7 +48,15 @@ export default function ProjectDetails() {
       utils.projects.listTasks.invalidate({ projectId });
     }
   });
-  const deleteTask = trpc.projects.deleteTask.useMutation();
+  const deleteTask = trpc.projects.deleteTask.useMutation({
+    onSuccess: () => {
+      utils.projects.listTasks.invalidate({ projectId });
+      toast.success("تم حذف المهمة بنجاح");
+    },
+    onError: () => {
+      toast.error("تعذر حذف المهمة");
+    }
+  });
   const [newTask, setNewTask] = useState({
     name: "",
     description: "",
@@ -84,6 +92,26 @@ export default function ProjectDetails() {
     { drawingId: openVersionsId || 0 },
     { enabled: !!openVersionsId }
   );
+  // Team management
+  const { data: teamMembers } = trpc.projects.listTeam.useQuery({ projectId });
+  const { data: allUsers } = trpc.users.list.useQuery();
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [teamRole, setTeamRole] = useState<string>("member");
+  const addTeamMember = trpc.projects.addTeamMember.useMutation({
+    onSuccess: () => {
+      utils.projects.listTeam.invalidate({ projectId });
+      setSelectedUserId("");
+      toast.success("تمت إضافة العضو بنجاح");
+    },
+    onError: (e) => toast.error(e.message || "تعذر إضافة العضو")
+  });
+  const removeTeamMember = trpc.projects.removeTeamMember.useMutation({
+    onSuccess: () => {
+      utils.projects.listTeam.invalidate({ projectId });
+      toast.success("تم حذف العضو");
+    },
+    onError: () => toast.error("تعذر حذف العضو")
+  });
 
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -381,17 +409,87 @@ export default function ProjectDetails() {
           )}
 
           <TabsContent value="team" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>فريق المشروع</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>سيتم إضافة إدارة الفريق قريباً</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>إضافة عضو جديد</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <label className="text-sm">اختر مستخدم</label>
+                    <select
+                      className="w-full p-2 border rounded mt-1"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                    >
+                      <option value="">اختر مستخدم...</option>
+                      {(allUsers || []).filter((u: any) => !teamMembers?.find((t: any) => t.userId === u.id)).map((u: any) => (
+                        <option key={u.id} value={u.id}>{u.name || u.email}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm">الدور في المشروع</label>
+                    <select
+                      className="w-full p-2 border rounded mt-1"
+                      value={teamRole}
+                      onChange={(e) => setTeamRole(e.target.value)}
+                    >
+                      <option value="member">عضو فريق</option>
+                      <option value="manager">مدير مشروع</option>
+                      <option value="engineer">مهندس</option>
+                      <option value="designer">مصمم</option>
+                      <option value="reviewer">مراجع</option>
+                    </select>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (!selectedUserId) {
+                        toast.error("يرجى اختيار مستخدم");
+                        return;
+                      }
+                      addTeamMember.mutate({ projectId, userId: parseInt(selectedUserId), role: teamRole });
+                    }}
+                    disabled={!selectedUserId || addTeamMember.isPending}
+                  >
+                    {addTeamMember.isPending ? "جاري الإضافة..." : "إضافة للفريق"}
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>أعضاء الفريق ({teamMembers?.length || 0})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {teamMembers && teamMembers.length > 0 ? (
+                    <div className="space-y-2">
+                      {teamMembers.map((member: any) => (
+                        <div key={member.id} className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <p className="font-medium">{member.userName || 'غير محدد'}</p>
+                            <p className="text-sm text-muted-foreground">{member.userEmail}</p>
+                            <Badge className="mt-1">{member.role || 'عضو'}</Badge>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeTeamMember.mutate({ id: member.id })}
+                            disabled={removeTeamMember.isPending}
+                          >
+                            حذف
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                      <p>لا يوجد أعضاء في الفريق</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="tasks" className="mt-6">
