@@ -1,18 +1,17 @@
 import { useState } from 'react';
-import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
 
 export function NotificationBell() {
     const [, setLocation] = useLocation();
+    const [open, setOpen] = useState(false);
     const utils = trpc.useUtils();
 
     // Fetch unread count
@@ -41,6 +40,7 @@ export function NotificationBell() {
         }
         // Navigate to link if exists
         if (notification.link) {
+            setOpen(false);
             setLocation(notification.link);
         }
     };
@@ -70,8 +70,8 @@ export function NotificationBell() {
     };
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
@@ -80,8 +80,8 @@ export function NotificationBell() {
                         </span>
                     )}
                 </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto z-50">
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 max-h-96 overflow-y-auto p-0">
                 <div className="flex items-center justify-between px-3 py-2 border-b">
                     <span className="font-semibold">الإشعارات</span>
                     {unreadCount > 0 && (
@@ -98,11 +98,11 @@ export function NotificationBell() {
                 </div>
 
                 {notifications && notifications.length > 0 ? (
-                    <>
+                    <div className="divide-y">
                         {notifications.map((notification: any) => (
-                            <DropdownMenuItem
+                            <div
                                 key={notification.id}
-                                className={`flex flex-col items-start p-3 cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                                className={`flex flex-col items-start p-3 cursor-pointer hover:bg-accent ${!notification.isRead ? 'bg-blue-50' : ''}`}
                                 onClick={() => handleNotificationClick(notification)}
                             >
                                 <div className="flex items-center gap-2 w-full">
@@ -124,22 +124,21 @@ export function NotificationBell() {
                                         {notification.message}
                                     </span>
                                 )}
-                            </DropdownMenuItem>
+                            </div>
                         ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            className="text-center justify-center text-primary"
-                            onClick={() => setLocation('/notifications')}
+                        <div
+                            className="text-center p-2 text-primary cursor-pointer hover:bg-accent"
+                            onClick={() => { setOpen(false); setLocation('/notifications'); }}
                         >
                             عرض كل الإشعارات
-                        </DropdownMenuItem>
-                    </>
+                        </div>
+                    </div>
                 ) : (
                     <div className="p-4 text-center text-muted-foreground">
                         لا توجد إشعارات
                     </div>
                 )}
-            </DropdownMenuContent>
-        </DropdownMenu>
+            </PopoverContent>
+        </Popover>
     );
 }
