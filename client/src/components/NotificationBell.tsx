@@ -93,8 +93,18 @@ export function NotificationBell() {
             </Button>
 
             {isOpen && (
-                <div className="absolute left-0 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-popover border rounded-lg shadow-lg z-[9999]">
-                    <div className="flex items-center justify-between px-3 py-2 border-b">
+                <div
+                    className="fixed bg-popover border rounded-lg shadow-xl z-[99999]"
+                    style={{
+                        top: '60px',
+                        left: '20px',
+                        width: '320px',
+                        maxHeight: '400px',
+                        direction: 'rtl'
+                    }}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/50">
                         <span className="font-semibold">الإشعارات</span>
                         <div className="flex items-center gap-1">
                             {unreadCount > 0 && (
@@ -119,47 +129,52 @@ export function NotificationBell() {
                         </div>
                     </div>
 
-                    {notifications && notifications.length > 0 ? (
-                        <div className="divide-y">
-                            {notifications.map((notification: any) => (
-                                <div
-                                    key={notification.id}
-                                    className={`flex flex-col items-start p-3 cursor-pointer hover:bg-accent ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
-                                    onClick={() => handleNotificationClick(notification)}
-                                >
-                                    <div className="flex items-center gap-2 w-full">
-                                        <span className={`px-2 py-0.5 rounded text-xs ${getTypeColor(notification.type)}`}>
-                                            {notification.type === 'success' ? 'تم' :
-                                                notification.type === 'warning' ? 'تنبيه' :
-                                                    notification.type === 'action' ? 'مطلوب' : 'معلومة'}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground mr-auto">
-                                            {formatTime(notification.createdAt)}
-                                        </span>
-                                        {!notification.isRead && (
-                                            <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
+                    {/* Content with scrollbar */}
+                    <div className="overflow-y-auto" style={{ maxHeight: '320px' }}>
+                        {notifications && notifications.length > 0 ? (
+                            <div className="divide-y">
+                                {notifications.map((notification: any) => (
+                                    <div
+                                        key={notification.id}
+                                        className={`flex flex-col items-start p-3 cursor-pointer hover:bg-accent ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
+                                        onClick={() => handleNotificationClick(notification)}
+                                    >
+                                        <div className="flex items-center gap-2 w-full">
+                                            <span className={`px-2 py-0.5 rounded text-xs ${getTypeColor(notification.type)}`}>
+                                                {notification.type === 'success' ? 'تم' :
+                                                    notification.type === 'warning' ? 'تنبيه' :
+                                                        notification.type === 'action' ? 'مطلوب' : 'معلومة'}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground mr-auto">
+                                                {formatTime(notification.createdAt)}
+                                            </span>
+                                            {!notification.isRead && (
+                                                <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
+                                            )}
+                                        </div>
+                                        <span className="font-medium mt-1">{notification.title}</span>
+                                        {notification.message && (
+                                            <span className="text-sm text-muted-foreground line-clamp-2">
+                                                {notification.message}
+                                            </span>
                                         )}
                                     </div>
-                                    <span className="font-medium mt-1">{notification.title}</span>
-                                    {notification.message && (
-                                        <span className="text-sm text-muted-foreground line-clamp-2">
-                                            {notification.message}
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                            <div
-                                className="text-center p-2 text-primary cursor-pointer hover:bg-accent"
-                                onClick={() => { setIsOpen(false); setLocation('/notifications'); }}
-                            >
-                                عرض كل الإشعارات
+                                ))}
                             </div>
-                        </div>
-                    ) : (
-                        <div className="p-4 text-center text-muted-foreground">
-                            لا توجد إشعارات
-                        </div>
-                    )}
+                        ) : (
+                            <div className="p-6 text-center text-muted-foreground">
+                                لا توجد إشعارات
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div
+                        className="border-t p-2 text-center text-primary cursor-pointer hover:bg-accent"
+                        onClick={() => { setIsOpen(false); setLocation('/notifications'); }}
+                    >
+                        عرض كل الإشعارات
+                    </div>
                 </div>
             )}
         </div>
