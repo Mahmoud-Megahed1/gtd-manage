@@ -42,9 +42,9 @@ export default function Notifications() {
   });
 
   const sendNotification = trpc.notifications.send.useMutation({
-    onSuccess: () => {
-      toast.success("تم إرسال الإشعار بنجاح");
-      setNewNotif({ userId: '', title: '', message: '', type: 'info' });
+    onSuccess: (data) => {
+      toast.success(`تم إرسال الإشعار لـ ${data.count} موظف`);
+      setNewNotif({ userIds: [], title: '', message: '', type: 'info' });
       utils.notifications.listSent.invalidate();
     },
     onError: () => toast.error("تعذر إرسال الإشعار")
@@ -59,7 +59,7 @@ export default function Notifications() {
     onError: () => toast.error("فشل إرسال الرسالة")
   });
 
-  const [newNotif, setNewNotif] = useState({ userId: '', title: '', message: '', type: 'info' });
+  const [newNotif, setNewNotif] = useState({ userIds: [] as number[], title: '', message: '', type: 'info' });
   const [msgToAdmin, setMsgToAdmin] = useState({ title: '', message: '' });
 
   const unreadCount = countData?.count || 0;
@@ -314,41 +314,63 @@ export default function Notifications() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="h-5 w-5" />
-                    إرسال إشعار لموظف
+                    إرسال إشعار للموظفين
                   </CardTitle>
-                  <CardDescription>إرسال إشعار مباشر لأحد الموظفين</CardDescription>
+                  <CardDescription>إرسال إشعار مباشر لواحد أو أكثر من الموظفين</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">الموظف</label>
-                      <Select value={newNotif.userId} onValueChange={(v) => setNewNotif({ ...newNotif, userId: v })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر موظف" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users?.filter((u: any) => u.id !== user?.id).map((u: any) => (
-                            <SelectItem key={u.id} value={String(u.id)}>
-                              {u.name || u.email}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">اختر الموظفين ({newNotif.userIds.length} محدد)</label>
+                    <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
+                        <input
+                          type="checkbox"
+                          id="select-all"
+                          className="h-4 w-4 rounded"
+                          checked={newNotif.userIds.length === (users?.filter((u: any) => u.id !== user?.id).length || 0)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewNotif({ ...newNotif, userIds: users?.filter((u: any) => u.id !== user?.id).map((u: any) => u.id) || [] });
+                            } else {
+                              setNewNotif({ ...newNotif, userIds: [] });
+                            }
+                          }}
+                        />
+                        <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">تحديد الكل</label>
+                      </div>
+                      {users?.filter((u: any) => u.id !== user?.id).map((u: any) => (
+                        <div key={u.id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`user-${u.id}`}
+                            className="h-4 w-4 rounded"
+                            checked={newNotif.userIds.includes(u.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewNotif({ ...newNotif, userIds: [...newNotif.userIds, u.id] });
+                              } else {
+                                setNewNotif({ ...newNotif, userIds: newNotif.userIds.filter(id => id !== u.id) });
+                              }
+                            }}
+                          />
+                          <label htmlFor={`user-${u.id}`} className="text-sm cursor-pointer">{u.name || u.email}</label>
+                        </div>
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">النوع</label>
-                      <Select value={newNotif.type} onValueChange={(v) => setNewNotif({ ...newNotif, type: v })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="info">معلومة</SelectItem>
-                          <SelectItem value="success">نجاح</SelectItem>
-                          <SelectItem value="warning">تنبيه</SelectItem>
-                          <SelectItem value="action">مطلوب إجراء</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">النوع</label>
+                    <Select value={newNotif.type} onValueChange={(v) => setNewNotif({ ...newNotif, type: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="info">معلومة</SelectItem>
+                        <SelectItem value="success">نجاح</SelectItem>
+                        <SelectItem value="warning">تنبيه</SelectItem>
+                        <SelectItem value="action">مطلوب إجراء</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">العنوان</label>
@@ -369,15 +391,15 @@ export default function Notifications() {
                   </div>
                   <Button
                     onClick={() => sendNotification.mutate({
-                      userId: Number(newNotif.userId),
+                      userIds: newNotif.userIds,
                       title: newNotif.title,
                       message: newNotif.message || undefined,
                       type: newNotif.type as any
                     })}
-                    disabled={sendNotification.isPending || !newNotif.userId || !newNotif.title.trim()}
+                    disabled={sendNotification.isPending || newNotif.userIds.length === 0 || !newNotif.title.trim()}
                   >
                     <Send className="h-4 w-4 ml-2" />
-                    {sendNotification.isPending ? "جاري الإرسال..." : "إرسال الإشعار"}
+                    {sendNotification.isPending ? "جاري الإرسال..." : `إرسال لـ ${newNotif.userIds.length} موظف`}
                   </Button>
                 </CardContent>
               </Card>

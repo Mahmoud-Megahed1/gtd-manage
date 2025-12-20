@@ -251,10 +251,10 @@ export const notificationsRouter = router({
         return { success: true };
     }),
 
-    // Send notification (admin only)
+    // Send notification to one or more users (admin only)
     send: protectedProcedure
         .input(z.object({
-            userId: z.number(),
+            userIds: z.array(z.number()).min(1, 'اختر موظف واحد على الأقل'),
             title: z.string(),
             message: z.string().optional(),
             type: z.enum(['info', 'warning', 'success', 'action']).default('info'),
@@ -266,16 +266,19 @@ export const notificationsRouter = router({
                 throw new TRPCError({ code: 'FORBIDDEN', message: 'لا تملك صلاحية إرسال الإشعارات' });
             }
 
-            await createNotification({
-                userId: input.userId,
-                fromUserId: ctx.user.id,
-                type: input.type,
-                title: input.title,
-                message: input.message,
-                link: input.link
-            });
+            // Send to all selected users
+            for (const userId of input.userIds) {
+                await createNotification({
+                    userId,
+                    fromUserId: ctx.user.id,
+                    type: input.type,
+                    title: input.title,
+                    message: input.message,
+                    link: input.link
+                });
+            }
 
-            return { success: true };
+            return { success: true, count: input.userIds.length };
         }),
 
     // Delete a notification
