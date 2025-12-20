@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Save, Upload, Users, Building2, Shield, Database, Trash2 } from "lucide-react";
+import { Save, Upload, Users, Building2, Shield, Database, Trash2, KeyRound } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import AuthHealth from "@/components/AuthHealth";
@@ -43,6 +43,10 @@ export default function Settings() {
   const sendResetLinkMutation = trpc.users.sendResetLink.useMutation({
     onSuccess: () => toast.success("تم إرسال رابط تعيين كلمة السر للمستخدم"),
     onError: (error) => toast.error(error.message || "فشل إرسال الرابط"),
+  });
+  const sendTempPasswordMutation = trpc.users.sendTempPassword.useMutation({
+    onSuccess: () => toast.success("تم إرسال كلمة سر مؤقتة للمستخدم"),
+    onError: (error) => toast.error(error.message || "فشل إرسال كلمة سر مؤقتة"),
   });
   const sendNotificationMutation = trpc.notifications.send.useMutation({
     onSuccess: () => toast.success("تم إرسال الإشعار بنجاح!"),
@@ -528,6 +532,19 @@ export default function Settings() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              disabled={sendTempPasswordMutation.isPending}
+                              onClick={() => {
+                                if (confirm(`إرسال كلمة سر مؤقتة لـ ${user.name || user.email}؟ سيجب عليه تغييرها بعد الدخول.`)) {
+                                  sendTempPasswordMutation.mutate({ userId: user.id });
+                                }
+                              }}
+                              title="إرسال كلمة سر مؤقتة للمستخدم"
+                            >
+                              {sendTempPasswordMutation.isPending ? "جاري..." : "🔑 مؤقتة"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               disabled={sendNotificationMutation.isPending}
                               onClick={() => {
                                 const title = prompt("عنوان الإشعار:");
@@ -598,6 +615,9 @@ export default function Settings() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Password Reset Requests */}
+            <PasswordResetRequestsCard />
           </TabsContent>
 
           {/* Security Settings */}
@@ -822,5 +842,128 @@ function ApprovalsSection() {
         ))}
       </TableBody>
     </Table>
+  );
+}
+
+// Password Reset Requests Card Component
+function PasswordResetRequestsCard() {
+  const utils = trpc.useUtils();
+  const { data: requests, isLoading } = trpc.users.listResetRequests.useQuery();
+
+  const approveWithLinkMutation = trpc.users.approveResetWithLink.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال رابط تعيين كلمة السر");
+      utils.users.listResetRequests.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const approveWithTempMutation = trpc.users.approveResetWithTempPassword.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال كلمة سر مؤقتة");
+      utils.users.listResetRequests.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const rejectMutation = trpc.users.rejectResetRequest.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض الطلب");
+      utils.users.listResetRequests.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const pendingRequests = requests?.filter((r: any) => r.status === 'pending') || [];
+
+  const roleLabels: Record<string, string> = {
+    admin: 'مدير النظام',
+    hr_manager: 'مدير الموارد البشرية',
+    project_manager: 'مدير مشاريع',
+    accountant: 'محاسب',
+    designer: 'مصمم',
+    viewer: 'مشاهد',
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <KeyRound className="w-5 h-5" />
+          طلبات إعادة تعيين كلمة السر
+          {pendingRequests.length > 0 && (
+            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+              {pendingRequests.length}
+            </span>
+          )}
+        </CardTitle>
+        <CardDescription>الموظفين الذين طلبوا استعادة كلمة السر</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-center text-muted-foreground">جاري التحميل...</p>
+        ) : pendingRequests.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <KeyRound className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p>لا توجد طلبات معلقة</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>الموظف</TableHead>
+                <TableHead>البريد</TableHead>
+                <TableHead>الدور</TableHead>
+                <TableHead>التاريخ</TableHead>
+                <TableHead>الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingRequests.map((req: any) => (
+                <TableRow key={req.id}>
+                  <TableCell className="font-medium">{req.userName || '-'}</TableCell>
+                  <TableCell>{req.userEmail || '-'}</TableCell>
+                  <TableCell>{roleLabels[req.userRole] || req.userRole}</TableCell>
+                  <TableCell>{new Date(req.createdAt).toLocaleDateString('ar-SA')}</TableCell>
+                  <TableCell className="space-x-2 space-x-reverse">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      disabled={approveWithLinkMutation.isPending}
+                      onClick={() => approveWithLinkMutation.mutate({ requestId: req.id })}
+                      title="إرسال رابط للمستخدم لتعيين كلمة سر بنفسه"
+                    >
+                      📧 رابط
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={approveWithTempMutation.isPending}
+                      onClick={() => approveWithTempMutation.mutate({ requestId: req.id })}
+                      title="إرسال كلمة سر مؤقتة - ستظهر للمستخدم في صفحة نسيت كلمة السر"
+                    >
+                      🔑 مؤقتة
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={rejectMutation.isPending}
+                      onClick={() => {
+                        const reason = prompt("سبب الرفض:");
+                        if (reason !== null) {
+                          rejectMutation.mutate({ requestId: req.id, reason });
+                        }
+                      }}
+                    >
+                      ❌ رفض
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
