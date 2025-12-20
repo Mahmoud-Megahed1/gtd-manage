@@ -1963,6 +1963,17 @@ export const appRouter = router({
           })
           .where(eq(passwordResetRequests.id, input.requestId));
 
+        // Send notification to user with temp password
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: request[0].userId,
+          fromUserId: ctx.user.id,
+          type: 'success',
+          title: '✅ تم الموافقة على طلبك',
+          message: `كلمة السر المؤقتة: ${tempPassword} - يجب تغييرها بعد الدخول`,
+          link: '/'
+        });
+
         await logAudit(ctx.user.id, 'APPROVE_RESET_WITH_TEMP', 'passwordResetRequest', input.requestId, '', ctx);
         return { success: true };
       }),
