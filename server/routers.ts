@@ -1525,7 +1525,7 @@ export const appRouter = router({
           type: 'success',
           title: 'تم تعيين كلمة سر جديدة',
           message: `تم تعيين كلمة سر جديدة لحسابك بواسطة ${ctx.user.name || 'المدير'}`,
-          link: '/settings'
+          link: '/'
         });
 
         return { success: true };
