@@ -433,5 +433,23 @@ CREATE TABLE IF NOT EXISTS `projectTeam` (
   UNIQUE KEY `projectTeam_projectUser_unique` (`projectId`, `userId`)
 );
 
+-- 29. Notifications
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` int AUTO_INCREMENT PRIMARY KEY,
+  `userId` int NOT NULL,
+  `fromUserId` int,
+  `type` enum('info','warning','success','action') NOT NULL DEFAULT 'info',
+  `title` varchar(255) NOT NULL,
+  `message` text,
+  `link` varchar(500),
+  `entityType` varchar(50),
+  `entityId` int,
+  `groupKey` varchar(100),
+  `isRead` int NOT NULL DEFAULT 0,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_notifications_userId` (`userId`),
+  INDEX `idx_notifications_isRead` (`isRead`)
+);
+
 -- Done! All tables created.
 SELECT 'All tables created successfully!' AS status;
