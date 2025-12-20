@@ -106,6 +106,46 @@ export const notificationsRouter = router({
                 .limit(limit);
         }),
 
+    // List notifications SENT by current user
+    listSent: protectedProcedure
+        .input(z.object({
+            limit: z.number().default(50)
+        }).optional())
+        .query(async ({ ctx, input }) => {
+            const db = await getDb();
+            const limit = input?.limit || 50;
+
+            if (!db) {
+                return demo.list("notifications")
+                    .filter((n: any) => n.fromUserId === ctx.user.id)
+                    .sort((a: any, b: any) =>
+                        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    ).slice(0, limit);
+            }
+
+            // Get notifications sent by this user, join with users to get recipient name
+            const { users } = await import("../../drizzle/schema");
+            const sent = await db.select({
+                id: notifications.id,
+                userId: notifications.userId,
+                type: notifications.type,
+                title: notifications.title,
+                message: notifications.message,
+                link: notifications.link,
+                isRead: notifications.isRead,
+                createdAt: notifications.createdAt,
+                recipientName: users.name,
+                recipientEmail: users.email
+            })
+                .from(notifications)
+                .leftJoin(users, eq(notifications.userId, users.id))
+                .where(eq(notifications.fromUserId, ctx.user.id))
+                .orderBy(desc(notifications.createdAt))
+                .limit(limit);
+
+            return sent;
+        }),
+
     // Get unread count for current user
     unreadCount: protectedProcedure.query(async ({ ctx }) => {
         const db = await getDb();

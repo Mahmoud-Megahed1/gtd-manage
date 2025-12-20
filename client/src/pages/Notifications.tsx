@@ -9,17 +9,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Bell, CheckCheck, Trash2, Send, MessageSquare } from "lucide-react";
+import { Bell, CheckCheck, Trash2, Send, MessageSquare, MailCheck, MailX, ArrowUpRight } from "lucide-react";
 
 export default function Notifications() {
   const { user } = useAuth({ redirectOnUnauthenticated: true });
 
   const utils = trpc.useUtils();
   const { data: notifications, isLoading } = trpc.notifications.list.useQuery({ limit: 50 });
+  const { data: sentNotifications, isLoading: sentLoading } = trpc.notifications.listSent.useQuery({ limit: 50 });
   const { data: countData } = trpc.notifications.unreadCount.useQuery();
   const { data: users } = trpc.users.list.useQuery();
 
@@ -39,20 +41,20 @@ export default function Notifications() {
     }
   });
 
-  // Send notification mutation (admin only)
   const sendNotification = trpc.notifications.send.useMutation({
     onSuccess: () => {
       toast.success("تم إرسال الإشعار بنجاح");
       setNewNotif({ userId: '', title: '', message: '', type: 'info' });
+      utils.notifications.listSent.invalidate();
     },
     onError: () => toast.error("تعذر إرسال الإشعار")
   });
 
-  // Message admin (for non-admin employees)
   const messageAdmin = trpc.notifications.messageAdmin.useMutation({
     onSuccess: () => {
       toast.success("تم إرسال الرسالة للمدير");
       setMsgToAdmin({ title: '', message: '' });
+      utils.notifications.listSent.invalidate();
     },
     onError: () => toast.error("فشل إرسال الرسالة")
   });
@@ -121,6 +123,10 @@ export default function Notifications() {
             <TabsTrigger value="inbox">
               <Bell className="h-4 w-4 ml-1" />
               الواردة ({notifications?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="sent">
+              <ArrowUpRight className="h-4 w-4 ml-1" />
+              الصادرة ({sentNotifications?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="send">
               <Send className="h-4 w-4 ml-1" />
@@ -195,6 +201,56 @@ export default function Notifications() {
                   <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">لا توجد إشعارات</h3>
                   <p className="text-muted-foreground">ستظهر الإشعارات هنا عند وصولها</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Sent Tab - الصادرة */}
+          <TabsContent value="sent">
+            {sentLoading ? (
+              <div className="text-center py-8 text-muted-foreground">جاري التحميل...</div>
+            ) : sentNotifications && sentNotifications.length > 0 ? (
+              <div className="space-y-3">
+                {sentNotifications.map((notification: any) => (
+                  <Card key={notification.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 rounded text-xs border ${getTypeColor(notification.type)}`}>
+                              {getTypeLabel(notification.type)}
+                            </span>
+                            <Badge variant={notification.isRead ? "secondary" : "outline"} className="gap-1">
+                              {notification.isRead ? (
+                                <><MailCheck className="h-3 w-3" /> تم القراءة</>
+                              ) : (
+                                <><MailX className="h-3 w-3" /> لم يُقرأ</>
+                              )}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(notification.createdAt)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mb-1">
+                            إلى: <span className="font-medium text-foreground">{notification.recipientName || notification.recipientEmail || `مستخدم #${notification.userId}`}</span>
+                          </div>
+                          <h3 className="font-medium mb-1">{notification.title}</h3>
+                          {notification.message && (
+                            <p className="text-sm text-muted-foreground">{notification.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <ArrowUpRight className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">لا توجد إشعارات صادرة</h3>
+                  <p className="text-muted-foreground">الإشعارات التي ترسلها ستظهر هنا</p>
                 </CardContent>
               </Card>
             )}
