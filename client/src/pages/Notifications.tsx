@@ -217,23 +217,34 @@ export default function Notifications() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className={`px-2 py-0.5 rounded text-xs border ${getTypeColor(notification.type)}`}>
                               {getTypeLabel(notification.type)}
                             </span>
-                            <Badge variant={notification.isRead ? "secondary" : "outline"} className="gap-1">
-                              {notification.isRead ? (
-                                <><MailCheck className="h-3 w-3" /> تم القراءة</>
-                              ) : (
-                                <><MailX className="h-3 w-3" /> لم يُقرأ</>
-                              )}
-                            </Badge>
+                            {notification.readCount !== undefined && (
+                              <>
+                                {notification.readCount > 0 && (
+                                  <Badge variant="secondary" className="gap-1">
+                                    <MailCheck className="h-3 w-3" />
+                                    قرأها {notification.readCount}
+                                  </Badge>
+                                )}
+                                {notification.unreadCount > 0 && (
+                                  <Badge variant="outline" className="gap-1">
+                                    <MailX className="h-3 w-3" />
+                                    لم يقرأها {notification.unreadCount}
+                                  </Badge>
+                                )}
+                              </>
+                            )}
                             <span className="text-xs text-muted-foreground">
                               {formatTime(notification.createdAt)}
                             </span>
                           </div>
                           <div className="text-xs text-muted-foreground mb-1">
-                            إلى: <span className="font-medium text-foreground">{notification.recipientName || notification.recipientEmail || `مستخدم #${notification.userId}`}</span>
+                            إلى: <span className="font-medium text-foreground">
+                              {notification.recipients ? notification.recipients.join('، ') : (notification.recipientName || `مستخدم #${notification.userId}`)}
+                            </span>
                           </div>
                           <h3 className="font-medium mb-1">{notification.title}</h3>
                           {notification.message && (

@@ -106,7 +106,7 @@ export const notificationsRouter = router({
                 .limit(limit);
         }),
 
-    // List notifications SENT by current user
+    // List notifications SENT by current user (grouped by message)
     listSent: protectedProcedure
         .input(z.object({
             limit: z.number().default(50)
@@ -125,7 +125,7 @@ export const notificationsRouter = router({
 
             // Get notifications sent by this user, join with users to get recipient name
             const { users } = await import("../../drizzle/schema");
-            const sent = await db.select({
+            const allSent = await db.select({
                 id: notifications.id,
                 userId: notifications.userId,
                 type: notifications.type,
@@ -141,9 +141,46 @@ export const notificationsRouter = router({
                 .leftJoin(users, eq(notifications.userId, users.id))
                 .where(eq(notifications.fromUserId, ctx.user.id))
                 .orderBy(desc(notifications.createdAt))
-                .limit(limit);
+                .limit(200);
 
-            return sent;
+            // Group notifications by title+message (same message sent to multiple users)
+            const grouped = new Map<string, {
+                id: number;
+                type: string;
+                title: string;
+                message: string | null;
+                link: string | null;
+                createdAt: Date;
+                recipients: string[];
+                readCount: number;
+                unreadCount: number;
+            }>();
+
+            for (const n of allSent) {
+                const key = `${n.title}|${n.message || ''}|${new Date(n.createdAt).toDateString()}`;
+                if (!grouped.has(key)) {
+                    grouped.set(key, {
+                        id: n.id,
+                        type: n.type || 'info',
+                        title: n.title,
+                        message: n.message,
+                        link: n.link,
+                        createdAt: n.createdAt,
+                        recipients: [],
+                        readCount: 0,
+                        unreadCount: 0
+                    });
+                }
+                const group = grouped.get(key)!;
+                group.recipients.push(n.recipientName || n.recipientEmail || `User #${n.userId}`);
+                if (n.isRead) {
+                    group.readCount++;
+                } else {
+                    group.unreadCount++;
+                }
+            }
+
+            return Array.from(grouped.values()).slice(0, limit);
         }),
 
     // Get unread count for current user
