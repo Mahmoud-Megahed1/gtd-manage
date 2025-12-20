@@ -3,19 +3,25 @@
  Unauthorized use or reproduction is prohibited.
 */
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Bell, CheckCheck, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, Trash2, Send, MessageSquare } from "lucide-react";
 
 export default function Notifications() {
-  useAuth({ redirectOnUnauthenticated: true });
+  const { user } = useAuth({ redirectOnUnauthenticated: true });
 
   const utils = trpc.useUtils();
   const { data: notifications, isLoading } = trpc.notifications.list.useQuery({ limit: 50 });
   const { data: countData } = trpc.notifications.unreadCount.useQuery();
+  const { data: users } = trpc.users.list.useQuery();
 
   const markReadMutation = trpc.notifications.markRead.useMutation({
     onSuccess: () => utils.notifications.invalidate()
@@ -33,7 +39,33 @@ export default function Notifications() {
     }
   });
 
+  // Send notification mutation (admin only)
+  const sendNotification = trpc.notifications.send.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال الإشعار بنجاح");
+      setNewNotif({ userId: '', title: '', message: '', type: 'info' });
+    },
+    onError: () => toast.error("تعذر إرسال الإشعار")
+  });
+
+  // Notify owner (employee to admin)
+  const notifyOwner = trpc.system.notifyOwner.useMutation({
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success("تم إرسال الرسالة للمدير");
+        setMsgToAdmin({ title: '', content: '' });
+      } else {
+        toast.error("تعذر إرسال الرسالة");
+      }
+    },
+    onError: () => toast.error("فشل إرسال الرسالة")
+  });
+
+  const [newNotif, setNewNotif] = useState({ userId: '', title: '', message: '', type: 'info' });
+  const [msgToAdmin, setMsgToAdmin] = useState({ title: '', content: '' });
+
   const unreadCount = countData?.count || 0;
+  const isAdmin = user?.role === 'admin' || user?.role === 'hr_manager';
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -88,74 +120,205 @@ export default function Notifications() {
           )}
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">جاري التحميل...</div>
-        ) : notifications && notifications.length > 0 ? (
-          <div className="space-y-3">
-            {notifications.map((notification: any) => (
-              <Card
-                key={notification.id}
-                className={`transition-all ${!notification.isRead ? 'border-blue-300 bg-blue-50/50 dark:bg-blue-950/20' : ''}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-xs border ${getTypeColor(notification.type)}`}>
-                          {getTypeLabel(notification.type)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTime(notification.createdAt)}
-                        </span>
-                        {!notification.isRead && (
-                          <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
-                        )}
+        <Tabs defaultValue="inbox" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="inbox">
+              <Bell className="h-4 w-4 ml-1" />
+              الواردة ({notifications?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="send">
+              <Send className="h-4 w-4 ml-1" />
+              إرسال رسالة
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Inbox Tab */}
+          <TabsContent value="inbox">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">جاري التحميل...</div>
+            ) : notifications && notifications.length > 0 ? (
+              <div className="space-y-3">
+                {notifications.map((notification: any) => (
+                  <Card
+                    key={notification.id}
+                    className={`transition-all ${!notification.isRead ? 'border-blue-300 bg-blue-50/50 dark:bg-blue-950/20' : ''}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-0.5 rounded text-xs border ${getTypeColor(notification.type)}`}>
+                              {getTypeLabel(notification.type)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(notification.createdAt)}
+                            </span>
+                            {!notification.isRead && (
+                              <span className="h-2 w-2 bg-blue-500 rounded-full"></span>
+                            )}
+                          </div>
+                          <h3 className="font-medium mb-1">{notification.title}</h3>
+                          {notification.message && (
+                            <p className="text-sm text-muted-foreground">{notification.message}</p>
+                          )}
+                          {notification.link && (
+                            <a href={notification.link} className="text-sm text-primary hover:underline mt-2 inline-block">
+                              عرض التفاصيل ←
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          {!notification.isRead && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => markReadMutation.mutate({ notificationId: notification.id })}
+                              title="تحديد كمقروء"
+                            >
+                              <CheckCheck className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteMutation.mutate({ notificationId: notification.id })}
+                            title="حذف"
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <h3 className="font-medium mb-1">{notification.title}</h3>
-                      {notification.message && (
-                        <p className="text-sm text-muted-foreground">{notification.message}</p>
-                      )}
-                      {notification.link && (
-                        <a href={notification.link} className="text-sm text-primary hover:underline mt-2 inline-block">
-                          عرض التفاصيل ←
-                        </a>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      {!notification.isRead && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => markReadMutation.mutate({ notificationId: notification.id })}
-                          title="تحديد كمقروء"
-                        >
-                          <CheckCheck className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteMutation.mutate({ notificationId: notification.id })}
-                        title="حذف"
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">لا توجد إشعارات</h3>
+                  <p className="text-muted-foreground">ستظهر الإشعارات هنا عند وصولها</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">لا توجد إشعارات</h3>
-              <p className="text-muted-foreground">ستظهر الإشعارات هنا عند وصولها</p>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </TabsContent>
+
+          {/* Send Tab */}
+          <TabsContent value="send" className="space-y-4">
+            {/* Employee to Admin */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  إرسال رسالة للمدير
+                </CardTitle>
+                <CardDescription>أرسل رسالة أو استفسار لمدير النظام</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">العنوان</label>
+                  <Input
+                    value={msgToAdmin.title}
+                    onChange={(e) => setMsgToAdmin({ ...msgToAdmin, title: e.target.value })}
+                    placeholder="عنوان الرسالة"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">المحتوى</label>
+                  <Textarea
+                    value={msgToAdmin.content}
+                    onChange={(e) => setMsgToAdmin({ ...msgToAdmin, content: e.target.value })}
+                    rows={4}
+                    placeholder="اكتب رسالتك هنا..."
+                  />
+                </div>
+                <Button
+                  onClick={() => notifyOwner.mutate(msgToAdmin)}
+                  disabled={notifyOwner.isPending || !msgToAdmin.title.trim() || !msgToAdmin.content.trim()}
+                >
+                  <Send className="h-4 w-4 ml-2" />
+                  {notifyOwner.isPending ? "جاري الإرسال..." : "إرسال للمدير"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Admin to Employee (visible only for admins) */}
+            {isAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    إرسال إشعار لموظف
+                  </CardTitle>
+                  <CardDescription>إرسال إشعار مباشر لأحد الموظفين</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">الموظف</label>
+                      <Select value={newNotif.userId} onValueChange={(v) => setNewNotif({ ...newNotif, userId: v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر موظف" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users?.filter((u: any) => u.id !== user?.id).map((u: any) => (
+                            <SelectItem key={u.id} value={String(u.id)}>
+                              {u.name || u.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">النوع</label>
+                      <Select value={newNotif.type} onValueChange={(v) => setNewNotif({ ...newNotif, type: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="info">معلومة</SelectItem>
+                          <SelectItem value="success">نجاح</SelectItem>
+                          <SelectItem value="warning">تنبيه</SelectItem>
+                          <SelectItem value="action">مطلوب إجراء</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">العنوان</label>
+                    <Input
+                      value={newNotif.title}
+                      onChange={(e) => setNewNotif({ ...newNotif, title: e.target.value })}
+                      placeholder="عنوان الإشعار"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">الرسالة (اختياري)</label>
+                    <Textarea
+                      value={newNotif.message}
+                      onChange={(e) => setNewNotif({ ...newNotif, message: e.target.value })}
+                      rows={3}
+                      placeholder="تفاصيل إضافية..."
+                    />
+                  </div>
+                  <Button
+                    onClick={() => sendNotification.mutate({
+                      userId: Number(newNotif.userId),
+                      title: newNotif.title,
+                      message: newNotif.message || undefined,
+                      type: newNotif.type as any
+                    })}
+                    disabled={sendNotification.isPending || !newNotif.userId || !newNotif.title.trim()}
+                  >
+                    <Send className="h-4 w-4 ml-2" />
+                    {sendNotification.isPending ? "جاري الإرسال..." : "إرسال الإشعار"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
