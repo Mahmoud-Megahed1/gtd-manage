@@ -34,6 +34,7 @@ import {
 
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import ProjectTasksContent from "@/components/ProjectTasksContent";
 
 export default function ProjectDetails() {
   const params = useParams();
@@ -493,107 +494,7 @@ export default function ProjectDetails() {
           </TabsContent>
 
           <TabsContent value="tasks" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>إضافة مهمة</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm">اسم المهمة</label>
-                      <input
-                        className="w-full p-2 border rounded"
-                        value={newTask.name}
-                        onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm">تاريخ البداية</label>
-                      <input
-                        type="date"
-                        className="w-full p-2 border rounded"
-                        value={newTask.startDate}
-                        onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-sm">الوصف</label>
-                      <textarea
-                        className="w-full p-2 border rounded"
-                        value={newTask.description}
-                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm">تاريخ النهاية</label>
-                      <input
-                        type="date"
-                        className="w-full p-2 border rounded"
-                        value={newTask.endDate}
-                        onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      if (!newTask.name.trim()) {
-                        toast.error("يرجى إدخال اسم المهمة");
-                        return;
-                      }
-                      createTask.mutate({
-                        projectId,
-                        name: newTask.name,
-                        description: newTask.description || undefined,
-                        startDate: newTask.startDate ? new Date(newTask.startDate) : undefined,
-                        endDate: newTask.endDate ? new Date(newTask.endDate) : undefined
-                      });
-                      setNewTask({ name: "", description: "", startDate: "", endDate: "" });
-                    }}
-                  >
-                    إضافة
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>المهام</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {tasks && tasks.length > 0 ? (
-                    <div className="space-y-2">
-                      {tasks.map((t: any) => (
-                        <div key={t.id} className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <p className="font-medium">{t.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {t.startDate ? new Date(t.startDate).toLocaleDateString('ar-SA') : '-'}
-                              {t.endDate ? ` — ${new Date(t.endDate).toLocaleDateString('ar-SA')}` : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge>
-                              {t.status === 'done' ? 'منجزة' :
-                                t.status === 'in_progress' ? 'جارية' :
-                                  t.status === 'cancelled' ? 'ملغاة' : 'مخططة'}
-                            </Badge>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteTask.mutate({ id: t.id })}
-                            >
-                              حذف
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">لا توجد مهام</div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <ProjectTasksContent projectId={projectId} />
           </TabsContent>
         </Tabs>
 
