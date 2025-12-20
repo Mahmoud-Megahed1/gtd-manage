@@ -44,6 +44,10 @@ export default function Settings() {
     onSuccess: () => toast.success("تم إرسال رابط تعيين كلمة السر للمستخدم"),
     onError: (error) => toast.error(error.message || "فشل إرسال الرابط"),
   });
+  const sendNotificationMutation = trpc.notifications.send.useMutation({
+    onSuccess: () => toast.success("تم إرسال الإشعار بنجاح!"),
+    onError: (error) => toast.error(error.message || "فشل إرسال الإشعار"),
+  });
   const updateRoleMutation = trpc.users.updateRole.useMutation({
     onSuccess: (data) => {
       toast.success(data.message || "تم تغيير الدور بنجاح");
@@ -519,7 +523,26 @@ export default function Settings() {
                               }}
                               title="إرسال رابط للمستخدم لتعيين كلمة سر بنفسه"
                             >
-                              {sendResetLinkMutation.isPending ? "جاري..." : "📧 إرسال رابط"}
+                              {sendResetLinkMutation.isPending ? "جاري..." : "📧 رابط"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={sendNotificationMutation.isPending}
+                              onClick={() => {
+                                const title = prompt("عنوان الإشعار:");
+                                if (!title) return;
+                                const message = prompt("محتوى الإشعار (اختياري):");
+                                sendNotificationMutation.mutate({
+                                  userId: user.id,
+                                  title,
+                                  message: message || undefined,
+                                  type: 'info'
+                                });
+                              }}
+                              title="إرسال إشعار مخصص للمستخدم"
+                            >
+                              {sendNotificationMutation.isPending ? "جاري..." : "🔔 إشعار"}
                             </Button>
                           </TableCell>
                         </TableRow>
