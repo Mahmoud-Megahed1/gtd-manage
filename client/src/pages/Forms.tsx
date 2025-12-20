@@ -5,17 +5,23 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { FileText, Plus, Trash2, FileDiff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import ChangeOrdersContent from "@/components/ChangeOrdersContent";
 
 export default function Forms() {
   const { data: forms, isLoading, refetch } = trpc.forms.list.useQuery();
-  const [activeTab, setActiveTab] = useState<"requests" | "modifications">("requests");
+  const search = useSearch();
+  const urlParams = new URLSearchParams(search);
+  const initialTab = urlParams.get('tab') || 'requests';
+  const [activeTab, setActiveTab] = useState<"requests" | "modifications" | "change-orders">(
+    initialTab === 'change-orders' ? 'change-orders' : initialTab === 'modifications' ? 'modifications' : 'requests'
+  );
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
@@ -29,6 +35,16 @@ export default function Forms() {
     }
   });
 
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as any);
+    if (value === 'requests') {
+      setLocation('/forms');
+    } else {
+      setLocation(`/forms?tab=${value}`);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -36,15 +52,19 @@ export default function Forms() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">الاستمارات</h1>
             <p className="text-muted-foreground mt-2">
-              إدارة استمارات طلبات العملاء وتعديلاتهم
+              إدارة استمارات طلبات العملاء وتعديلاتهم وطلبات التغيير
             </p>
           </div>
         </div>
 
-        <Tabs defaultValue="requests" value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="requests">طلبات العملاء</TabsTrigger>
-            <TabsTrigger value="modifications">تعديلات العملاء</TabsTrigger>
+            <TabsTrigger value="modifications">التعديلات</TabsTrigger>
+            <TabsTrigger value="change-orders">
+              <FileDiff className="w-4 h-4 ml-1" />
+              طلبات التغيير
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="requests" className="mt-6 space-y-6">
@@ -181,6 +201,11 @@ export default function Forms() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* طلبات التغيير Tab */}
+          <TabsContent value="change-orders" className="mt-6">
+            <ChangeOrdersContent />
           </TabsContent>
         </Tabs>
       </div>

@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { AddSaleDialog } from "@/components/AddSaleDialog";
 import { AddPurchaseDialog } from "@/components/AddPurchaseDialog";
 import { AddInstallmentDialog } from "@/components/AddInstallmentDialog";
+import { useSearch, useLocation } from "wouter";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -259,6 +260,23 @@ export default function Accounting() {
   };
   // ========== End Advanced Reports ==========
 
+  // URL tab param handling for redirect from /reports
+  const search = useSearch();
+  const [, setLocationFn] = useLocation();
+  const urlParams = new URLSearchParams(search);
+  const initialTab = urlParams.get('tab') || 'expenses';
+  const [activeTab, setActiveTab] = useState<string>(
+    ['expenses', 'sales', 'purchases', 'reports'].includes(initialTab) ? initialTab : 'expenses'
+  );
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'expenses') {
+      setLocationFn('/accounting');
+    } else {
+      setLocationFn(`/accounting?tab=${value}`);
+    }
+  };
+
   const createExpense = trpc.accounting.expenses.create.useMutation({
     onSuccess: () => {
       toast.success("تم إضافة التكلفة بنجاح");
@@ -436,7 +454,7 @@ export default function Accounting() {
           </Card>
         </div>
 
-        <Tabs defaultValue="expenses" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="expenses">التكاليف</TabsTrigger>
             <TabsTrigger value="sales">المبيعات</TabsTrigger>

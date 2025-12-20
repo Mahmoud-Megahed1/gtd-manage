@@ -54,12 +54,8 @@ const navItems: NavItem[] = [
   { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
   // Clients - admin, sales, department_manager, and project_manager
   { title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: ["admin", "department_manager", "sales_manager", "project_manager"] },
-  // Projects - admin, project managers, and all design/engineering roles
+  // Projects - admin, project managers, and all design/engineering roles (includes Tasks)
   { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "department_manager", "project_manager", "project_coordinator", "designer", "technician", "site_engineer", "architect", "interior_designer", "planning_engineer"] },
-  // Tasks - admin, project managers, and all design/engineering roles
-  { title: "المهام", href: "/tasks", icon: <FolderKanban className="w-5 h-5" />, roles: ["admin", "department_manager", "project_manager", "project_coordinator", "designer", "technician", "site_engineer", "architect", "interior_designer", "planning_engineer"] },
-  // Change Orders - admin and project managers only
-  { title: "طلبات التغيير", href: "/change-orders", icon: <FileDiff className="w-5 h-5" />, roles: ["admin", "department_manager", "project_manager"] },
   // Invoices - admin, finance and sales
   { title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: ["admin", "accountant", "finance_manager", "sales_manager"] },
   // Forms - admin, project_manager, finance_manager

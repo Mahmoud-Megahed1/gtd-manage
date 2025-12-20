@@ -54,7 +54,7 @@ function Router() {
       <Route path={"/forms"} component={Forms} />
       <Route path={"/forms/new"} component={ClientFormNew} />
       <Route path={"/forms/:id"} component={FormDetails} />
-      <Route path={"/change-orders"} component={ChangeOrders} />
+      <Route path={"/change-orders"}>{() => <Redirect to="/forms?tab=change-orders" />}</Route>
       <Route path={"/accounting"} component={Accounting} />
       <Route path={"/hr"} component={HR} />
       <Route path={"/hr/employees/:id"} component={EmployeeProfile} />
@@ -65,9 +65,9 @@ function Router() {
       <Route path={"/modifications"} component={Modifications} />
       <Route path={"/ai-assistant"} component={AIAssistant} />
       <Route path={"/settings"} component={Settings} />
-      <Route path={"/reports"}>{() => <Redirect to="/accounting" />}</Route>
+      <Route path={"/reports"}>{() => <Redirect to="/accounting?tab=reports" />}</Route>
       <Route path={"/notifications"} component={Notifications} />
-      <Route path={"/tasks"} component={Tasks} />
+      <Route path={"/tasks"}>{() => <Redirect to="/projects" />}</Route>
       <Route path={"/tasks/:id"} component={TaskDetails} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

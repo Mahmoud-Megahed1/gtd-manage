@@ -446,7 +446,7 @@ export const users = mysqlTable("users", {
 	email: varchar({ length: 320 }),
 	passwordHash: varchar({ length: 255 }),
 	loginMethod: varchar({ length: 64 }),
-	role: mysqlEnum(['admin', 'accountant', 'finance_manager', 'project_manager', 'site_engineer', 'planning_engineer', 'procurement_officer', 'qa_qc', 'document_controller', 'architect', 'interior_designer', 'sales_manager', 'hr_manager', 'storekeeper', 'designer', 'viewer']).default('designer').notNull(),
+	role: mysqlEnum(['admin', 'department_manager', 'project_manager', 'project_coordinator', 'architect', 'interior_designer', 'site_engineer', 'planning_engineer', 'designer', 'technician', 'finance_manager', 'accountant', 'sales_manager', 'hr_manager', 'admin_assistant', 'procurement_officer', 'storekeeper', 'qa_qc', 'document_controller', 'viewer']).default('designer').notNull(),
 	isActive: tinyint().default(1).notNull(),
 	mustChangePassword: tinyint().default(0).notNull(), // Force password change on next login
 	tempPasswordExpiresAt: timestamp({ mode: 'date' }), // Temp password expiry (24h)
