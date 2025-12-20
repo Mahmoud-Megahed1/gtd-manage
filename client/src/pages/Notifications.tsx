@@ -14,7 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Bell, CheckCheck, Trash2, Send, MessageSquare, MailCheck, MailX, ArrowUpRight } from "lucide-react";
+import { Bell, CheckCheck, Trash2, Send, MessageSquare, MailCheck, MailX, ArrowUpRight, Reply } from "lucide-react";
 
 export default function Notifications() {
   const { user } = useAuth({ redirectOnUnauthenticated: true });
@@ -61,6 +61,18 @@ export default function Notifications() {
 
   const [newNotif, setNewNotif] = useState({ userIds: [] as number[], title: '', message: '', type: 'info' });
   const [msgToAdmin, setMsgToAdmin] = useState({ title: '', message: '' });
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+
+  const replyMutation = trpc.notifications.reply.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال الرد");
+      setReplyTo(null);
+      setReplyMessage('');
+      utils.notifications.listSent.invalidate();
+    },
+    onError: () => toast.error("فشل إرسال الرد")
+  });
 
   const unreadCount = countData?.count || 0;
   const isAdmin = user?.role === 'admin' || user?.role === 'hr_manager';
@@ -189,8 +201,37 @@ export default function Notifications() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                          {notification.fromUserId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setReplyTo(replyTo === notification.id ? null : notification.id)}
+                              title="رد"
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <Reply className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
+                      {/* Reply input */}
+                      {replyTo === notification.id && (
+                        <div className="mt-3 pt-3 border-t flex gap-2">
+                          <Input
+                            placeholder="اكتب ردك هنا..."
+                            value={replyMessage}
+                            onChange={(e) => setReplyMessage(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => replyMutation.mutate({ notificationId: notification.id, message: replyMessage })}
+                            disabled={replyMutation.isPending || !replyMessage.trim()}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

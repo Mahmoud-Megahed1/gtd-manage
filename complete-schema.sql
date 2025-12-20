@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `loginMethod` varchar(64),
   `role` enum('admin','accountant','finance_manager','project_manager','site_engineer','planning_engineer','procurement_officer','qa_qc','document_controller','architect','interior_designer','sales_manager','hr_manager','storekeeper','designer','viewer') NOT NULL DEFAULT 'designer',
   `isActive` tinyint NOT NULL DEFAULT 1,
+  `mustChangePassword` tinyint NOT NULL DEFAULT 0,
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `lastSignedIn` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP

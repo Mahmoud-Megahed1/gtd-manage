@@ -364,7 +364,15 @@ export const appRouter = router({
         // Update last signed in
         await db.updateUserLastSignedIn(user.id);
         await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id, undefined, ctx);
-        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+
+        // Check if user must change password (temp password was set)
+        const mustChangePassword = Boolean((user as any).mustChangePassword);
+
+        return {
+          success: true,
+          mustChangePassword,
+          user: { id: user.id, name: user.name, email: user.email, role: user.role }
+        };
       }),
   }),
 
@@ -1540,6 +1548,16 @@ export const appRouter = router({
         }
         const newHash = crypto.createHash('sha256').update(input.newPassword).digest('hex');
         await db.setUserPassword(ctx.user.id, newHash);
+
+        // Clear mustChangePassword flag if it was set
+        const conn = await db.getDb();
+        if (conn) {
+          const { users } = await import('../drizzle/schema');
+          await conn.update(users)
+            .set({ mustChangePassword: 0 })
+            .where(eq(users.id, ctx.user.id));
+        }
+
         await logAudit(ctx.user.id, 'CHANGE_PASSWORD', 'user', ctx.user.id, 'User changed their password', ctx);
         return { success: true };
       }),
@@ -1713,6 +1731,40 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'SEND_RESET_LINK', 'user', input.userId, 'Admin sent password reset link', ctx);
 
         return { success: true, message: 'تم إرسال رابط التعيين للمستخدم' };
+      }),
+
+    // Admin sends temporary password that user must change on login
+    sendTempPassword: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+        // Generate random password
+        const crypto = await import('crypto');
+        const tempPassword = crypto.randomBytes(4).toString('hex'); // 8 char password
+
+        // Hash and save
+        const hash = crypto.createHash('sha256').update(tempPassword).digest('hex');
+        const { users } = await import('../drizzle/schema');
+        await conn.update(users)
+          .set({ passwordHash: hash, mustChangePassword: 1 })
+          .where(eq(users.id, input.userId));
+
+        // Send notification to user with temp password
+        const { createNotification } = await import('./routers/notifications');
+        await createNotification({
+          userId: input.userId,
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: '🔑 كلمة سر مؤقتة',
+          message: `كلمة السر المؤقتة: ${tempPassword} - يجب تغييرها عند الدخول`,
+          link: '/'
+        });
+
+        await logAudit(ctx.user.id, 'SEND_TEMP_PASSWORD', 'user', input.userId, 'Admin sent temp password', ctx);
+
+        return { success: true, message: 'تم إرسال كلمة سر مؤقتة للمستخدم' };
       })
   }),
 

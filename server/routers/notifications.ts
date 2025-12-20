@@ -334,4 +334,49 @@ export const notificationsRouter = router({
 
             return { success: true };
         }),
+
+    // Reply to a notification (sends notification back to original sender)
+    reply: protectedProcedure
+        .input(z.object({
+            notificationId: z.number(),
+            message: z.string().min(1, 'الرسالة مطلوبة')
+        }))
+        .mutation(async ({ ctx, input }) => {
+            const db = await getDb();
+            if (!db) {
+                return { success: false, error: 'غير متاح في الوضع التجريبي' };
+            }
+
+            // Get the original notification
+            const original = await db.select()
+                .from(notifications)
+                .where(eq(notifications.id, input.notificationId))
+                .limit(1);
+
+            if (!original[0]) {
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'الإشعار غير موجود' });
+            }
+
+            // Check if user is the recipient of the original notification
+            if (original[0].userId !== ctx.user.id) {
+                throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك الرد على هذا الإشعار' });
+            }
+
+            // Reply to the original sender
+            const senderId = original[0].fromUserId;
+            if (!senderId) {
+                throw new TRPCError({ code: 'BAD_REQUEST', message: 'لا يوجد مرسل للرد عليه' });
+            }
+
+            await createNotification({
+                userId: senderId,
+                fromUserId: ctx.user.id,
+                type: 'info',
+                title: `↩️ رد من ${ctx.user.name || 'مستخدم'}`,
+                message: input.message,
+                link: '/notifications'
+            });
+
+            return { success: true };
+        }),
 });
