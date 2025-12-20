@@ -55,19 +55,31 @@ export default function ChangePassword() {
         });
     };
 
-    // Show loading while checking auth
+    // Show loading while checking auth (give time for session to stabilize)
     if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">جاري التحميل...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // If no user after loading completes, redirect to login
+    // Using setTimeout to give session time to fully establish
+    if (!user) {
+        setTimeout(() => {
+            if (!user) {
+                window.location.href = "/";
+            }
+        }, 500);
         return (
             <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
-    }
-
-    // Redirect to login if not authenticated
-    if (!user) {
-        setLocation("/");
-        return null;
     }
 
     return (
