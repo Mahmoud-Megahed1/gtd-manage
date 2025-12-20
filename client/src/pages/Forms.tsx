@@ -7,22 +7,37 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Plus, Trash2, FileDiff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation, useSearch } from "wouter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ChangeOrdersContent from "@/components/ChangeOrdersContent";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function Forms() {
   const { data: forms, isLoading, refetch } = trpc.forms.list.useQuery();
   const search = useSearch();
   const urlParams = new URLSearchParams(search);
-  const initialTab = urlParams.get('tab') || 'requests';
-  const [activeTab, setActiveTab] = useState<"requests" | "modifications" | "change-orders">(
-    initialTab === 'change-orders' ? 'change-orders' : initialTab === 'modifications' ? 'modifications' : 'requests'
-  );
   const { user } = useAuth();
+  const { canView, getAllowedTabs } = usePermission();
+
+  // Get allowed tabs for this user
+  const allowedTabs = useMemo(() => getAllowedTabs('forms'), [getAllowedTabs]);
+  const canViewForms = canView('forms');
+  const canViewChangeOrders = canView('forms.change_orders');
+
+  // Determine initial tab based on URL and permissions
+  const urlTab = urlParams.get('tab') || 'requests';
+  const initialTab = useMemo(() => {
+    if (urlTab === 'change-orders' && canViewChangeOrders) return 'change-orders';
+    if (urlTab === 'modifications' && canViewForms) return 'modifications';
+    if (canViewForms) return 'requests';
+    if (canViewChangeOrders) return 'change-orders';
+    return 'requests';
+  }, [urlTab, canViewForms, canViewChangeOrders]);
+
+  const [activeTab, setActiveTab] = useState<"requests" | "modifications" | "change-orders">(initialTab as any);
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const deleteForm = trpc.forms.delete.useMutation({
@@ -45,6 +60,9 @@ export default function Forms() {
     }
   };
 
+  // Count visible tabs for grid columns
+  const visibleTabCount = (canViewForms ? 2 : 0) + (canViewChangeOrders ? 1 : 0);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -58,13 +76,15 @@ export default function Forms() {
         </div>
 
         <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
-            <TabsTrigger value="requests">طلبات العملاء</TabsTrigger>
-            <TabsTrigger value="modifications">التعديلات</TabsTrigger>
-            <TabsTrigger value="change-orders">
-              <FileDiff className="w-4 h-4 ml-1" />
-              طلبات التغيير
-            </TabsTrigger>
+          <TabsList className={`grid w-full max-w-lg`} style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
+            {canViewForms && <TabsTrigger value="requests">طلبات العملاء</TabsTrigger>}
+            {canViewForms && <TabsTrigger value="modifications">التعديلات</TabsTrigger>}
+            {canViewChangeOrders && (
+              <TabsTrigger value="change-orders">
+                <FileDiff className="w-4 h-4 ml-1" />
+                طلبات التغيير
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="requests" className="mt-6 space-y-6">

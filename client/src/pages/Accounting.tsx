@@ -32,6 +32,7 @@ import { AddSaleDialog } from "@/components/AddSaleDialog";
 import { AddPurchaseDialog } from "@/components/AddPurchaseDialog";
 import { AddInstallmentDialog } from "@/components/AddInstallmentDialog";
 import { useSearch, useLocation } from "wouter";
+import { usePermission } from "@/hooks/usePermission";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -264,10 +265,27 @@ export default function Accounting() {
   const search = useSearch();
   const [, setLocationFn] = useLocation();
   const urlParams = new URLSearchParams(search);
-  const initialTab = urlParams.get('tab') || 'expenses';
-  const [activeTab, setActiveTab] = useState<string>(
-    ['expenses', 'sales', 'purchases', 'reports'].includes(initialTab) ? initialTab : 'expenses'
-  );
+  const { canView, getAllowedTabs } = usePermission();
+
+  // Permission checks for tabs
+  const canViewAccounting = canView('accounting');
+  const canViewReports = canView('accounting.reports');
+
+  // Determine initial tab based on URL and permissions
+  const urlTab = urlParams.get('tab') || 'expenses';
+  const initialTab = useMemo(() => {
+    if (urlTab === 'reports' && canViewReports) return 'reports';
+    if (['expenses', 'sales', 'purchases'].includes(urlTab) && canViewAccounting) return urlTab;
+    if (canViewAccounting) return 'expenses';
+    if (canViewReports) return 'reports';
+    return 'expenses';
+  }, [urlTab, canViewAccounting, canViewReports]);
+
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  // Count visible tabs for grid columns
+  const visibleTabCount = (canViewAccounting ? 3 : 0) + (canViewReports ? 1 : 0);
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'expenses') {
@@ -455,11 +473,11 @@ export default function Accounting() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="expenses">التكاليف</TabsTrigger>
-            <TabsTrigger value="sales">المبيعات</TabsTrigger>
-            <TabsTrigger value="purchases">المشتريات</TabsTrigger>
-            <TabsTrigger value="reports">التقارير</TabsTrigger>
+          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
+            {canViewAccounting && <TabsTrigger value="expenses">التكاليف</TabsTrigger>}
+            {canViewAccounting && <TabsTrigger value="sales">المبيعات</TabsTrigger>}
+            {canViewAccounting && <TabsTrigger value="purchases">المشتريات</TabsTrigger>}
+            {canViewReports && <TabsTrigger value="reports">التقارير</TabsTrigger>}
           </TabsList>
 
           {/* Expenses Tab */}
