@@ -24,7 +24,9 @@ import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
 import { usePermission } from "@/hooks/usePermission";
-import { Plus, ListTodo } from "lucide-react";
+import { Plus, ListTodo, GanttChart } from "lucide-react";
+import { Gantt, Task, ViewMode } from "gantt-task-react";
+import "gantt-task-react/dist/index.css";
 
 interface ProjectTasksContentProps {
     projectId: number;
@@ -64,6 +66,34 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
     const canCreateTasks = canCreate('tasks');
     const canDeleteTasks = canDelete('tasks');
     const canEditTasks = canEdit('tasks');
+
+    // Transform tasks for Gantt chart
+    const ganttTasks = useMemo<Task[]>(() => {
+        const list = (tasks || []) as any[];
+        const hasChildren: Record<number, boolean> = {};
+        list.forEach(t => {
+            if (t.parentId) hasChildren[t.parentId] = true;
+        });
+        const items: Task[] = [];
+        list.forEach((t) => {
+            const base = {
+                id: String(t.id),
+                name: t.name,
+                start: t.startDate ? new Date(t.startDate) : new Date(),
+                end: t.endDate ? new Date(t.endDate) : new Date(new Date().getTime() + 86400000),
+                progress: typeof t.progress === "number" ? t.progress : (t.status === "done" ? 100 : t.status === "in_progress" ? 50 : 0),
+                isDisabled: false,
+            } as any;
+            if (hasChildren[t.id]) {
+                items.push({ ...base, type: "project" });
+            } else {
+                const child: any = { ...base, type: "task" };
+                if (t.parentId) child.project = String(t.parentId);
+                items.push(child as Task);
+            }
+        });
+        return items;
+    }, [tasks]);
 
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
@@ -204,9 +234,9 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
                                             </TableCell>
                                             <TableCell>
                                                 <span className={`px-2 py-1 rounded text-xs ${t.priority === 'critical' ? 'bg-red-100 text-red-800' :
-                                                        t.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                                                            t.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                                'bg-gray-100 text-gray-800'
+                                                    t.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                                                        t.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {t.priority === 'critical' ? 'حرجة' : t.priority === 'high' ? 'مرتفعة' : t.priority === 'medium' ? 'متوسطة' : 'منخفضة'}
                                                 </span>
@@ -248,9 +278,9 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
                                                     </Select>
                                                 ) : (
                                                     <span className={`px-2 py-1 rounded text-xs ${t.status === 'done' ? 'bg-green-100 text-green-800' :
-                                                            t.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                                                t.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-gray-100 text-gray-800'
+                                                        t.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                                            t.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                                                'bg-gray-100 text-gray-800'
                                                         }`}>
                                                         {t.status === 'done' ? 'مكتملة' : t.status === 'in_progress' ? 'قيد التنفيذ' : t.status === 'cancelled' ? 'ملغاة' : 'مخططة'}
                                                     </span>
@@ -299,6 +329,29 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
                                     إضافة أول مهمة
                                 </Button>
                             )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Gantt Chart */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <GanttChart className="w-5 h-5" />
+                        <CardTitle>مخطط جانت</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="h-72 bg-muted rounded animate-pulse" />
+                    ) : ganttTasks.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <Gantt tasks={ganttTasks} viewMode={ViewMode.Month} locale="ar" />
+                        </div>
+                    ) : (
+                        <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border rounded">
+                            لا توجد مهام لعرض المخطط
                         </div>
                     )}
                 </CardContent>
