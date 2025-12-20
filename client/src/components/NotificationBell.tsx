@@ -92,7 +92,7 @@ export function NotificationBell() {
                     className="fixed bg-popover border rounded-md shadow-lg z-[99999] text-xs"
                     style={{
                         top: '50px',
-                        left: '140px',
+                        right: '290px',
                         width: '260px',
                         maxHeight: '300px',
                         direction: 'rtl'
