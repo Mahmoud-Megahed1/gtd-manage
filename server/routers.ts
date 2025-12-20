@@ -343,7 +343,21 @@ export const appRouter = router({
         if (!user.passwordHash) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'لم يتم تعيين كلمة سر لهذا الحساب' });
         }
-        // Use simple hash comparison (bcrypt-style)
+
+        // Check if temp password is expired
+        const mustChangePassword = Boolean((user as any).mustChangePassword);
+        const tempPasswordExpiresAt = (user as any).tempPasswordExpiresAt;
+        if (mustChangePassword && tempPasswordExpiresAt) {
+          const expiresAt = new Date(tempPasswordExpiresAt);
+          if (new Date() > expiresAt) {
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'انتهت صلاحية كلمة السر المؤقتة. يرجى طلب كلمة سر جديدة من المدير.'
+            });
+          }
+        }
+
+        // Use simple hash comparison
         const crypto = await import('crypto');
         const hashInput = crypto.createHash('sha256').update(input.password).digest('hex');
         if (hashInput !== user.passwordHash) {
@@ -364,9 +378,6 @@ export const appRouter = router({
         // Update last signed in
         await db.updateUserLastSignedIn(user.id);
         await logAudit(user.id, 'LOGIN_PASSWORD', 'user', user.id, undefined, ctx);
-
-        // Check if user must change password (temp password was set)
-        const mustChangePassword = Boolean((user as any).mustChangePassword);
 
         return {
           success: true,
@@ -1949,36 +1960,28 @@ export const appRouter = router({
         const tempPassword = crypto.randomBytes(4).toString('hex');
         const hash = crypto.createHash('sha256').update(tempPassword).digest('hex');
 
-        // Generate 10-minute reset link
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const tokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        // Set 24-hour expiry for temp password
+        const tempPasswordExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Update user password and set mustChangePassword
+        // Update user password, set mustChangePassword and expiry
         await conn.update(users)
-          .set({ passwordHash: hash, mustChangePassword: 1 })
+          .set({
+            passwordHash: hash,
+            mustChangePassword: 1,
+            tempPasswordExpiresAt: tempPasswordExpiresAt
+          })
           .where(eq(users.id, request[0].userId));
 
-        // Update request with both temp password and reset token
+        // Update request - store temp password for polling (user sees it in Forgot Password page)
         await conn.update(passwordResetRequests)
           .set({
             status: 'approved_temp',
             adminId: ctx.user.id,
-            tempPassword: tempPassword,
-            resetToken: resetToken,
-            tokenExpiresAt: tokenExpiresAt
+            tempPassword: tempPassword // Stored for polling - user sees in Forgot Password page
           })
           .where(eq(passwordResetRequests.id, input.requestId));
 
-        // Send notification to user with temp password AND reset link
-        const { createNotification } = await import('./routers/notifications');
-        await createNotification({
-          userId: request[0].userId,
-          fromUserId: ctx.user.id,
-          type: 'success',
-          title: '✅ تم الموافقة على طلبك',
-          message: `كلمة السر المؤقتة: ${tempPassword} (أو استخدم الرابط لتغييرها بنفسك - صالح 10 دقائق)`,
-          link: `/reset-password/${resetToken}`
-        });
+        // NO notification sent - user sees password via polling on Forgot Password page
 
         await logAudit(ctx.user.id, 'APPROVE_RESET_WITH_TEMP', 'passwordResetRequest', input.requestId, '', ctx);
         return { success: true };

@@ -24,8 +24,10 @@ export default function Home() {
   const loginMutation = trpc.auth.loginWithPassword.useMutation({
     onSuccess: (data) => {
       if (data.mustChangePassword) {
-        toast.info("يجب تغيير كلمة السر");
-        // TODO: redirect to change password page
+        toast.info("يجب تغيير كلمة السر المؤقتة");
+        refresh();
+        setLocation("/change-password");
+        return;
       }
       toast.success("تم تسجيل الدخول بنجاح");
       refresh();
@@ -151,7 +153,10 @@ export default function Home() {
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-orange-600">⚠️ يجب تغيير كلمة السر بعد تسجيل الدخول</p>
+                <div className="text-sm space-y-1">
+                  <p className="text-orange-600">⚠️ يجب تغيير كلمة السر بعد تسجيل الدخول</p>
+                  <p className="text-muted-foreground">⏰ صالحة لمدة 24 ساعة فقط</p>
+                </div>
                 <Button onClick={resetForgotMode} className="w-full">
                   تسجيل الدخول
                 </Button>

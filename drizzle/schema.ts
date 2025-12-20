@@ -449,6 +449,7 @@ export const users = mysqlTable("users", {
 	role: mysqlEnum(['admin', 'accountant', 'finance_manager', 'project_manager', 'site_engineer', 'planning_engineer', 'procurement_officer', 'qa_qc', 'document_controller', 'architect', 'interior_designer', 'sales_manager', 'hr_manager', 'storekeeper', 'designer', 'viewer']).default('designer').notNull(),
 	isActive: tinyint().default(1).notNull(),
 	mustChangePassword: tinyint().default(0).notNull(), // Force password change on next login
+	tempPasswordExpiresAt: timestamp({ mode: 'date' }), // Temp password expiry (24h)
 	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 	lastSignedIn: timestamp({ mode: 'date' }).defaultNow().notNull(),
