@@ -75,7 +75,12 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && user) {
-      setLocation("/dashboard");
+      // Check if user must change password (temp password was set)
+      if ((user as any).mustChangePassword) {
+        setLocation("/change-password");
+      } else {
+        setLocation("/dashboard");
+      }
     }
   }, [loading, user, setLocation]);
 

@@ -289,7 +289,15 @@ export const appRouter = router({
   system: systemRouter,
 
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async (opts) => {
+      if (!opts.ctx.user) return null;
+      // Fetch mustChangePassword flag from database
+      const dbUser = await db.getUserById(opts.ctx.user.id);
+      return {
+        ...opts.ctx.user,
+        mustChangePassword: dbUser ? Boolean((dbUser as any).mustChangePassword) : false
+      };
+    }),
 
     // Get current user's detailed permissions
     getMyPermissions: protectedProcedure.query(({ ctx }) => {
