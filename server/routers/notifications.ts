@@ -58,9 +58,11 @@ export async function createNotificationForRoles(params: {
 
     // Get all users with specified roles
     const { users } = await import("../../drizzle/schema");
+    const { inArray } = await import("drizzle-orm");
+
     const targetUsers = await db.select({ id: users.id })
         .from(users)
-        .where(sql`role IN (${params.roles.map(r => `'${r}'`).join(',')})`);
+        .where(inArray(users.role, params.roles as any[]));
 
     // Create notification for each user
     for (const user of targetUsers) {
