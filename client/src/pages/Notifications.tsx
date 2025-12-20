@@ -48,21 +48,17 @@ export default function Notifications() {
     onError: () => toast.error("تعذر إرسال الإشعار")
   });
 
-  // Notify owner (employee to admin)
-  const notifyOwner = trpc.system.notifyOwner.useMutation({
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.success("تم إرسال الرسالة للمدير");
-        setMsgToAdmin({ title: '', content: '' });
-      } else {
-        toast.error("تعذر إرسال الرسالة");
-      }
+  // Message admin (for non-admin employees)
+  const messageAdmin = trpc.notifications.messageAdmin.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال الرسالة للمدير");
+      setMsgToAdmin({ title: '', message: '' });
     },
     onError: () => toast.error("فشل إرسال الرسالة")
   });
 
   const [newNotif, setNewNotif] = useState({ userId: '', title: '', message: '', type: 'info' });
-  const [msgToAdmin, setMsgToAdmin] = useState({ title: '', content: '' });
+  const [msgToAdmin, setMsgToAdmin] = useState({ title: '', message: '' });
 
   const unreadCount = countData?.count || 0;
   const isAdmin = user?.role === 'admin' || user?.role === 'hr_manager';
@@ -128,7 +124,7 @@ export default function Notifications() {
             </TabsTrigger>
             <TabsTrigger value="send">
               <Send className="h-4 w-4 ml-1" />
-              إرسال رسالة
+              إرسال
             </TabsTrigger>
           </TabsList>
 
@@ -206,42 +202,44 @@ export default function Notifications() {
 
           {/* Send Tab */}
           <TabsContent value="send" className="space-y-4">
-            {/* Employee to Admin */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  إرسال رسالة للمدير
-                </CardTitle>
-                <CardDescription>أرسل رسالة أو استفسار لمدير النظام</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">العنوان</label>
-                  <Input
-                    value={msgToAdmin.title}
-                    onChange={(e) => setMsgToAdmin({ ...msgToAdmin, title: e.target.value })}
-                    placeholder="عنوان الرسالة"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">المحتوى</label>
-                  <Textarea
-                    value={msgToAdmin.content}
-                    onChange={(e) => setMsgToAdmin({ ...msgToAdmin, content: e.target.value })}
-                    rows={4}
-                    placeholder="اكتب رسالتك هنا..."
-                  />
-                </div>
-                <Button
-                  onClick={() => notifyOwner.mutate(msgToAdmin)}
-                  disabled={notifyOwner.isPending || !msgToAdmin.title.trim() || !msgToAdmin.content.trim()}
-                >
-                  <Send className="h-4 w-4 ml-2" />
-                  {notifyOwner.isPending ? "جاري الإرسال..." : "إرسال للمدير"}
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Employee to Admin - only for non-admins */}
+            {!isAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    إرسال رسالة للمدير
+                  </CardTitle>
+                  <CardDescription>أرسل رسالة أو استفسار لمدير النظام</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">العنوان</label>
+                    <Input
+                      value={msgToAdmin.title}
+                      onChange={(e) => setMsgToAdmin({ ...msgToAdmin, title: e.target.value })}
+                      placeholder="عنوان الرسالة"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">المحتوى</label>
+                    <Textarea
+                      value={msgToAdmin.message}
+                      onChange={(e) => setMsgToAdmin({ ...msgToAdmin, message: e.target.value })}
+                      rows={4}
+                      placeholder="اكتب رسالتك هنا..."
+                    />
+                  </div>
+                  <Button
+                    onClick={() => messageAdmin.mutate(msgToAdmin)}
+                    disabled={messageAdmin.isPending || !msgToAdmin.title.trim() || !msgToAdmin.message.trim()}
+                  >
+                    <Send className="h-4 w-4 ml-2" />
+                    {messageAdmin.isPending ? "جاري الإرسال..." : "إرسال للمدير"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Admin to Employee (visible only for admins) */}
             {isAdmin && (

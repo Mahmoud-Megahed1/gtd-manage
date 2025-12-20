@@ -220,4 +220,38 @@ export const notificationsRouter = router({
 
             return { success: true };
         }),
+
+    // Any user can message admin (creates notification for all admins)
+    messageAdmin: protectedProcedure
+        .input(z.object({
+            title: z.string().min(1, 'العنوان مطلوب'),
+            message: z.string().min(1, 'المحتوى مطلوب')
+        }))
+        .mutation(async ({ ctx, input }) => {
+            const db = await getDb();
+            if (!db) {
+                // Demo mode - just simulate success
+                return { success: true };
+            }
+
+            // Get all admin users
+            const { users } = await import("../../drizzle/schema");
+            const admins = await db.select({ id: users.id })
+                .from(users)
+                .where(sql`role IN ('admin', 'hr_manager')`);
+
+            // Create notification for each admin
+            for (const admin of admins) {
+                await createNotification({
+                    userId: admin.id,
+                    fromUserId: ctx.user.id,
+                    type: 'action',
+                    title: `💬 رسالة من ${ctx.user.name || 'موظف'}`,
+                    message: `${input.title}: ${input.message}`,
+                    link: '/notifications'
+                });
+            }
+
+            return { success: true };
+        }),
 });
