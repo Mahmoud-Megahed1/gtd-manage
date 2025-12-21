@@ -28,6 +28,106 @@ import { toast } from "sonner";
 import AuthHealth from "@/components/AuthHealth";
 import { AddUserDialog } from "@/components/AddUserDialog";
 
+// Permission Matrix - matching backend generalReportsRouter
+type PermissionKey = 'dashboard' | 'clients' | 'projects' | 'tasks' | 'invoices' | 'forms' | 'accounting' | 'hr' | 'audit' | 'settings' | 'generalReports';
+
+interface PermissionDefaults {
+  dashboard: boolean;
+  clients: boolean;
+  projects: boolean;
+  tasks: boolean;
+  invoices: boolean;
+  forms: boolean;
+  accounting: boolean;
+  hr: boolean;
+  audit: boolean;
+  settings: boolean;
+  generalReports: boolean;
+}
+
+function getRoleDefaultPermissions(role: string): PermissionDefaults {
+  const defaults: PermissionDefaults = {
+    dashboard: true,
+    clients: false,
+    projects: false,
+    tasks: false,
+    invoices: false,
+    forms: false,
+    accounting: false,
+    hr: true, // Everyone can see their own HR data
+    audit: false,
+    settings: false,
+    generalReports: false,
+  };
+
+  switch (role) {
+    case 'admin':
+      return {
+        dashboard: true, clients: true, projects: true, tasks: true,
+        invoices: true, forms: true, accounting: true, hr: true,
+        audit: true, settings: true, generalReports: true,
+      };
+    case 'finance_manager':
+      return {
+        ...defaults, projects: true, invoices: true, accounting: true,
+        forms: true, generalReports: true,
+      };
+    case 'accountant':
+      return {
+        ...defaults, invoices: true, accounting: true, generalReports: true,
+      };
+    case 'project_manager':
+      return {
+        ...defaults, clients: true, projects: true, tasks: true,
+        forms: true, generalReports: true,
+      };
+    case 'department_manager':
+      return {
+        ...defaults, clients: true, projects: true, tasks: true,
+        forms: true, hr: true, generalReports: true,
+      };
+    case 'sales_manager':
+      return {
+        ...defaults, clients: true, invoices: true, generalReports: true,
+      };
+    case 'procurement_manager':
+      return {
+        ...defaults, projects: true, accounting: true, generalReports: true,
+      };
+    case 'quality_manager':
+      return {
+        ...defaults, projects: true, tasks: true, forms: true, generalReports: true,
+      };
+    case 'hr_manager':
+      return {
+        ...defaults, hr: true,
+      };
+    case 'project_coordinator':
+      return {
+        ...defaults, projects: true, tasks: true, forms: true,
+      };
+    case 'admin_assistant':
+      return {
+        ...defaults, clients: true, forms: true,
+      };
+    case 'designer':
+    case 'architect':
+    case 'interior_designer':
+    case 'site_engineer':
+    case 'planning_engineer':
+    case 'technician':
+      return {
+        ...defaults, projects: true, tasks: true,
+      };
+    case 'warehouse_manager':
+      return {
+        ...defaults, projects: true,
+      };
+    default:
+      return defaults; // other role - minimal access
+  }
+}
+
 export default function Settings() {
   // const { data: settings, isLoading } = trpc.settings.get.useQuery({ key: 'company' });
   const { data: users } = trpc.users.list.useQuery();
@@ -489,16 +589,20 @@ export default function Settings() {
                                 setOpenPermUserId(opening ? user.id : null);
                                 if (opening) {
                                   const perms = await utils.users.getPermissions.fetch({ userId: user.id });
+                                  // Use role defaults for missing values
+                                  const roleDefaults = getRoleDefaultPermissions(user.role || 'other');
                                   setPermState({
-                                    dashboard: perms.dashboard ?? true,
-                                    clients: perms.clients ?? true,
-                                    projects: perms.projects ?? true,
-                                    invoices: perms.invoices ?? true,
-                                    forms: perms.forms ?? true,
-                                    accounting: perms.accounting ?? false,
-                                    hr: perms.hr ?? false,
-                                    audit: perms.audit ?? false,
-                                    settings: perms.settings ?? false
+                                    dashboard: perms.dashboard ?? roleDefaults.dashboard,
+                                    clients: perms.clients ?? roleDefaults.clients,
+                                    projects: perms.projects ?? roleDefaults.projects,
+                                    tasks: perms.tasks ?? roleDefaults.tasks,
+                                    invoices: perms.invoices ?? roleDefaults.invoices,
+                                    forms: perms.forms ?? roleDefaults.forms,
+                                    accounting: perms.accounting ?? roleDefaults.accounting,
+                                    hr: perms.hr ?? roleDefaults.hr,
+                                    generalReports: perms.generalReports ?? roleDefaults.generalReports,
+                                    audit: perms.audit ?? roleDefaults.audit,
+                                    settings: perms.settings ?? roleDefaults.settings
                                   });
                                 }
                               }}
@@ -566,23 +670,45 @@ export default function Settings() {
                 </Table>
                 {openPermUserId && (
                   <div className="mt-4 p-4 border rounded-lg">
-                    <h4 className="font-medium mb-3">تحديد صلاحيات الوصول</h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium">تحديد صلاحيات الوصول</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const user = users?.find((u: any) => u.id === openPermUserId);
+                          if (user) {
+                            const defaults = getRoleDefaultPermissions(user.role || 'other');
+                            setPermState(defaults);
+                            toast.info("تم إعادة الصلاحيات للقيم الافتراضية للدور");
+                          }
+                        }}
+                      >
+                        ↻ إعادة للافتراضي
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      الصلاحيات المحددة بناءً على دور المستخدم. يمكنك تخصيصها حسب الحاجة.
+                    </p>
                     <div className="grid md:grid-cols-3 gap-3">
                       {[
                         { key: 'dashboard', label: 'لوحة التحكم' },
                         { key: 'clients', label: 'العملاء' },
                         { key: 'projects', label: 'المشاريع' },
+                        { key: 'tasks', label: 'المهام' },
                         { key: 'invoices', label: 'الفواتير والعروض' },
                         { key: 'forms', label: 'الاستمارات' },
                         { key: 'accounting', label: 'المحاسبة' },
                         { key: 'hr', label: 'شؤون الموظفين' },
+                        { key: 'generalReports', label: 'التقارير العامة' },
                         { key: 'audit', label: 'سجل النشاطات' },
                         { key: 'settings', label: 'الإعدادات' },
                       ].map(({ key, label }) => (
-                        <label key={key} className="flex items-center gap-2">
+                        <label key={key} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
                           <input
                             type="checkbox"
-                            checked={permState[key]}
+                            className="w-4 h-4"
+                            checked={permState[key] ?? false}
                             onChange={(e) => setPermState({ ...permState, [key]: e.target.checked })}
                           />
                           <span>{label}</span>
