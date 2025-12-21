@@ -961,14 +961,19 @@ function ImportantFilesSection() {
   const { data: files, isLoading } = trpc.files.listImportant.useQuery();
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<{ name: string; progress: number }[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const uploadFileMutation = trpc.files.upload.useMutation({
-    onSuccess: () => {
-      toast.success("تم رفع الملف بنجاح");
+    onSuccess: (_data, variables) => {
+      setUploadingFiles((prev) => prev.filter((f) => f.name !== variables.fileName));
+      toast.success(`تم رفع "${variables.fileName}" بنجاح`);
       utils.files.listImportant.invalidate();
     },
-    onError: (error) => toast.error(error.message || "فشل رفع الملف"),
+    onError: (error, variables) => {
+      setUploadingFiles((prev) => prev.filter((f) => f.name !== variables.fileName));
+      toast.error(error.message || `فشل رفع "${variables.fileName}"`);
+    },
   });
 
   const deleteFileMutation = trpc.files.delete.useMutation({
@@ -1027,6 +1032,8 @@ function ImportantFilesSection() {
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = (reader.result as string).split(",")[1];
+      // إضافة الملف لقائمة الملفات قيد الرفع
+      setUploadingFiles((prev) => [...prev, { name: file.name, progress: 0 }]);
       await uploadFileMutation.mutateAsync({
         entityType: "important_file",
         entityId: 0,
@@ -1136,6 +1143,29 @@ function ImportantFilesSection() {
             صور (10MB) • PDF (10MB) • Word (10MB) • CSV (10MB) • فيديو (100MB)
           </p>
         </div>
+
+        {/* Uploading Files Progress */}
+        {uploadingFiles.length > 0 && (
+          <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+              <Upload className="w-4 h-4 animate-pulse" />
+              جاري رفع {uploadingFiles.length} {uploadingFiles.length === 1 ? "ملف" : "ملفات"}...
+            </p>
+            {uploadingFiles.map((file, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-sm truncate" title={file.name}>{file.name}</p>
+                  <div className="h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-blue-500 rounded-full animate-pulse"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Filter Buttons */}
         <div className="flex gap-2 flex-wrap">
