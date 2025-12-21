@@ -733,7 +733,7 @@ export const hrRouter = router({
         days: z.number(),
         reason: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -747,6 +747,32 @@ export const hrRouter = router({
         };
 
         await db.insert(leaves).values(values);
+
+        // Get employee info for notification
+        const emp = await db.select().from(employees).where(eq(employees.id, input.employeeId)).limit(1);
+        const empName = emp[0] ? `الموظف #${emp[0].employeeNumber}` : `موظف`;
+
+        // Notify admin and hr_manager about new leave request
+        const { createNotificationForRoles } = await import('./notifications');
+        const leaveTypes: Record<string, string> = {
+          'annual': 'سنوية',
+          'sick': 'مرضية',
+          'emergency': 'طارئة',
+          'unpaid': 'بدون راتب'
+        };
+        const startDateStr = input.startDate.toLocaleDateString('ar-EG');
+        const endDateStr = input.endDate.toLocaleDateString('ar-EG');
+
+        await createNotificationForRoles({
+          roles: ['admin', 'hr_manager'],
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: 'طلب إجازة جديد 📅',
+          message: `${empName} طلب إجازة ${leaveTypes[input.leaveType] || input.leaveType} من ${startDateStr} إلى ${endDateStr} (${input.days} يوم)`,
+          entityType: 'leave',
+          link: '/hr'
+        });
+
         return { success: true };
       }),
 
