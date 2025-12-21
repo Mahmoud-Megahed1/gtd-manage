@@ -85,7 +85,7 @@ export function GeminiPage({ pageUrl, onRefresh }: GeminiPageProps) {
                 </div>
             )}
 
-            <div className="absolute top-2 right-2 z-20">
+            <div className="absolute top-2 right-2 z-20 flex gap-2">
                 <Button
                     variant="secondary"
                     size="sm"
@@ -95,6 +95,27 @@ export function GeminiPage({ pageUrl, onRefresh }: GeminiPageProps) {
                     <RefreshCw className="h-4 w-4 ml-1" />
                     تحديث
                 </Button>
+                <Button
+                    variant="default"
+                    size="sm"
+                    asChild
+                    className="shadow-md"
+                >
+                    <a href={pageUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 ml-1" />
+                        فتح في نافذة جديدة
+                    </a>
+                </Button>
+            </div>
+
+            {/* Notice for X-Frame-Options blocked sites */}
+            <div className="absolute bottom-2 left-2 right-2 z-20 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>ملاحظة:</strong> بعض المواقع (مثل Google Gemini) تمنع التضمين في iframe.
+                    <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium mr-1">
+                        اضغط هنا لفتح الصفحة في نافذة جديدة
+                    </a>
+                </p>
             </div>
 
             <iframe
