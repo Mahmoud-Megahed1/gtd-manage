@@ -178,31 +178,253 @@ export default function GeneralReports() {
     const handlePrint = () => {
         if (printRef.current) {
             const printContent = printRef.current.innerHTML;
+            const sectionLabel = availableSections?.find(s => s.key === activeSection)?.label || 'نظرة عامة';
+            const dateRange = from || to ? `${from || 'البداية'} - ${to || 'الآن'}` : 'كل الفترات';
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.write(`
           <!DOCTYPE html>
-          <html dir="rtl">
+          <html dir="rtl" lang="ar">
           <head>
             <meta charset="utf-8">
-            <title>تقرير - ${availableSections?.find(s => s.key === activeSection)?.label || 'نظرة عامة'}</title>
+            <title>تقرير ${sectionLabel} - Golden Touch Design</title>
             <style>
-              body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; direction: rtl; }
-              .grid { display: grid; gap: 16px; }
-              .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                direction: rtl;
+                color: #1f2937;
+                line-height: 1.6;
+                background: #fff;
+              }
+              
+              /* Header */
+              .report-header {
+                background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+                color: white;
+                padding: 30px 40px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .company-info h1 {
+                font-size: 28px;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .company-info p {
+                font-size: 14px;
+                opacity: 0.9;
+              }
+              .report-meta {
+                text-align: left;
+                font-size: 13px;
+              }
+              .report-meta p { margin: 3px 0; }
+              
+              /* Report Title */
+              .report-title {
+                padding: 25px 40px;
+                border-bottom: 3px solid #d4af37;
+                background: #f8fafc;
+              }
+              .report-title h2 {
+                font-size: 24px;
+                color: #1e3a5f;
+                margin-bottom: 10px;
+              }
+              .report-title .filters {
+                display: flex;
+                gap: 20px;
+                font-size: 14px;
+                color: #64748b;
+              }
+              .filter-item {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+              }
+              .filter-item strong { color: #1f2937; }
+              
+              /* Content */
+              .content {
+                padding: 30px 40px;
+              }
+              
+              /* Grid Layout */
+              .grid {
+                display: grid;
+                gap: 20px;
+              }
+              .grid-2 { grid-template-columns: repeat(2, 1fr); }
+              .grid-3 { grid-template-columns: repeat(3, 1fr); }
+              .grid-4 { grid-template-columns: repeat(4, 1fr); }
+              
+              /* Cards */
+              .card {
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 20px;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+              }
+              .card-header {
+                font-size: 16px;
+                font-weight: 600;
+                color: #1e3a5f;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #d4af37;
+              }
+              
+              /* Stats */
+              .stat-box {
+                background: #f8fafc;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .stat-box.green { background: #ecfdf5; border-right: 4px solid #22c55e; }
+              .stat-box.amber { background: #fffbeb; border-right: 4px solid #f59e0b; }
+              .stat-box.red { background: #fef2f2; border-right: 4px solid #ef4444; }
+              .stat-box.blue { background: #eff6ff; border-right: 4px solid #3b82f6; }
+              .stat-value {
+                font-size: 22px;
+                font-weight: bold;
+                color: #1f2937;
+              }
+              .stat-value.green { color: #16a34a; }
+              .stat-value.amber { color: #d97706; }
+              .stat-value.red { color: #dc2626; }
+              .stat-value.blue { color: #2563eb; }
+              
+              /* Tables */
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+                font-size: 14px;
+              }
+              thead {
+                background: #1e3a5f;
+                color: white;
+              }
+              th, td {
+                padding: 12px 15px;
+                text-align: right;
+                border: 1px solid #e2e8f0;
+              }
+              th { font-weight: 600; }
+              tbody tr:nth-child(even) { background: #f8fafc; }
+              tbody tr:hover { background: #f1f5f9; }
+              
+              /* Footer */
+              .report-footer {
+                margin-top: 40px;
+                padding: 20px 40px;
+                border-top: 2px solid #e2e8f0;
+                text-align: center;
+                font-size: 12px;
+                color: #64748b;
+              }
+              .report-footer .signature-line {
+                display: flex;
+                justify-content: space-around;
+                margin-top: 40px;
+                padding-top: 20px;
+              }
+              .signature-box {
+                text-align: center;
+                width: 200px;
+              }
+              .signature-box .line {
+                border-top: 1px solid #1f2937;
+                margin-top: 50px;
+                padding-top: 10px;
+              }
+              
+              /* Hide charts for print */
+              canvas { display: none !important; }
+              .chart-placeholder {
+                display: block !important;
+                text-align: center;
+                padding: 30px;
+                background: #f8fafc;
+                border-radius: 8px;
+                color: #64748b;
+              }
+              
+              /* Badge styles */
+              .badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+              }
+              .badge-success { background: #dcfce7; color: #16a34a; }
+              .badge-warning { background: #fef3c7; color: #d97706; }
+              .badge-danger { background: #fee2e2; color: #dc2626; }
+              .badge-info { background: #dbeafe; color: #2563eb; }
+              
+              /* Large numbers */
               .text-2xl { font-size: 1.5rem; font-weight: bold; }
-              .text-muted { color: #666; font-size: 0.875rem; }
-              table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-              th { background: #f5f5f5; }
-              @media print { body { padding: 0; } }
+              .text-3xl { font-size: 1.875rem; font-weight: bold; }
+              .text-muted { color: #64748b; font-size: 0.875rem; }
+              .text-muted-foreground { color: #64748b; }
+              
+              @media print {
+                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .report-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                @page { margin: 0; size: A4; }
+                .no-print { display: none !important; }
+              }
             </style>
           </head>
           <body>
-            <h1>تقرير ${availableSections?.find(s => s.key === activeSection)?.label || 'نظرة عامة'}</h1>
-            <p>التاريخ: ${new Date().toLocaleDateString('ar-EG')}</p>
-            ${from || to ? `<p>الفترة: ${from || 'البداية'} - ${to || 'الآن'}</p>` : ''}
-            ${printContent}
+            <div class="report-header">
+              <div class="company-info">
+                <h1>Golden Touch Design</h1>
+                <p>نظام إدارة المشاريع المتكامل</p>
+              </div>
+              <div class="report-meta">
+                <p><strong>تاريخ التقرير:</strong> ${new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p><strong>الوقت:</strong> ${new Date().toLocaleTimeString('ar-EG')}</p>
+              </div>
+            </div>
+            
+            <div class="report-title">
+              <h2>📊 تقرير ${sectionLabel}</h2>
+              <div class="filters">
+                <div class="filter-item">
+                  <span>📅 الفترة:</span>
+                  <strong>${dateRange}</strong>
+                </div>
+                ${clientId !== 'all' ? `<div class="filter-item"><span>👤 العميل:</span><strong>محدد</strong></div>` : ''}
+                ${projectId !== 'all' ? `<div class="filter-item"><span>📁 المشروع:</span><strong>محدد</strong></div>` : ''}
+              </div>
+            </div>
+            
+            <div class="content">
+              ${printContent}
+            </div>
+            
+            <div class="report-footer">
+              <p>هذا التقرير تم إنشاؤه تلقائياً من نظام Golden Touch Design</p>
+              <p>© ${new Date().getFullYear()} جميع الحقوق محفوظة</p>
+              
+              <div class="signature-line">
+                <div class="signature-box">
+                  <div class="line">المدير المسؤول</div>
+                </div>
+                <div class="signature-box">
+                  <div class="line">مُعد التقرير</div>
+                </div>
+              </div>
+            </div>
           </body>
           </html>
         `);
