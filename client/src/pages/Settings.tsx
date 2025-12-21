@@ -159,6 +159,13 @@ export default function Settings() {
     },
     onError: (error) => toast.error(error.message || "فشل تغيير الدور"),
   });
+  const deleteUserMutation = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف المستخدم بنجاح");
+      utils.users.list.invalidate();
+    },
+    onError: (error) => toast.error(error.message || "فشل حذف المستخدم"),
+  });
   const [openPermUserId, setOpenPermUserId] = useState<number | null>(null);
   const [permState, setPermState] = useState<Record<string, boolean>>({
     dashboard: true,
@@ -655,6 +662,20 @@ export default function Settings() {
                               title="إرسال إشعار مخصص للمستخدم"
                             >
                               {sendNotificationMutation.isPending ? "جاري..." : "🔔 إشعار"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              disabled={deleteUserMutation.isPending}
+                              onClick={() => {
+                                if (confirm(`هل أنت متأكد من حذف المستخدم "${user.name || user.email}"؟\n\n❗ إذا كان هذا المستخدم مرتبط بموظف، سيتم حذف الموظف أيضاً.`)) {
+                                  deleteUserMutation.mutate({ userId: user.id });
+                                }
+                              }}
+                              title="حذف المستخدم"
+                            >
+                              {deleteUserMutation.isPending ? "جاري..." : "🗑️ حذف"}
                             </Button>
                           </TableCell>
                         </TableRow>

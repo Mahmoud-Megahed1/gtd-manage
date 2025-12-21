@@ -1557,11 +1557,22 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         // Prevent deleting yourself
         if (input.userId === ctx.user.id) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot delete your own account' });
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'لا يمكنك حذف حسابك الشخصي' });
+        }
+
+        // Check if user has linked employee and delete it too
+        const employee = await db.getEmployeeByUserId(input.userId);
+        if (employee) {
+          const conn = await db.getDb();
+          if (conn) {
+            const { employees } = await import('../drizzle/schema');
+            await conn.delete(employees).where(eq(employees.id, employee.id));
+            await logAudit(ctx.user.id, 'DELETE_EMPLOYEE', 'employee', employee.id, `Deleted employee linked to user ${input.userId}`, ctx);
+          }
         }
 
         await db.deleteUser(input.userId);
-        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, `Deleted user`, ctx);
+        await logAudit(ctx.user.id, 'DELETE_USER', 'user', input.userId, employee ? 'Deleted user and linked employee' : 'Deleted user', ctx);
         return { success: true };
       })
     ,
