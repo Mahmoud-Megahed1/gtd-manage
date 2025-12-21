@@ -18,7 +18,8 @@ import {
   X,
   UserCog,
   FileDiff,
-  Bell
+  Bell,
+  BarChart3
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -80,6 +81,13 @@ const navItems: NavItem[] = [
     href: "/ai-assistant",
     icon: <Search className="w-5 h-5" />,
     roles: ["admin"]
+  },
+  // General Reports - based on permission matrix
+  {
+    title: "التقارير العامة",
+    href: "/general-reports",
+    icon: <BarChart3 className="w-5 h-5" />,
+    roles: ["admin", "finance_manager", "accountant", "project_manager", "sales_manager", "department_manager", "procurement_manager", "quality_manager"]
   },
   // HR - all employees can see their personal data
   {

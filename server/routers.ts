@@ -13,6 +13,7 @@ import { reportsRouter } from "./routers/reports";
 import { tasksRouter } from "./routers/tasks";
 import { approvalsRouter } from "./routers/approvals";
 import { notificationsRouter } from "./routers/notifications";
+import { generalReportsRouter } from "./routers/generalReports";
 import { invoices, expenses } from "../drizzle/schema";
 import { gte, eq, desc } from "drizzle-orm";
 
@@ -2344,6 +2345,9 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ============= GENERAL REPORTS =============
+  generalReports: generalReportsRouter,
 });
 
 export type AppRouter = typeof appRouter;
