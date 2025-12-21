@@ -868,6 +868,46 @@ export const hrRouter = router({
 
         return { success: true };
       }),
+
+    // Delete leave request (by admin)
+    delete: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.remove("leaves", input.id);
+          return { success: true };
+        }
+
+        // Get leave record to find employee for notification
+        const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+
+        // Delete the leave
+        await db.delete(leaves).where(eq(leaves.id, input.id));
+
+        // Notify employee about deletion
+        if (leaveRecord[0]) {
+          const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
+          if (emp[0]?.userId) {
+            const { createNotification } = await import('./notifications');
+            await createNotification({
+              userId: emp[0].userId,
+              fromUserId: ctx.user.id,
+              type: 'info',
+              title: 'تم حذف طلب الإجازة 🗑️',
+              message: input.reason || 'تم حذف طلب إجازتك بواسطة الإدارة',
+              entityType: 'leave',
+              link: '/hr'
+            });
+          }
+        }
+
+        return { success: true };
+      }),
   }),
 
   // ============= PERFORMANCE REVIEWS =============

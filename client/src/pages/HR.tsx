@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Users, Clock, DollarSign, Calendar, Award,
-  Plus, FileText, CheckCircle, XCircle
+  Plus, FileText, CheckCircle, XCircle, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "@/components/AddEmployeeDialog";
@@ -74,6 +74,14 @@ export default function HR() {
       refetchPayroll();
     },
     onError: () => toast.error("تعذر حذف كشف الراتب"),
+  });
+
+  const deleteLeave = trpc.hr.leaves.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف طلب الإجازة");
+      utils.hr.leaves.list.invalidate();
+    },
+    onError: () => toast.error("تعذر حذف طلب الإجازة"),
   });
 
   return (
@@ -567,6 +575,7 @@ export default function HR() {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  title="موافقة"
                                   onClick={() => setApprovalDialog({
                                     open: true,
                                     leaveId: leave.id,
@@ -582,6 +591,7 @@ export default function HR() {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  title="رفض"
                                   onClick={() => setApprovalDialog({
                                     open: true,
                                     leaveId: leave.id,
@@ -593,6 +603,19 @@ export default function HR() {
                                   })}
                                 >
                                   <XCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  title="حذف"
+                                  onClick={() => {
+                                    const reason = prompt("سبب الحذف (اختياري):");
+                                    if (reason !== null) {
+                                      deleteLeave.mutate({ id: leave.id, reason: reason || undefined });
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             )}
