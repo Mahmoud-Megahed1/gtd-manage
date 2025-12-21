@@ -642,6 +642,14 @@ export async function deleteAttachment(id: number) {
   await db.delete(attachments).where(eq(attachments.id, id));
 }
 
+export async function getImportantFiles() {
+  const db = await getDb();
+  if (!db) return demo.filter("attachments", (a: any) => a.entityType === "important_file");
+  return await db.select().from(attachments)
+    .where(eq(attachments.entityType, "important_file"))
+    .orderBy(desc(attachments.createdAt));
+}
+
 // ============= USER PERMISSIONS =============
 import { userPermissions, InsertUserPermissions, projectTasks, InsertProjectTask } from "../drizzle/schema";
 

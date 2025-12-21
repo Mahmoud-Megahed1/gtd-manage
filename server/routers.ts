@@ -2163,8 +2163,14 @@ export const appRouter = router({
           'text/html',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'video/mp4',
+          'video/webm',
         ];
-        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+        const VIDEO_TYPES = ['video/mp4', 'video/webm'];
+        const MAX_SIZE_DEFAULT = 10 * 1024 * 1024; // 10MB for images/docs
+        const MAX_SIZE_VIDEO = 100 * 1024 * 1024; // 100MB for videos
+        const MAX_SIZE = VIDEO_TYPES.includes(input.mimeType) ? MAX_SIZE_VIDEO : MAX_SIZE_DEFAULT;
+
         if (!ALLOWED_TYPES.includes(input.mimeType)) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'نوع الملف غير مسموح' });
         }
@@ -2174,7 +2180,7 @@ export const appRouter = router({
             ? 'forms'
             : input.entityType.startsWith('invoice')
               ? 'invoices'
-              : input.entityType === 'setting'
+              : input.entityType === 'setting' || input.entityType === 'important_file'
                 ? 'settings'
                 : 'settings';
         await ensurePerm(ctx, section);
@@ -2185,7 +2191,8 @@ export const appRouter = router({
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'ملف غير صالح' });
         }
         if (buffer.length > MAX_SIZE) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'حجم الملف يتجاوز الحد المسموح' });
+          const maxMB = MAX_SIZE / (1024 * 1024);
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `حجم الملف يتجاوز الحد المسموح (${maxMB}MB)` });
         }
         // Verify magic numbers to prevent MIME spoofing
         const head = buffer.subarray(0, 16);
@@ -2197,6 +2204,14 @@ export const appRouter = router({
         const htmlStart = buffer.toString('utf8', 0, 100).toLowerCase().trim();
         const isHtml = htmlStart.includes('<!doctype') || htmlStart.includes('<html');
         const isText = input.mimeType === 'text/plain';
+        // Video magic numbers
+        const isMp4 = buffer.length >= 12 && (
+          buffer.toString('ascii', 4, 8) === 'ftyp' || // Standard MP4
+          buffer.toString('ascii', 4, 8) === 'moov' ||
+          buffer.toString('ascii', 4, 8) === 'mdat'
+        );
+        const isWebm = head[0] === 0x1A && head[1] === 0x45 && head[2] === 0xDF && head[3] === 0xA3; // EBML header
+
         const mimeOk =
           (input.mimeType === 'image/png' && isPng) ||
           (input.mimeType === 'image/jpeg' && isJpeg) ||
@@ -2205,7 +2220,9 @@ export const appRouter = router({
           (input.mimeType === 'text/html' && isHtml) ||
           (input.mimeType === 'text/plain' && isText) ||
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && isZip) ||
-          (input.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && isZip);
+          (input.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && isZip) ||
+          (input.mimeType === 'video/mp4' && isMp4) ||
+          (input.mimeType === 'video/webm' && isWebm);
         if (!mimeOk) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'نوع الملف لا يطابق المحتوى' });
         }
@@ -2247,10 +2264,17 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'attachments');
+        await ensurePerm(ctx, 'settings'); // Backend Guard for important files
         await db.deleteAttachment(input.id);
         await logAudit(ctx.user.id, 'DELETE_FILE', 'attachment', input.id, undefined, ctx);
         return { success: true };
+      }),
+
+    // List all important files (for Settings page)
+    listImportant: protectedProcedure
+      .query(async ({ ctx }) => {
+        await ensurePerm(ctx, 'settings'); // Backend Guard
+        return await db.getImportantFiles();
       })
   }),
 

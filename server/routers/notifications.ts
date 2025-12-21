@@ -1,3 +1,5 @@
+// TODO: cleanup notifications on entity deletion (non-critical)
+
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";

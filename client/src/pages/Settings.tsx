@@ -22,8 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { Save, Upload, Users, Building2, Shield, Database, Trash2, KeyRound } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Save, Upload, Users, Building2, Shield, Database, Trash2, KeyRound, Folder, FileImage, FileText, FileVideo, File, Download, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import AuthHealth from "@/components/AuthHealth";
 import { AddUserDialog } from "@/components/AddUserDialog";
@@ -134,7 +134,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="company" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="company">
               <Building2 className="w-4 h-4 ml-2" />
               معلومات الشركة
@@ -146,6 +146,10 @@ export default function Settings() {
             <TabsTrigger value="users">
               <Users className="w-4 h-4 ml-2" />
               المستخدمين
+            </TabsTrigger>
+            <TabsTrigger value="files">
+              <Folder className="w-4 h-4 ml-2" />
+              ملفات مهمة
             </TabsTrigger>
             <TabsTrigger value="security">
               <Shield className="w-4 h-4 ml-2" />
@@ -718,6 +722,11 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {/* Important Files */}
+          <TabsContent value="files" className="space-y-4">
+            <ImportantFilesSection />
+          </TabsContent>
+
           {/* Approval Requests */}
           <TabsContent value="approvals" className="space-y-4">
             <Card>
@@ -940,6 +949,268 @@ function PasswordResetRequestsCard() {
               ))}
             </TableBody>
           </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Important Files Section Component
+function ImportantFilesSection() {
+  const utils = trpc.useUtils();
+  const { data: files, isLoading } = trpc.files.listImportant.useQuery();
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const uploadFileMutation = trpc.files.upload.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفع الملف بنجاح");
+      utils.files.listImportant.invalidate();
+    },
+    onError: (error) => toast.error(error.message || "فشل رفع الملف"),
+  });
+
+  const deleteFileMutation = trpc.files.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف الملف بنجاح");
+      utils.files.listImportant.invalidate();
+    },
+    onError: (error) => toast.error(error.message || "فشل حذف الملف"),
+  });
+
+  const ALLOWED_TYPES: Record<string, string[]> = {
+    images: ["image/png", "image/jpeg", "image/webp"],
+    pdf: ["application/pdf"],
+    word: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    excel: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    video: ["video/mp4", "video/webm"],
+  };
+
+  const MAX_SIZE_MB: Record<string, number> = {
+    images: 10,
+    pdf: 10,
+    word: 10,
+    excel: 10,
+    video: 100,
+  };
+
+  const getFileCategory = (mimeType: string): string => {
+    if (ALLOWED_TYPES.images.includes(mimeType)) return "images";
+    if (ALLOWED_TYPES.pdf.includes(mimeType)) return "pdf";
+    if (ALLOWED_TYPES.word.includes(mimeType)) return "word";
+    if (ALLOWED_TYPES.excel.includes(mimeType)) return "excel";
+    if (ALLOWED_TYPES.video.includes(mimeType)) return "video";
+    return "other";
+  };
+
+  const getAllowedMimeTypes = () => Object.values(ALLOWED_TYPES).flat();
+
+  const handleFileUpload = async (file: File) => {
+    const category = getFileCategory(file.type);
+    const maxSizeMB = MAX_SIZE_MB[category] || 10;
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+    if (!getAllowedMimeTypes().includes(file.type)) {
+      toast.error(`نوع الملف غير مدعوم: ${file.type}`);
+      return;
+    }
+
+    if (file.size > maxSizeBytes) {
+      toast.error(`حجم الملف يتجاوز الحد المسموح (${maxSizeMB}MB)`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(",")[1];
+      await uploadFileMutation.mutateAsync({
+        entityType: "important_file",
+        entityId: 0,
+        fileName: file.name,
+        fileData: base64,
+        mimeType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    droppedFiles.forEach(handleFileUpload);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    selectedFiles.forEach(handleFileUpload);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDelete = (id: number, fileName: string) => {
+    if (confirm(`هل أنت متأكد من حذف "${fileName}"?`)) {
+      deleteFileMutation.mutate({ id });
+    }
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return "غير معروف";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    const category = getFileCategory(mimeType);
+    switch (category) {
+      case "images": return <FileImage className="w-8 h-8 text-green-500" />;
+      case "pdf": return <FileText className="w-8 h-8 text-red-500" />;
+      case "word": return <FileText className="w-8 h-8 text-blue-500" />;
+      case "excel": return <FileText className="w-8 h-8 text-emerald-500" />;
+      case "video": return <FileVideo className="w-8 h-8 text-purple-500" />;
+      default: return <File className="w-8 h-8 text-gray-500" />;
+    }
+  };
+
+  const filteredFiles = files?.filter((file: any) => {
+    if (activeFilter === "all") return true;
+    return getFileCategory(file.mimeType || "") === activeFilter;
+  }) || [];
+
+  const filterButtons = [
+    { key: "all", label: "الكل", count: files?.length || 0 },
+    { key: "images", label: "صور", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "images").length || 0 },
+    { key: "pdf", label: "PDF", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "pdf").length || 0 },
+    { key: "word", label: "Word", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "word").length || 0 },
+    { key: "video", label: "فيديو", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "video").length || 0 },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Folder className="w-5 h-5" />
+              ملفات مهمة
+            </CardTitle>
+            <CardDescription>رفع وإدارة الملفات المهمة (صور، PDF، Word، فيديو)</CardDescription>
+          </div>
+          <Button onClick={() => fileInputRef.current?.click()} disabled={uploadFileMutation.isPending}>
+            <Upload className="w-4 h-4 ml-2" />
+            {uploadFileMutation.isPending ? "جاري الرفع..." : "رفع ملف"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept={getAllowedMimeTypes().join(",")}
+            multiple
+            onChange={handleFileSelect}
+          />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Drop Zone */}
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+            }`}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+        >
+          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">
+            اسحب الملفات هنا أو{" "}
+            <button className="text-primary underline" onClick={() => fileInputRef.current?.click()}>
+              اختر ملفات
+            </button>
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            صور (10MB) • PDF (10MB) • Word (10MB) • فيديو (100MB)
+          </p>
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex gap-2 flex-wrap">
+          {filterButtons.map(({ key, label, count }) => (
+            <Button
+              key={key}
+              variant={activeFilter === key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter(key)}
+            >
+              {label} ({count})
+            </Button>
+          ))}
+        </div>
+
+        {/* Files Grid */}
+        {isLoading ? (
+          <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
+        ) : filteredFiles.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Folder className="w-16 h-16 mx-auto mb-4 opacity-30" />
+            <p>لا توجد ملفات</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filteredFiles.map((file: any) => (
+              <div
+                key={file.id}
+                className="border rounded-lg p-4 hover:shadow-md transition-shadow group relative"
+              >
+                {/* Preview/Icon */}
+                <div className="h-24 flex items-center justify-center mb-3 bg-muted/30 rounded">
+                  {file.mimeType?.startsWith("image/") && file.fileUrl ? (
+                    <img
+                      src={file.fileUrl}
+                      alt={file.fileName}
+                      className="max-h-full max-w-full object-contain rounded"
+                    />
+                  ) : (
+                    getFileIcon(file.mimeType || "")
+                  )}
+                </div>
+
+                {/* File Info */}
+                <p className="text-sm font-medium truncate" title={file.fileName}>
+                  {file.fileName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatFileSize(file.fileSize)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(file.createdAt).toLocaleDateString("ar-SA")}
+                </p>
+
+                {/* Actions */}
+                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  {file.fileUrl && (
+                    <a
+                      href={file.fileUrl}
+                      download={file.fileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 bg-white rounded shadow hover:bg-gray-100"
+                      title="تحميل"
+                    >
+                      <Download className="w-4 h-4 text-blue-500" />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleDelete(file.id, file.fileName)}
+                    className="p-1 bg-white rounded shadow hover:bg-red-50"
+                    title="حذف"
+                    disabled={deleteFileMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
