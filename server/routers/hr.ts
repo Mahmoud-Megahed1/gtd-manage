@@ -791,6 +791,7 @@ export const hrRouter = router({
 
         // Get leave record to find employee and user
         const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+        console.log("[LEAVE APPROVE] Leave record:", JSON.stringify(leaveRecord[0]));
 
         await db.update(leaves)
           .set({
@@ -804,8 +805,12 @@ export const hrRouter = router({
         // Notify employee about approval
         if (leaveRecord[0]) {
           const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
+          console.log("[LEAVE APPROVE] Employee:", JSON.stringify(emp[0]));
+          console.log("[LEAVE APPROVE] Employee userId:", emp[0]?.userId);
+
           if (emp[0]?.userId) {
             const { createNotification } = await import('./notifications');
+            console.log("[LEAVE APPROVE] Creating notification for userId:", emp[0].userId);
             await createNotification({
               userId: emp[0].userId,
               fromUserId: ctx.user.id,
@@ -816,7 +821,12 @@ export const hrRouter = router({
               entityId: input.id,
               link: '/hr'
             });
+            console.log("[LEAVE APPROVE] Notification created successfully");
+          } else {
+            console.log("[LEAVE APPROVE] No userId found for employee!");
           }
+        } else {
+          console.log("[LEAVE APPROVE] No leave record found!");
         }
 
         return { success: true };
