@@ -84,6 +84,35 @@ export default function HR() {
     onError: () => toast.error("تعذر حذف طلب الإجازة"),
   });
 
+  // Cancellation mutations
+  const requestCancellation = trpc.hr.leaves.requestCancellation.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال طلب الإلغاء للإدارة");
+      utils.hr.myProfile.myLeaves.invalidate();
+    },
+    onError: (e) => toast.error(e.message || "تعذر إرسال طلب الإلغاء"),
+  });
+
+  const { data: cancellationRequests, refetch: refetchCancellations } = trpc.hr.leaves.listCancellationRequests.useQuery(undefined, { enabled: !!hasFullAccess });
+
+  const approveCancellation = trpc.hr.leaves.approveCancellation.useMutation({
+    onSuccess: () => {
+      toast.success("تم قبول طلب الإلغاء");
+      refetchCancellations();
+      utils.hr.leaves.list.invalidate();
+    },
+    onError: () => toast.error("تعذر قبول طلب الإلغاء"),
+  });
+
+  const rejectCancellation = trpc.hr.leaves.rejectCancellation.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض طلب الإلغاء");
+      refetchCancellations();
+      utils.hr.leaves.list.invalidate();
+    },
+    onError: () => toast.error("تعذر رفض طلب الإلغاء"),
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -257,15 +286,38 @@ export default function HR() {
                     {myLeaves && myLeaves.length > 0 ? (
                       <div className="space-y-2">
                         {myLeaves.map((l: any) => (
-                          <div key={l.id} className="flex justify-between p-3 border rounded">
+                          <div key={l.id} className="flex justify-between items-center p-3 border rounded">
                             <div>
                               <span>{new Date(l.startDate).toLocaleDateString('ar-SA')}</span>
                               <span className="mx-2">-</span>
                               <span>{new Date(l.endDate).toLocaleDateString('ar-SA')}</span>
                             </div>
-                            <Badge variant={l.status === 'approved' ? 'default' : l.status === 'pending' ? 'secondary' : 'destructive'}>
-                              {l.status === 'approved' ? 'موافق' : l.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={l.status === 'approved' ? 'default' : l.status === 'pending' ? 'secondary' : 'destructive'}>
+                                {l.status === 'approved' ? 'موافق' : l.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+                              </Badge>
+                              {l.cancellationRequested === 1 && (
+                                <Badge variant="outline" className="text-orange-600">طلب إلغاء معلق</Badge>
+                              )}
+                              {l.cancellationRequested === 3 && (
+                                <Badge variant="outline" className="text-red-600">رفض الإلغاء</Badge>
+                              )}
+                              {l.status === 'approved' && !l.cancellationRequested && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const reason = prompt("سبب طلب الإلغاء:");
+                                    if (reason) {
+                                      requestCancellation.mutate({ id: l.id, reason });
+                                    }
+                                  }}
+                                  disabled={requestCancellation.isPending}
+                                >
+                                  طلب إلغاء
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -541,6 +593,54 @@ export default function HR() {
                     <p className="text-sm mb-2">تقويم الفريق</p>
                     <TeamCalendar leaves={leavesList || []} />
                   </div>
+
+                  {/* Cancellation Requests Section */}
+                  {cancellationRequests && cancellationRequests.length > 0 && (
+                    <div className="p-4 border-2 border-orange-300 bg-orange-50 rounded-lg mb-4">
+                      <h3 className="font-bold text-orange-700 mb-3">⚠️ طلبات إلغاء الإجازات ({cancellationRequests.length})</h3>
+                      <div className="space-y-2">
+                        {cancellationRequests.map((req: any) => (
+                          <div key={req.id} className="flex items-center justify-between p-3 bg-white border rounded">
+                            <div>
+                              <p className="font-medium">موظف #{req.employeeId}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(req.startDate).toLocaleDateString('ar-SA')} - {new Date(req.endDate).toLocaleDateString('ar-SA')}
+                              </p>
+                              <p className="text-sm text-orange-700">السبب: {req.cancellationReason}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => {
+                                  const notes = prompt("ملاحظات (اختياري):");
+                                  approveCancellation.mutate({ id: req.id, notes: notes || undefined });
+                                }}
+                                disabled={approveCancellation.isPending}
+                              >
+                                <CheckCircle className="h-4 w-4 ml-1" />
+                                قبول
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => {
+                                  const notes = prompt("سبب الرفض:");
+                                  if (notes) {
+                                    rejectCancellation.mutate({ id: req.id, notes });
+                                  }
+                                }}
+                                disabled={rejectCancellation.isPending}
+                              >
+                                <XCircle className="h-4 w-4 ml-1" />
+                                رفض
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {loadingLeaves ? (
                     <p className="text-center text-muted-foreground py-8">جاري التحميل...</p>
                   ) : leavesList && leavesList.length > 0 ? (

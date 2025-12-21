@@ -256,6 +256,13 @@ export const leaves = mysqlTable("leaves", {
 	approvedBy: int(),
 	approvedAt: timestamp({ mode: 'date' }),
 	notes: text(),
+	// Cancellation request fields
+	cancellationRequested: int().default(0), // 0=no, 1=pending, 2=approved, 3=rejected
+	cancellationReason: text(),
+	cancellationRequestedAt: timestamp({ mode: 'date' }),
+	cancellationResolvedBy: int(),
+	cancellationResolvedAt: timestamp({ mode: 'date' }),
+	cancellationResolvedNotes: text(),
 	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 });
 

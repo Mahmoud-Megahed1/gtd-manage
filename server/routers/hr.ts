@@ -908,6 +908,171 @@ export const hrRouter = router({
 
         return { success: true };
       }),
+
+    // Request cancellation (by employee)
+    requestCancellation: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        reason: z.string().min(1, 'يرجى إدخال سبب طلب الإلغاء'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.update("leaves", input.id, {
+            cancellationRequested: 1,
+            cancellationReason: input.reason,
+            cancellationRequestedAt: new Date()
+          });
+          return { success: true };
+        }
+
+        // Verify the leave belongs to the requesting user's employee record
+        const emp = await db.select().from(employees).where(eq(employees.userId, ctx.user.id)).limit(1);
+        if (!emp[0]) throw new TRPCError({ code: 'NOT_FOUND', message: 'لم يتم العثور على ملف الموظف' });
+
+        const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+        if (!leaveRecord[0]) throw new TRPCError({ code: 'NOT_FOUND', message: 'لم يتم العثور على طلب الإجازة' });
+
+        // Allow cancellation request only for own approved leaves
+        if (leaveRecord[0].employeeId !== emp[0].id) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك طلب إلغاء إجازة غيرك' });
+        }
+
+        if (leaveRecord[0].status !== 'approved') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'يمكن طلب الإلغاء فقط للإجازات الموافق عليها' });
+        }
+
+        await db.update(leaves)
+          .set({
+            cancellationRequested: 1,
+            cancellationReason: input.reason,
+            cancellationRequestedAt: new Date()
+          })
+          .where(eq(leaves.id, input.id));
+
+        // Notify admin and hr_manager
+        const { createNotificationForRoles } = await import('./notifications');
+        const leaveTypes: Record<string, string> = {
+          'annual': 'سنوية',
+          'sick': 'مرضية',
+          'emergency': 'طارئة',
+          'unpaid': 'بدون راتب'
+        };
+        await createNotificationForRoles({
+          roles: ['admin', 'hr_manager'],
+          fromUserId: ctx.user.id,
+          type: 'action',
+          title: 'طلب إلغاء إجازة ⚠️',
+          message: `الموظف #${emp[0].employeeNumber} يطلب إلغاء إجازة ${leaveTypes[leaveRecord[0].leaveType] || leaveRecord[0].leaveType} - السبب: ${input.reason}`,
+          entityType: 'leave',
+          entityId: input.id,
+          link: '/hr'
+        });
+
+        return { success: true };
+      }),
+
+    // Approve cancellation request (by admin)
+    approveCancellation: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.remove("leaves", input.id);
+          return { success: true };
+        }
+
+        const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+        if (!leaveRecord[0]) throw new TRPCError({ code: 'NOT_FOUND' });
+
+        // Delete the leave (approved cancellation = remove leave)
+        await db.delete(leaves).where(eq(leaves.id, input.id));
+
+        // Notify employee
+        const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
+        if (emp[0]?.userId) {
+          const { createNotification } = await import('./notifications');
+          await createNotification({
+            userId: emp[0].userId,
+            fromUserId: ctx.user.id,
+            type: 'success',
+            title: 'تم قبول طلب إلغاء الإجازة ✅',
+            message: input.notes || 'تم قبول طلب إلغاء إجازتك وحذفها من النظام',
+            entityType: 'leave',
+            link: '/hr'
+          });
+        }
+
+        return { success: true };
+      }),
+
+    // Reject cancellation request (by admin)
+    rejectCancellation: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        notes: z.string().min(1, 'يرجى إدخال سبب الرفض'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.update("leaves", input.id, {
+            cancellationRequested: 3,
+            cancellationResolvedBy: 0,
+            cancellationResolvedAt: new Date(),
+            cancellationResolvedNotes: input.notes
+          });
+          return { success: true };
+        }
+
+        const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, input.id)).limit(1);
+        if (!leaveRecord[0]) throw new TRPCError({ code: 'NOT_FOUND' });
+
+        await db.update(leaves)
+          .set({
+            cancellationRequested: 3, // rejected
+            cancellationResolvedBy: ctx.user.id,
+            cancellationResolvedAt: new Date(),
+            cancellationResolvedNotes: input.notes
+          })
+          .where(eq(leaves.id, input.id));
+
+        // Notify employee
+        const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
+        if (emp[0]?.userId) {
+          const { createNotification } = await import('./notifications');
+          await createNotification({
+            userId: emp[0].userId,
+            fromUserId: ctx.user.id,
+            type: 'warning',
+            title: 'تم رفض طلب إلغاء الإجازة ❌',
+            message: `السبب: ${input.notes}`,
+            entityType: 'leave',
+            entityId: input.id,
+            link: '/hr'
+          });
+        }
+
+        return { success: true };
+      }),
+
+    // List pending cancellation requests (for admin)
+    listCancellationRequests: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) {
+        const demo = await import("../_core/demoStore");
+        return demo.list("leaves").filter((l: any) => l.cancellationRequested === 1);
+      }
+
+      return await db.select().from(leaves)
+        .where(eq(leaves.cancellationRequested, 1))
+        .orderBy(desc(leaves.cancellationRequestedAt));
+    }),
   }),
 
   // ============= PERFORMANCE REVIEWS =============
