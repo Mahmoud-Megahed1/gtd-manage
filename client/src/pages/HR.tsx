@@ -570,55 +570,57 @@ export default function HR() {
                               {leave.status === 'approved' ? 'موافق' :
                                 leave.status === 'rejected' ? 'مرفوض' : 'معلق'}
                             </Badge>
-                            {leave.status === 'pending' && (
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  title="موافقة"
-                                  onClick={() => setApprovalDialog({
-                                    open: true,
-                                    leaveId: leave.id,
-                                    employeeId: leave.employeeId,
-                                    leaveType: leave.leaveType,
-                                    days: leave.days,
-                                    reason: leave.reason,
-                                    action: "approve"
-                                  })}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  title="رفض"
-                                  onClick={() => setApprovalDialog({
-                                    open: true,
-                                    leaveId: leave.id,
-                                    employeeId: leave.employeeId,
-                                    leaveType: leave.leaveType,
-                                    days: leave.days,
-                                    reason: leave.reason,
-                                    action: "reject"
-                                  })}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  title="حذف"
-                                  onClick={() => {
-                                    const reason = prompt("سبب الحذف (اختياري):");
-                                    if (reason !== null) {
-                                      deleteLeave.mutate({ id: leave.id, reason: reason || undefined });
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex gap-1">
+                              {leave.status === 'pending' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="موافقة"
+                                    onClick={() => setApprovalDialog({
+                                      open: true,
+                                      leaveId: leave.id,
+                                      employeeId: leave.employeeId,
+                                      leaveType: leave.leaveType,
+                                      days: leave.days,
+                                      reason: leave.reason,
+                                      action: "approve"
+                                    })}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="رفض"
+                                    onClick={() => setApprovalDialog({
+                                      open: true,
+                                      leaveId: leave.id,
+                                      employeeId: leave.employeeId,
+                                      leaveType: leave.leaveType,
+                                      days: leave.days,
+                                      reason: leave.reason,
+                                      action: "reject"
+                                    })}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                title="حذف الإجازة"
+                                onClick={() => {
+                                  const reason = prompt("سبب الحذف (اختياري):");
+                                  if (reason !== null) {
+                                    deleteLeave.mutate({ id: leave.id, reason: reason || undefined });
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
