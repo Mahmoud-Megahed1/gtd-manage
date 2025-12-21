@@ -611,3 +611,21 @@ export const passwordResetRequests = mysqlTable("password_reset_requests", {
 
 export type PasswordResetRequest = typeof passwordResetRequests.$inferSelect;
 export type InsertPasswordResetRequest = typeof passwordResetRequests.$inferInsert;
+
+// AI Gemini Pages for storing user's Gemini iframe settings
+export const aiGeminiPages = mysqlTable("aiGeminiPages", {
+	id: int().autoincrement().notNull(),
+	userId: int().notNull(),
+	pageUrl: varchar({ length: 1000 }).notNull(),    // رابط صفحة Gemini
+	apiKeyHash: varchar({ length: 255 }),             // hash لمفتاح API للتحقق
+	isHidden: tinyint().default(0).notNull(),        // حالة الإخفاء
+	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+	updatedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+},
+	(table) => [
+		unique("aiGeminiPages_userId_unique").on(table.userId),
+		index("idx_aiGeminiPages_isHidden").on(table.isHidden),
+	]);
+
+export type AiGeminiPage = typeof aiGeminiPages.$inferSelect;
+export type InsertAiGeminiPage = typeof aiGeminiPages.$inferInsert;

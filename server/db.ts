@@ -830,3 +830,72 @@ export async function getProjectsForAssignee(userId: number) {
   const result = await db.select().from(projects).where(eq(projects.assignedTo, userId));
   return result;
 }
+
+// ============= AI GEMINI PAGES =============
+import { aiGeminiPages, InsertAiGeminiPage } from "../drizzle/schema";
+
+export async function saveGeminiPage(userId: number, pageUrl: string, apiKeyHash: string | null) {
+  const db = await getDb();
+  if (!db) {
+    const existing = demo.filter("aiGeminiPages", (p: any) => p.userId === userId);
+    if (existing.length > 0) {
+      demo.update("aiGeminiPages", existing[0].id, { pageUrl, apiKeyHash, updatedAt: new Date() });
+      return existing[0];
+    }
+    return demo.insert("aiGeminiPages", {
+      userId,
+      pageUrl,
+      apiKeyHash,
+      isHidden: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  await db.insert(aiGeminiPages).values({
+    userId,
+    pageUrl,
+    apiKeyHash,
+    isHidden: 0,
+  } as InsertAiGeminiPage).onDuplicateKeyUpdate({
+    set: { pageUrl, apiKeyHash, updatedAt: new Date() }
+  });
+
+  const result = await db.select().from(aiGeminiPages).where(eq(aiGeminiPages.userId, userId)).limit(1);
+  return result[0] || null;
+}
+
+export async function getGeminiPage(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    const match = demo.filter("aiGeminiPages", (p: any) => p.userId === userId);
+    return match.length > 0 ? match[0] : null;
+  }
+  const result = await db.select().from(aiGeminiPages).where(eq(aiGeminiPages.userId, userId)).limit(1);
+  return result[0] || null;
+}
+
+export async function hideGeminiPage(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    const existing = demo.filter("aiGeminiPages", (p: any) => p.userId === userId);
+    if (existing.length > 0) {
+      demo.update("aiGeminiPages", existing[0].id, { isHidden: 1, updatedAt: new Date() });
+    }
+    return;
+  }
+  await db.update(aiGeminiPages).set({ isHidden: 1, updatedAt: new Date() }).where(eq(aiGeminiPages.userId, userId));
+}
+
+export async function showGeminiPage(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    const existing = demo.filter("aiGeminiPages", (p: any) => p.userId === userId);
+    if (existing.length > 0) {
+      demo.update("aiGeminiPages", existing[0].id, { isHidden: 0, updatedAt: new Date() });
+    }
+    return;
+  }
+  await db.update(aiGeminiPages).set({ isHidden: 0, updatedAt: new Date() }).where(eq(aiGeminiPages.userId, userId));
+}
+

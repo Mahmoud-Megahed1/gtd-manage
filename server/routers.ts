@@ -2290,7 +2290,60 @@ export const appRouter = router({
   ,
   tasks: tasksRouter,
   approvals: approvalsRouter,
-  notifications: notificationsRouter
+  notifications: notificationsRouter,
+
+  // ============= AI ASSISTANT =============
+  ai: router({
+    // Save Gemini page settings for current user
+    saveGeminiPage: protectedProcedure
+      .input(z.object({
+        pageUrl: z.string().url(),
+        apiKey: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Hash API key for security if provided
+        let apiKeyHash: string | null = null;
+        if (input.apiKey) {
+          const crypto = await import('crypto');
+          apiKeyHash = crypto.createHash('sha256').update(input.apiKey).digest('hex');
+        }
+
+        await db.saveGeminiPage(ctx.user.id, input.pageUrl, apiKeyHash);
+        await logAudit(ctx.user.id, 'SAVE_GEMINI_PAGE', 'aiGeminiPage', undefined, `Saved Gemini page: ${input.pageUrl}`, ctx);
+        return { success: true };
+      }),
+
+    // Get Gemini page settings for current user
+    getGeminiPage: protectedProcedure
+      .query(async ({ ctx }) => {
+        const page = await db.getGeminiPage(ctx.user.id);
+        if (!page) return null;
+        return {
+          id: page.id,
+          pageUrl: page.pageUrl,
+          isHidden: Boolean(page.isHidden),
+          hasApiKey: Boolean(page.apiKeyHash),
+          createdAt: page.createdAt,
+          updatedAt: page.updatedAt,
+        };
+      }),
+
+    // Hide Gemini page for current user
+    hideGeminiPage: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        await db.hideGeminiPage(ctx.user.id);
+        await logAudit(ctx.user.id, 'HIDE_GEMINI_PAGE', 'aiGeminiPage', undefined, 'Hidden Gemini page', ctx);
+        return { success: true };
+      }),
+
+    // Show (unhide) Gemini page for current user
+    showGeminiPage: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        await db.showGeminiPage(ctx.user.id);
+        await logAudit(ctx.user.id, 'SHOW_GEMINI_PAGE', 'aiGeminiPage', undefined, 'Shown Gemini page', ctx);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
