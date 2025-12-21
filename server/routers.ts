@@ -570,8 +570,65 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         const { id, ...data } = input;
+
+        // Get current project for comparison
+        const currentProject = await db.getProjectById(id);
+
         await db.updateProject(id, data);
         await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id, undefined, ctx);
+
+        // Notify assignedTo user if changed
+        if (input.assignedTo && currentProject && input.assignedTo !== currentProject.assignedTo) {
+          const { createNotification } = await import('./routers/notifications');
+          await createNotification({
+            userId: input.assignedTo,
+            fromUserId: ctx.user.id,
+            type: 'info',
+            title: 'تم إسناد مشروع جديد لك 📋',
+            message: `تم إسنادك للمشروع: ${currentProject.name}`,
+            entityType: 'project',
+            entityId: id,
+            link: `/projects/${id}`
+          });
+        }
+
+        // Notify team about status change
+        if (input.status && currentProject && input.status !== currentProject.status) {
+          const conn = await db.getDb();
+          if (conn) {
+            const { projectTeam, users } = await import('../drizzle/schema');
+            const teamMembers = await conn.select({ userId: projectTeam.userId })
+              .from(projectTeam)
+              .where(eq(projectTeam.projectId, id));
+
+            if (teamMembers.length > 0) {
+              const { createNotification } = await import('./routers/notifications');
+              const statusNames: Record<string, string> = {
+                'design': 'التصميم',
+                'execution': 'التنفيذ',
+                'delivery': 'التسليم',
+                'completed': 'مكتمل',
+                'cancelled': 'ملغي'
+              };
+
+              for (const member of teamMembers) {
+                if (member.userId && member.userId !== ctx.user.id) {
+                  await createNotification({
+                    userId: member.userId,
+                    fromUserId: ctx.user.id,
+                    type: 'info',
+                    title: 'تغيير حالة المشروع 📊',
+                    message: `تم تغيير حالة مشروع "${currentProject.name}" إلى: ${statusNames[input.status] || input.status}`,
+                    entityType: 'project',
+                    entityId: id,
+                    link: `/projects/${id}`
+                  });
+                }
+              }
+            }
+          }
+        }
+
         return { success: true };
       }),
 
@@ -687,6 +744,23 @@ export const appRouter = router({
             role: input.role || 'member'
           } as any);
           await logAudit(ctx.user.id, 'ADD_TEAM_MEMBER', 'project', input.projectId, `Added user ${input.userId}`, ctx);
+
+          // Notify added user
+          const project = await db.getProjectById(input.projectId);
+          if (project && input.userId !== ctx.user.id) {
+            const { createNotification } = await import('./routers/notifications');
+            await createNotification({
+              userId: input.userId,
+              fromUserId: ctx.user.id,
+              type: 'success',
+              title: 'تمت إضافتك لفريق مشروع 👥',
+              message: `تم إضافتك لفريق المشروع: ${project.name}`,
+              entityType: 'project',
+              entityId: input.projectId,
+              link: `/projects/${input.projectId}`
+            });
+          }
+
           return { success: true };
         } catch (e: any) {
           if (e.code === 'ER_DUP_ENTRY') {
