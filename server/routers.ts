@@ -2161,13 +2161,14 @@ export const appRouter = router({
           'application/pdf',
           'text/plain',
           'text/html',
+          'text/csv',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'video/mp4',
           'video/webm',
         ];
         const VIDEO_TYPES = ['video/mp4', 'video/webm'];
-        const MAX_SIZE_DEFAULT = 10 * 1024 * 1024; // 10MB for images/docs
+        const MAX_SIZE_DEFAULT = 10 * 1024 * 1024; // 10MB for images/docs/csv
         const MAX_SIZE_VIDEO = 100 * 1024 * 1024; // 100MB for videos
         const MAX_SIZE = VIDEO_TYPES.includes(input.mimeType) ? MAX_SIZE_VIDEO : MAX_SIZE_DEFAULT;
 
@@ -2204,6 +2205,7 @@ export const appRouter = router({
         const htmlStart = buffer.toString('utf8', 0, 100).toLowerCase().trim();
         const isHtml = htmlStart.includes('<!doctype') || htmlStart.includes('<html');
         const isText = input.mimeType === 'text/plain';
+        const isCsv = input.mimeType === 'text/csv'; // CSV is plain text, no magic number
         // Video magic numbers
         const isMp4 = buffer.length >= 12 && (
           buffer.toString('ascii', 4, 8) === 'ftyp' || // Standard MP4
@@ -2219,6 +2221,7 @@ export const appRouter = router({
           (input.mimeType === 'application/pdf' && isPdf) ||
           (input.mimeType === 'text/html' && isHtml) ||
           (input.mimeType === 'text/plain' && isText) ||
+          (input.mimeType === 'text/csv' && isCsv) ||
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && isZip) ||
           (input.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && isZip) ||
           (input.mimeType === 'video/mp4' && isMp4) ||

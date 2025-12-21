@@ -32,8 +32,9 @@ export function createApp() {
       throw new Error("Security error: WEB_ORIGIN is required in production");
     }
   }
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Increase limit to 150MB to support 100MB video files (base64 adds ~33% overhead)
+  app.use(express.json({ limit: "150mb" }));
+  app.use(express.urlencoded({ limit: "150mb", extended: true }));
   app.use((req, res, next) => {
     try {
       const configuredOrigin = process.env.WEB_ORIGIN || "";

@@ -984,6 +984,7 @@ function ImportantFilesSection() {
     pdf: ["application/pdf"],
     word: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
     excel: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    csv: ["text/csv"],
     video: ["video/mp4", "video/webm"],
   };
 
@@ -992,6 +993,7 @@ function ImportantFilesSection() {
     pdf: 10,
     word: 10,
     excel: 10,
+    csv: 10,
     video: 100,
   };
 
@@ -1000,6 +1002,7 @@ function ImportantFilesSection() {
     if (ALLOWED_TYPES.pdf.includes(mimeType)) return "pdf";
     if (ALLOWED_TYPES.word.includes(mimeType)) return "word";
     if (ALLOWED_TYPES.excel.includes(mimeType)) return "excel";
+    if (ALLOWED_TYPES.csv.includes(mimeType)) return "csv";
     if (ALLOWED_TYPES.video.includes(mimeType)) return "video";
     return "other";
   };
@@ -1068,6 +1071,7 @@ function ImportantFilesSection() {
       case "pdf": return <FileText className="w-8 h-8 text-red-500" />;
       case "word": return <FileText className="w-8 h-8 text-blue-500" />;
       case "excel": return <FileText className="w-8 h-8 text-emerald-500" />;
+      case "csv": return <FileText className="w-8 h-8 text-orange-500" />;
       case "video": return <FileVideo className="w-8 h-8 text-purple-500" />;
       default: return <File className="w-8 h-8 text-gray-500" />;
     }
@@ -1083,6 +1087,7 @@ function ImportantFilesSection() {
     { key: "images", label: "صور", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "images").length || 0 },
     { key: "pdf", label: "PDF", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "pdf").length || 0 },
     { key: "word", label: "Word", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "word").length || 0 },
+    { key: "csv", label: "CSV", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "csv").length || 0 },
     { key: "video", label: "فيديو", count: files?.filter((f: any) => getFileCategory(f.mimeType) === "video").length || 0 },
   ];
 
@@ -1128,7 +1133,7 @@ function ImportantFilesSection() {
             </button>
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            صور (10MB) • PDF (10MB) • Word (10MB) • فيديو (100MB)
+            صور (10MB) • PDF (10MB) • Word (10MB) • CSV (10MB) • فيديو (100MB)
           </p>
         </div>
 
