@@ -356,7 +356,7 @@ export const INVOICE_CSS = `
 }
 
 /* PRINT STYLES - COPIED FROM @MEDIA PRINT BUT APPLIED GLOBALLY FOR HTML EXPORT */
-   @page {
+    @page {
         size: A4;
         margin: 0;
     }
@@ -377,23 +377,24 @@ export const INVOICE_CSS = `
         padding: 0;
     }
 
-    /* Hide the interactive form */
-    .invoice-page {
-       /* display: none !important;  -- WE WANT THIS VISIBLE FOR EXPORT IF IT IS THE ROOT */
-    }
-
     /* Show the dedicated print view */
-    .print-view-container {
+    .print-view-container, .invoice-print-view {
         display: block !important;
         visibility: visible !important;
-        position: relative; /* Changed from absolute to relative for static file */
+        position: relative;
         top: 0;
         left: 0;
         width: 100%;
         background: white;
     }
 
-    .print-view-container * {
+    .print-view-wrapper {
+        display: block !important;
+        visibility: visible !important;
+        position: relative;
+    }
+
+    .print-view-container *, .invoice-print-view * {
         visibility: visible;
     }
 
@@ -434,19 +435,19 @@ export const INVOICE_CSS = `
     }
 
     /* 1. Compacting elements for density */
-    .invoice-page h1 {
+    .invoice-page h1, .invoice-print-view h1 {
         font-size: 20px;
         margin-bottom: 2px;
     }
 
-    .invoice-page h2 {
+    .invoice-page h2, .invoice-print-view h2 {
         font-size: 14px;
         margin-top: 5px;
         padding-bottom: 2px;
         margin-bottom: 3px;
     }
 
-    .invoice-page h3 {
+    .invoice-page h3, .invoice-print-view h3 {
         font-size: 12px;
         margin-bottom: 2px;
     }
@@ -471,9 +472,9 @@ export const INVOICE_CSS = `
         page-break-inside: avoid;
     }
 
-    .invoice-page input,
-    .invoice-page textarea,
-    .invoice-page select {
+    .invoice-page input, .invoice-print-view input,
+    .invoice-page textarea, .invoice-print-view textarea,
+    .invoice-page select, .invoice-print-view select {
         border: none !important;
         background: transparent !important;
         padding: 0;
@@ -483,7 +484,7 @@ export const INVOICE_CSS = `
     }
 
     /* 2. Checkboxes: Custom Styling for Print - Solid Gold Block */
-    .invoice-page input[type="checkbox"] {
+    .invoice-page input[type="checkbox"], .invoice-print-view input[type="checkbox"] {
         -webkit-appearance: none;
         appearance: none;
         background-color: transparent;
@@ -495,7 +496,7 @@ export const INVOICE_CSS = `
         vertical-align: middle;
     }
 
-    .invoice-page input[type="checkbox"]:checked {
+    .invoice-page input[type="checkbox"]:checked, .invoice-print-view input[type="checkbox"]:checked {
         background-color: #bfa670 !important;
         /* Gold color */
         border-color: #bfa670 !important;
@@ -503,8 +504,8 @@ export const INVOICE_CSS = `
         print-color-adjust: exact;
     }
 
-    .invoice-page input[type="checkbox"]:checked:after,
-    .invoice-page input[type="checkbox"]:checked:before {
+    .invoice-page input[type="checkbox"]:checked:after, .invoice-print-view input[type="checkbox"]:checked:after,
+    .invoice-page input[type="checkbox"]:checked:before, .invoice-print-view input[type="checkbox"]:checked:before {
         content: none;
         display: none;
     }
@@ -570,4 +571,9 @@ export const INVOICE_CSS = `
     .print-only {
         display: block !important;
     }
-`;
+    
+    .print-image {
+        display: block !important;
+        visibility: visible !important; 
+        opacity: 1 !important;
+    }`;
