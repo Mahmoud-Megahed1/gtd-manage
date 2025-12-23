@@ -21,6 +21,7 @@
     margin: 0;
     padding: 20px;
     color: #333;
+    color: #333;
     font-size: 13px;
     display: flex;
     flex-direction: column;
@@ -28,10 +29,10 @@
     min-height: 100vh;
 }
 
-/* Paper Layout - mapped from .page-container */
-.invoice-page {
+/* Common base styles for both screen (invoice-page) and print (invoice-print-view) */
+.invoice-page,
+.invoice-print-view {
     width: 100%;
-    max-width: none;
     margin: 0 auto;
     background: var(--paper-bg);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -41,6 +42,10 @@
     display: flex;
     flex-direction: column;
     direction: rtl;
+}
+
+.invoice-page {
+    max-width: none;
 }
 
 /* Action Bar - mapped from .action-bar */
@@ -127,19 +132,23 @@
 .invoice-page h3,
 .invoice-page h4 {
     margin: 0 0 8px 0;
+    margin: 0 0 8px 0;
     color: var(--secondary-color);
 }
 
-.invoice-page h1 {
+.invoice-page h1,
+.invoice-print-view h1 {
     font-size: 22px;
 }
 
-.invoice-page h3 {
+.invoice-page h3,
+.invoice-print-view h3 {
     font-size: 14px;
     margin-bottom: 5px;
 }
 
-.invoice-page h2 {
+.invoice-page h2,
+.invoice-print-view h2 {
     font-size: 15px;
     border-bottom: 2px solid var(--primary-color);
     padding-bottom: 2px;
@@ -427,6 +436,14 @@
         display: block !important;
     }
 
+    .print-image {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
     .print-field {
         border-bottom: 1px solid #ccc;
         padding-bottom: 2px;
@@ -434,19 +451,22 @@
     }
 
     /* 1. Compacting elements for density */
-    .invoice-page h1 {
+    .invoice-page h1,
+    .invoice-print-view h1 {
         font-size: 20px;
         margin-bottom: 2px;
     }
 
-    .invoice-page h2 {
+    .invoice-page h2,
+    .invoice-print-view h2 {
         font-size: 14px;
         margin-top: 5px;
         padding-bottom: 2px;
         margin-bottom: 3px;
     }
 
-    .invoice-page h3 {
+    .invoice-page h3,
+    .invoice-print-view h3 {
         font-size: 12px;
         margin-bottom: 2px;
     }
@@ -472,8 +492,11 @@
     }
 
     .invoice-page input,
+    .invoice-print-view input,
     .invoice-page textarea,
-    .invoice-page select {
+    .invoice-print-view textarea,
+    .invoice-page select,
+    .invoice-print-view select {
         border: none !important;
         background: transparent !important;
         padding: 0;
@@ -483,7 +506,8 @@
     }
 
     /* 2. Checkboxes: Custom Styling for Print - Solid Gold Block */
-    .invoice-page input[type="checkbox"] {
+    .invoice-page input[type="checkbox"],
+    .invoice-print-view input[type="checkbox"] {
         -webkit-appearance: none;
         appearance: none;
         background-color: transparent;
@@ -495,7 +519,8 @@
         vertical-align: middle;
     }
 
-    .invoice-page input[type="checkbox"]:checked {
+    .invoice-page input[type="checkbox"]:checked,
+    .invoice-print-view input[type="checkbox"]:checked {
         background-color: #bfa670 !important;
         /* Gold color */
         border-color: #bfa670 !important;
@@ -504,7 +529,9 @@
     }
 
     .invoice-page input[type="checkbox"]:checked:after,
-    .invoice-page input[type="checkbox"]:checked:before {
+    .invoice-print-view input[type="checkbox"]:checked:after,
+    .invoice-page input[type="checkbox"]:checked:before,
+    .invoice-print-view input[type="checkbox"]:checked:before {
         content: none;
         display: none;
     }

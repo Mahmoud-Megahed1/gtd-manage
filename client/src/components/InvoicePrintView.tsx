@@ -104,12 +104,12 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
     ];
 
     return (
-        <div className="invoice-page print-view-container print-only">
+        <div className="invoice-print-view print-only">
             {/* Header */}
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
                 <div style={{ width: '30%' }}>
                     <div className="logo-placeholder">
-                        <img src={LOGO_BASE64} alt="Logo" style={{ maxHeight: '100px', objectFit: 'contain' }}
+                        <img src={LOGO_BASE64} alt="Logo" className="print-image" style={{ maxHeight: '100px', width: 'auto', objectFit: 'contain', display: 'block' }}
                             onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                     </div>
                 </div>
@@ -250,12 +250,12 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
                 <div style={{ height: '4px', background: 'linear-gradient(90deg, #ccc, #bfa670)', marginBottom: '10px', width: '100%' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="barcode-placeholder" style={{ height: '80px', width: '150px' }}>
-                        <img src={BARCODE_BASE64} alt="Barcode" style={{ height: '60px', width: 'auto' }} />
+                        <img src={BARCODE_BASE64} alt="Barcode" className="print-image" style={{ height: '60px', width: 'auto', display: 'block' }} />
                     </div>
                     <div style={{ textAlign: 'right', order: 1, width: '70%' }}>
                         <p style={{ fontSize: '14px', marginBottom: '5px', color: 'var(--secondary-color)' }}><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
                         <p style={{ margin: '4px 0', fontSize: '12px', fontWeight: 'bold' }}>الرياض, حي السفارات, مربع الفزاري, مبنى 3293, بوابة 5 <br /> سجل تجاري C . R . 7017891396</p>
-                        <p style={{ margin: '0', fontSize: '10px' }}>500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET</p>
+                        <p style={{ margin: '0', fontSize: '10px' }}>500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET (v1.3)</p>
                     </div>
                 </div>
             </footer>
