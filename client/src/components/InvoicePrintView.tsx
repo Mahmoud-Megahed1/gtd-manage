@@ -1,5 +1,6 @@
 import React from 'react';
 import './IntegratedInvoiceForm.css';
+import { BARCODE_BASE64, LOGO_BASE64 } from '../utils/assets';
 
 
 interface InvoiceItem {
@@ -108,7 +109,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
                 <div style={{ width: '30%' }}>
                     <div className="logo-placeholder">
-                        <img src="/logo.png" alt="Logo" style={{ maxHeight: '100px', objectFit: 'contain' }}
+                        <img src={LOGO_BASE64} alt="Logo" style={{ maxHeight: '100px', objectFit: 'contain' }}
                             onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                     </div>
                 </div>
@@ -249,7 +250,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
                 <div style={{ height: '4px', background: 'linear-gradient(90deg, #ccc, #bfa670)', marginBottom: '10px', width: '100%' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="barcode-placeholder" style={{ height: '80px', width: '150px' }}>
-                        <img src="/barcode.jpg" alt="Barcode" style={{ height: '60px', width: 'auto' }} />
+                        <img src={BARCODE_BASE64} alt="Barcode" style={{ height: '60px', width: 'auto' }} />
                     </div>
                     <div style={{ textAlign: 'right', order: 1, width: '70%' }}>
                         <p style={{ fontSize: '14px', marginBottom: '5px', color: 'var(--secondary-color)' }}><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
