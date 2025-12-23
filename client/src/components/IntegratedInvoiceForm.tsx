@@ -582,6 +582,13 @@ export default function IntegratedInvoiceForm() {
                         }
                     }));
 
+                    // Debugging: Log content length
+                    console.log("Clone HTML length:", clone.innerHTML.length);
+                    if (clone.innerHTML.length < 500) {
+                        alert("Warning: Exported content seems empty. Please check console.");
+                        console.log("Clone content:", clone.innerHTML);
+                    }
+
                     const htmlContent = clone.innerHTML;
                     const fullHtml = `
 <!DOCTYPE html>
@@ -592,11 +599,22 @@ export default function IntegratedInvoiceForm() {
     <title>Invoice - ${serialNumber}</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* FORCE VISIBILITY IN EXPORT */
+        .print-view-wrapper, .invoice-print-view, .print-view-container {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            left: 0 !important;
+            top: 0 !important;
+        }
         ${INVOICE_CSS}
     </style>
 </head>
 <body>
-    ${htmlContent}
+    <div class="print-view-wrapper" style="display:block !important; visibility:visible !important;">
+        ${htmlContent}
+    </div>
 </body>
 </html>`;
                     const blob = new Blob([fullHtml], { type: 'text/html' });

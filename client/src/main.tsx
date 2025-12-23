@@ -11,7 +11,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
-import "./print.css";
+import "./print.css?v=2"; // Cache buster added
 
 const queryClient = new QueryClient();
 
