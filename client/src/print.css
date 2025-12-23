@@ -1,8 +1,13 @@
 /* Global Print Styles - Loaded everywhere to ensure print works */
 
-/* Default: Hide print view on screen */
+/* Default: Hide print view on screen but keep it rendered in DOM */
 .print-view-wrapper {
-    display: none;
+    visibility: hidden;
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 210mm;
+    /* A4 width for proper rendering */
 }
 
 /* Print Media Query */
