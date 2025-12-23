@@ -593,7 +593,4 @@
     }
 }
 
-/* Screen styles for print view */
-.print-only {
-    display: none;
-}
+/* Screen styles for print view - visibility now controlled by .print-view-wrapper in print.css */
