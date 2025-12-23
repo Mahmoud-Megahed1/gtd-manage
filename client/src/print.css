@@ -1,0 +1,82 @@
+/* Global Print Styles - Loaded everywhere to ensure print works */
+
+/* Default: Hide print view on screen */
+.print-view-wrapper {
+    display: none;
+}
+
+/* Print Media Query */
+@media print {
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    /* 1. Hide everything by default in print */
+    body * {
+        visibility: hidden;
+    }
+
+    /* 2. Hide the main app container specifically to avoid unwanted layout */
+    .invoice-form-container,
+    .invoice-page,
+    nav,
+    aside,
+    .invoice-action-bar,
+    .no-print {
+        display: none !important;
+    }
+
+    /* 3. Show ONLY the print view wrapper and its children */
+    .print-view-wrapper,
+    .print-view-wrapper * {
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    .print-view-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+    }
+
+    /* 4. Restore flex layout for specific internal components if needed */
+    .print-view-wrapper .invoice-print-view header,
+    .print-view-wrapper .invoice-print-view .invoice-footer>div,
+    .print-view-wrapper .invoice-print-view .invoice-form-row,
+    .print-view-wrapper .invoice-print-view .checkbox-group,
+    .print-view-wrapper .invoice-print-view .total-row {
+        display: flex !important;
+    }
+
+    /* 5. Restore Table layout */
+    .print-view-wrapper table {
+        display: table !important;
+    }
+
+    .print-view-wrapper thead {
+        display: table-header-group !important;
+    }
+
+    .print-view-wrapper tbody {
+        display: table-row-group !important;
+    }
+
+    .print-view-wrapper tr {
+        display: table-row !important;
+    }
+
+    .print-view-wrapper td,
+    .print-view-wrapper th {
+        display: table-cell !important;
+    }
+
+    /* 6. Force Images */
+    .print-view-wrapper img {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}

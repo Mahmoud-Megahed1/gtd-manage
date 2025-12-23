@@ -620,7 +620,7 @@ export default function IntegratedInvoiceForm() {
             </div>
 
             {/* Print View Component - wrapped for HTML capture */}
-            <div style={{ display: 'none' }}>
+            <div className="print-view-wrapper">
                 <div ref={printRef}>
                     <InvoicePrintView
                         serialNumber={serialNumber}
