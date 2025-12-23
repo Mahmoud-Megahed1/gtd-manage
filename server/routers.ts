@@ -487,29 +487,36 @@ export const appRouter = router({
 
   // ============= PROJECTS =============
   projects: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      await ensurePerm(ctx, 'projects');
-      const permLevel = getPermissionLevel(ctx.user.role, 'projects');
+    list: protectedProcedure
+      .input(z.object({ clientId: z.number().optional() }).optional())
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const permLevel = getPermissionLevel(ctx.user.role, 'projects');
 
-      // Check if user can view financials
-      const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
-      const isDesigner = designerRoles.includes(ctx.user.role);
+        // Check if user can view financials
+        const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
+        const isDesigner = designerRoles.includes(ctx.user.role);
 
-      let projects;
-      // For 'own' permission level, only show assigned projects
-      if (permLevel === 'own') {
-        projects = await db.getProjectsForAssignee(ctx.user.id);
-      } else {
-        projects = await db.getAllProjects();
-      }
+        let projects;
+        // For 'own' permission level, only show assigned projects
+        if (permLevel === 'own') {
+          projects = await db.getProjectsForAssignee(ctx.user.id);
+        } else {
+          projects = await db.getAllProjects();
+        }
 
-      // Strip budget for designers
-      if (isDesigner) {
-        return projects.map((p: any) => ({ ...p, budget: undefined }));
-      }
+        // Filter by client if requested
+        if (input?.clientId) {
+          projects = projects.filter((p: any) => p.clientId === input.clientId);
+        }
 
-      return projects;
-    }),
+        // Strip budget for designers
+        if (isDesigner) {
+          return projects.map((p: any) => ({ ...p, budget: undefined }));
+        }
+
+        return projects;
+      }),
 
     // Get projects assigned to current user (for limited access roles)
     myProjects: protectedProcedure.query(async ({ ctx }) => {
@@ -1068,6 +1075,7 @@ export const appRouter = router({
         notes: z.string().optional(),
         terms: z.string().optional(),
         formData: z.string().optional(),
+        invoiceNumber: z.string().optional(),
         items: z.array(z.object({
           description: z.string(),
           quantity: z.number(),
@@ -1082,7 +1090,7 @@ export const appRouter = router({
           throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء فواتير - صلاحية المشاهدة فقط' });
         }
 
-        const invoiceNumber = generateUniqueNumber(input.type === 'invoice' ? 'INV' : 'QUO');
+        const invoiceNumber = input.invoiceNumber || generateUniqueNumber(input.type === 'invoice' ? 'INV' : 'QUO');
         const { items, ...invoiceData } = input;
 
         const result = await db.createInvoice({
@@ -1106,9 +1114,27 @@ export const appRouter = router({
           }
         }
 
+
         // Only log audit if invoiceId is valid
         if (invoiceId && !isNaN(invoiceId) && invoiceId > 0) {
           await logAudit(ctx.user.id, 'CREATE_INVOICE', 'invoice', invoiceId, `Created ${input.type}: ${invoiceNumber}`, ctx);
+
+          // INTEGRATION: Create corresponding sale record for accounting if it's an invoice
+          if (input.type === 'invoice') {
+            const saleNumber = generateUniqueNumber('SAL');
+            await db.createSale({
+              saleNumber,
+              clientId: input.clientId,
+              projectId: input.projectId,
+              description: `Invoice #${invoiceNumber}`,
+              amount: input.total,
+              paymentMethod: 'bank_transfer', // Default to bank_transfer or need UI input
+              saleDate: input.issueDate,
+              status: 'pending', // Pending payment
+              invoiceId: invoiceId,
+              createdBy: ctx.user.id
+            });
+          }
         }
 
         // Notify owner
@@ -1133,6 +1159,18 @@ export const appRouter = router({
         await ensurePerm(ctx, 'invoices');
         const { id, ...data } = input;
         await db.updateInvoice(id, data);
+
+        // INTEGRATION: Update sale status if invoice status changes
+        if (data.status) {
+          const statusMap: Record<string, string> = {
+            'draft': 'pending',
+            'sent': 'pending',
+            'paid': 'completed',
+            'cancelled': 'cancelled'
+          };
+          await db.updateSaleByInvoiceId(id, { status: statusMap[data.status] || 'pending' });
+        }
+
         await logAudit(ctx.user.id, 'UPDATE_INVOICE', 'invoice', id, undefined, ctx);
         return { success: true };
       }),
@@ -1141,6 +1179,9 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'invoices');
+        // INTEGRATION: Delete linked sale record
+        await db.deleteSaleByInvoiceId(input.id);
+
         await db.deleteInvoice(input.id);
         await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id, undefined, ctx);
         return { success: true };

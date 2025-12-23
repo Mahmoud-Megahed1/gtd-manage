@@ -13,7 +13,8 @@ import {
   installments, InsertInstallment,
   auditLogs, InsertAuditLog,
   companySettings, InsertCompanySetting,
-  attachments, InsertAttachment
+  attachments, InsertAttachment,
+  sales, InsertSale
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import * as demo from './_core/demoStore';
@@ -332,6 +333,7 @@ export async function getAllInvoices() {
     invoiceNumber: invoices.invoiceNumber,
     type: invoices.type,
     clientId: invoices.clientId,
+    clientName: clients.name,
     projectId: invoices.projectId,
     issueDate: invoices.issueDate,
     dueDate: invoices.dueDate,
@@ -345,7 +347,10 @@ export async function getAllInvoices() {
     createdBy: invoices.createdBy,
     createdAt: invoices.createdAt,
     updatedAt: invoices.updatedAt
-  }).from(invoices).orderBy(desc(invoices.createdAt));
+  })
+    .from(invoices)
+    .leftJoin(clients, eq(invoices.clientId, clients.id))
+    .orderBy(desc(invoices.createdAt));
 }
 
 export async function getInvoiceById(id: number) {
@@ -369,6 +374,8 @@ export async function deleteInvoice(id: number) {
   // Delete invoice
   await db.delete(invoices).where(eq(invoices.id, id));
 }
+
+
 
 export async function getInvoiceItems(invoiceId: number) {
   const db = await getDb();
@@ -897,5 +904,33 @@ export async function showGeminiPage(userId: number) {
     return;
   }
   await db.update(aiGeminiPages).set({ isHidden: 0, updatedAt: new Date() }).where(eq(aiGeminiPages.userId, userId));
+}
+
+// ============= SALES HELPERS =============
+export async function createSale(sale: InsertSale) {
+  const db = await getDb();
+  if (!db) return demo.insert("sales", sale);
+  const result = await db.insert(sales).values(sale);
+  return result;
+}
+
+export async function deleteSaleByInvoiceId(invoiceId: number) {
+  const db = await getDb();
+  if (!db) {
+    const toRemove = demo.filter("sales", (s: any) => s.invoiceId === invoiceId);
+    toRemove.forEach((s: any) => demo.remove("sales", s.id));
+    return;
+  }
+  await db.delete(sales).where(eq(sales.invoiceId, invoiceId));
+}
+
+export async function updateSaleByInvoiceId(invoiceId: number, data: Partial<InsertSale>) {
+  const db = await getDb();
+  if (!db) {
+    const salesList = demo.filter("sales", (s: any) => s.invoiceId === invoiceId);
+    if (salesList.length > 0) demo.update("sales", salesList[0].id, data);
+    return;
+  }
+  await db.update(sales).set(data).where(eq(sales.invoiceId, invoiceId));
 }
 

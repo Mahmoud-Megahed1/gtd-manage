@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt, Plus, FileText, ArrowRight, Trash2 } from "lucide-react";
+import { Receipt, Plus, FileText, ArrowRight, Trash2, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -22,6 +22,7 @@ export default function Invoices() {
   const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = trpc.invoices.list.useQuery({ type: "invoice" });
   const { data: quotes, isLoading: loadingQuotes, refetch: refetchQuotes } = trpc.invoices.list.useQuery({ type: "quote" });
   const [showNewInvoice, setShowNewInvoice] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const utils = trpc.useUtils();
@@ -77,6 +78,18 @@ export default function Invoices() {
     return colorMap[status] || "bg-gray-500/10 text-gray-500";
   };
 
+  const filterInvoices = (list: any[] | undefined) => {
+    if (!list) return [];
+    if (!searchQuery) return list;
+    const lowerQuery = searchQuery.toLowerCase();
+    return list.filter((item) =>
+      item.invoiceNumber.toLowerCase().includes(lowerQuery) ||
+      (item.clientName && item.clientName.toLowerCase().includes(lowerQuery)) ||
+      item.total.toString().includes(lowerQuery)
+    );
+  };
+
+
   const InvoiceCard = ({ invoice }: { invoice: any }) => (
     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
       <CardHeader>
@@ -91,6 +104,9 @@ export default function Invoices() {
             </div>
             <div>
               <CardTitle className="text-lg">{invoice.invoiceNumber}</CardTitle>
+              {invoice.clientName && (
+                <p className="text-sm font-medium text-foreground">{invoice.clientName}</p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 {format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: ar })}
               </p>
@@ -197,6 +213,20 @@ export default function Invoices() {
           )}
         </div>
 
+
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <input
+            type="text"
+            placeholder="بحث برقم الفاتورة، اسم العميل، أو المبلغ..."
+            className="w-full pl-4 pr-10 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-right"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-md">
@@ -221,9 +251,9 @@ export default function Invoices() {
                   </Card>
                 ))}
               </div>
-            ) : allInvoices && allInvoices.length > 0 ? (
+            ) : filterInvoices(allInvoices).length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {allInvoices.map((invoice) => (
+                {filterInvoices(allInvoices).map((invoice) => (
                   <InvoiceCard key={invoice.id} invoice={invoice} />
                 ))}
               </div>
@@ -248,9 +278,9 @@ export default function Invoices() {
                   </Card>
                 ))}
               </div>
-            ) : invoices && invoices.length > 0 ? (
+            ) : filterInvoices(invoices).length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {invoices.map((invoice) => (
+                {filterInvoices(invoices).map((invoice) => (
                   <InvoiceCard key={invoice.id} invoice={invoice} />
                 ))}
               </div>
@@ -275,9 +305,9 @@ export default function Invoices() {
                   </Card>
                 ))}
               </div>
-            ) : quotes && quotes.length > 0 ? (
+            ) : filterInvoices(quotes).length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {quotes.map((quote) => (
+                {filterInvoices(quotes).map((quote) => (
                   <InvoiceCard key={quote.id} invoice={quote} />
                 ))}
               </div>
@@ -287,6 +317,6 @@ export default function Invoices() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }

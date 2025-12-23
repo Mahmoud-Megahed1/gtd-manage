@@ -131,26 +131,109 @@ export default function InvoiceDetails() {
 
         <Card>
           <CardHeader>
-            <CardTitle>محتوى المستند</CardTitle>
+            <CardTitle>بنود الفاتورة</CardTitle>
           </CardHeader>
           <CardContent>
-            <iframe
-              srcDoc={invoice.formData || ""}
-              className="w-full h-[70vh] bg-white border rounded"
-              title={`Invoice ${invoice.invoiceNumber}`}
-            />
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setLocation("/invoices")}>
-                العودة
-              </Button>
-              {user?.role === "admin" && (
-                <Button variant="destructive" onClick={() => deleteInvoice.mutate({ id })}>
-                  حذف المستند
-                </Button>
-              )}
-            </div>
+            {items && items.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="p-2 text-right">الوصف</th>
+                      <th className="p-2 text-center">الكمية</th>
+                      <th className="p-2 text-center">السعر</th>
+                      <th className="p-2 text-center">الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item: any, idx: number) => (
+                      <tr key={idx} className="border-b">
+                        <td className="p-2">{item.description}</td>
+                        <td className="p-2 text-center">{item.quantity}</td>
+                        <td className="p-2 text-center">{Number(item.unitPrice).toLocaleString()} ريال</td>
+                        <td className="p-2 text-center font-medium">{Number(item.total).toLocaleString()} ريال</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/50">
+                      <td colSpan={3} className="p-2 text-left font-bold">المجموع الفرعي</td>
+                      <td className="p-2 text-center font-bold">{Number(invoice.subtotal).toLocaleString()} ريال</td>
+                    </tr>
+                    {invoice.tax > 0 && (
+                      <tr className="bg-muted/50">
+                        <td colSpan={3} className="p-2 text-left">الضريبة (15%)</td>
+                        <td className="p-2 text-center">{Number(invoice.tax).toLocaleString()} ريال</td>
+                      </tr>
+                    )}
+                    <tr className="bg-primary/10">
+                      <td colSpan={3} className="p-2 text-left font-bold text-lg">الإجمالي</td>
+                      <td className="p-2 text-center font-bold text-lg text-primary">{Number(invoice.total).toLocaleString()} ريال</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">لا توجد بنود</p>
+            )}
           </CardContent>
         </Card>
+
+        {/* Formatted Form Data */}
+        {invoice.formData && (() => {
+          try {
+            const fd = JSON.parse(invoice.formData);
+            const projectNatureMap: Record<string, string> = {
+              design: 'تصميم', execution: 'تنفيذ', visit: 'استشارة موقع',
+              office: 'استشارة مكتب', online: 'استشارة اونلاين', other: 'مخصص'
+            };
+            const siteNatureMap: Record<string, string> = {
+              room: 'غرفة', studio: 'استديو', apartment: 'شقة', villa: 'فيلا',
+              palace: 'قصر', land: 'ارض', farm: 'مزرعة', chalet: 'شاليه',
+              building: 'عمارة', office: 'مكتب', company: 'شركة', shop: 'محل تجاري',
+              spa: 'سبا', salon: 'صالون', hotel: 'فندق', other: 'مخصص'
+            };
+            const paymentLabels: Record<string, string> = {
+              tamara: 'Tamara', mispay: 'Mispay', visa: 'Visa', mada: 'Mada',
+              stcpay: 'STC Pay', bank: 'تحويل بنكي', pos: 'نقاط بيع', cash: 'نقدي'
+            };
+            const activePayments = Object.entries(fd.paymentMethods || {})
+              .filter(([, v]) => v)
+              .map(([k]) => paymentLabels[k] || k);
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>تفاصيل المشروع</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">طبيعة المشروع</div>
+                    <div className="font-medium">{projectNatureMap[fd.projectNature] || fd.projectNature || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">طبيعة الموقع</div>
+                    <div className="font-medium">{siteNatureMap[fd.siteNature] || fd.siteNature || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">طريقة الدفع</div>
+                    <div className="font-medium">{activePayments.length > 0 ? activePayments.join(', ') : '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">شروط الدفع</div>
+                    <div className="font-medium">{fd.paymentTermType || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">صلاحية العرض</div>
+                    <div className="font-medium">{fd.validityPeriod || '-'}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          } catch {
+            return null; // If not valid JSON, don't show anything
+          }
+        })()}
 
         <Card>
           <CardHeader>
@@ -182,7 +265,19 @@ export default function InvoiceDetails() {
             )}
           </CardContent>
         </Card>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setLocation("/invoices")}>
+            العودة
+          </Button>
+          {user?.role === "admin" && (
+            <Button variant="destructive" onClick={() => deleteInvoice.mutate({ id })}>
+              حذف المستند
+            </Button>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
 }
+
