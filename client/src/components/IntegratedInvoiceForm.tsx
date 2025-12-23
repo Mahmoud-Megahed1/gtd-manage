@@ -3,8 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+
 import './IntegratedInvoiceForm.css';
 import { InvoicePrintView } from './InvoicePrintView';
+import { INVOICE_CSS } from '../utils/invoiceCss';
+import { useRef } from 'react';
 
 // Types
 type InvoiceItem = {
@@ -20,6 +23,8 @@ type PaymentMethod = 'tamara' | 'mispay' | 'visa' | 'mada' | 'stcpay' | 'bank' |
 
 export default function IntegratedInvoiceForm() {
     const [, setLocation] = useLocation();
+    const printRef = useRef<HTMLDivElement>(null);
+
     const [docType, setDocType] = useState<"invoice" | "quote">("invoice");
     const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -546,6 +551,37 @@ export default function IntegratedInvoiceForm() {
                 <button className="invoice-btn" onClick={() => handleSave(false)}>
                     <i className="fas fa-save"></i> حفظ
                 </button>
+                <button className="invoice-btn" onClick={() => {
+                    if (!printRef.current) return;
+                    const htmlContent = printRef.current.innerHTML;
+                    const fullHtml = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - ${serialNumber}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        ${INVOICE_CSS}
+    </style>
+</head>
+<body>
+    ${htmlContent}
+</body>
+</html>`;
+                    const blob = new Blob([fullHtml], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `invoice-${serialNumber || 'draft'}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }}>
+                    <i className="fas fa-file-code"></i> حفظ كملف HTML
+                </button>
                 <button className="invoice-btn" onClick={() => window.print()}>
                     <i className="fas fa-print"></i> طباعة / PDF
                 </button>
@@ -554,39 +590,43 @@ export default function IntegratedInvoiceForm() {
                 </button>
             </div>
 
-            {/* Print View Component - only visible when printing */}
-            <InvoicePrintView
-                serialNumber={serialNumber}
-                issueDate={issueDate}
-                docType={docType}
-                clientName={clientName}
-                clientPhone={clientPhone}
-                clientCity={clientCity}
-                projectNature={projectNature}
-                otherProjectNature={otherProjectNature}
-                siteNature={siteNature}
-                otherSiteNature={otherSiteNature}
-                designReq={designReq}
-                otherDesignReq={otherDesignReq}
-                style={style}
-                otherStyle={otherStyle}
+            {/* Print View Component - wrapped for HTML capture */}
+            <div style={{ display: 'none' }}>
+                <div ref={printRef}>
+                    <InvoicePrintView
+                        serialNumber={serialNumber}
+                        issueDate={issueDate}
+                        docType={docType}
+                        clientName={clientName}
+                        clientPhone={clientPhone}
+                        clientCity={clientCity}
+                        projectNature={projectNature}
+                        otherProjectNature={otherProjectNature}
+                        siteNature={siteNature}
+                        otherSiteNature={otherSiteNature}
+                        designReq={designReq}
+                        otherDesignReq={otherDesignReq}
+                        style={style}
+                        otherStyle={otherStyle}
 
-                items={items}
-                calculateRowTotal={calculateRowTotal}
-                subtotal={subtotal}
-                vatAmount={vatAmount}
-                grandTotal={grandTotal}
-                taxEnabled={taxEnabled}
-                paymentMethods={paymentMethods}
-                paymentTermType={paymentTermType}
-                validityPeriod={validityPeriod}
-                isCustomValidity={isCustomValidity}
-                designDuration={designDuration}
-                isCustomDuration={isCustomDuration}
-                cancellationFee={cancellationFee}
-                isCustomFee={isCustomFee}
-                customTerms={customTerms}
-            />
+                        items={items}
+                        calculateRowTotal={calculateRowTotal}
+                        subtotal={subtotal}
+                        vatAmount={vatAmount}
+                        grandTotal={grandTotal}
+                        taxEnabled={taxEnabled}
+                        paymentMethods={paymentMethods}
+                        paymentTermType={paymentTermType}
+                        validityPeriod={validityPeriod}
+                        isCustomValidity={isCustomValidity}
+                        designDuration={designDuration}
+                        isCustomDuration={isCustomDuration}
+                        cancellationFee={cancellationFee}
+                        isCustomFee={isCustomFee}
+                        customTerms={customTerms}
+                    />
+                </div>
+            </div>
         </div >
     );
 }
