@@ -36,10 +36,15 @@ export const hrRouter = router({
     get: protectedProcedure.query(async ({ ctx }) => {
       let emp = await getEmployeeByUserId(ctx.user.id);
 
-      // AUTO-CREATE: If no employee record, create one automatically
+      // AUTO-CREATE OR LINK: If no employee record linked to this user
       if (!emp) {
         const db = await getDb();
         if (db) {
+          // STEP 1: Try to find and link an existing unlinked employee record
+          // Look for employees without userId that might belong to this user
+          const unlinkedEmployees = await db.select().from(employees).where(eq(employees.userId, null as any));
+
+          // Check if any unlinked employee matches this user (by position matching role, or by employee number containing user id)
           const roleToPosition: Record<string, string> = {
             'admin': 'مدير عام', 'department_manager': 'مدير قسم', 'project_manager': 'مدير مشاريع',
             'project_coordinator': 'منسق مشاريع', 'architect': 'مهندس معماري', 'interior_designer': 'مصمم داخلي',
@@ -49,21 +54,32 @@ export const hrRouter = router({
             'procurement_officer': 'مسؤول مشتريات', 'storekeeper': 'أمين مخازن', 'qa_qc': 'مسؤول جودة',
           };
 
-          const empNumber = `EMP-${ctx.user.id}-${Date.now().toString().slice(-4)}`;
-          const position = roleToPosition[ctx.user.role] || 'موظف';
+          const userPosition = roleToPosition[ctx.user.role];
 
-          await db.insert(employees).values({
-            userId: ctx.user.id,
-            employeeNumber: empNumber,
-            position: position,
-            hireDate: new Date(),
-            status: 'active'
-          } as any);
+          // Find matching unlinked employee by position
+          let matchingEmployee = unlinkedEmployees.find(e => e.position === userPosition);
 
-          console.log(`[AUTO-CREATE] Created employee record for user ${ctx.user.id}: ${empNumber}`);
+          // If found, link it to this user
+          if (matchingEmployee) {
+            console.log(`[AUTO-LINK] Linking existing employee ${matchingEmployee.id} to user ${ctx.user.id}`);
+            await db.update(employees).set({ userId: ctx.user.id }).where(eq(employees.id, matchingEmployee.id));
+            emp = await getEmployeeByUserId(ctx.user.id);
+          } else {
+            // STEP 2: No matching employee found, create a new one
+            const empNumber = `EMP-${ctx.user.id}-${Date.now().toString().slice(-4)}`;
+            const position = userPosition || 'موظف';
 
-          // Fetch the newly created record
-          emp = await getEmployeeByUserId(ctx.user.id);
+            await db.insert(employees).values({
+              userId: ctx.user.id,
+              employeeNumber: empNumber,
+              position: position,
+              hireDate: new Date(),
+              status: 'active'
+            } as any);
+
+            console.log(`[AUTO-CREATE] Created employee record for user ${ctx.user.id}: ${empNumber}`);
+            emp = await getEmployeeByUserId(ctx.user.id);
+          }
         }
       }
 
