@@ -1638,11 +1638,33 @@ export const appRouter = router({
         if (newPosition) {
           const employee = await db.getEmployeeByUserId(input.userId);
           if (employee) {
+            // Update existing employee position
             const conn = await db.getDb();
             if (conn) {
               const { employees } = await import('../drizzle/schema');
               const { eq } = await import('drizzle-orm');
               await conn.update(employees).set({ position: newPosition }).where(eq(employees.id, employee.id));
+            }
+          } else {
+            // AUTO-CREATE: If no employee record exists, create one
+            const conn = await db.getDb();
+            if (conn) {
+              const { employees, users } = await import('../drizzle/schema');
+              const { eq } = await import('drizzle-orm');
+
+              // Get user info for employee number
+              const userRecord = await conn.select().from(users).where(eq(users.id, input.userId)).limit(1);
+              if (userRecord.length > 0) {
+                const empNumber = `EMP-${input.userId}-${Date.now().toString().slice(-4)}`;
+                await conn.insert(employees).values({
+                  userId: input.userId,
+                  employeeNumber: empNumber,
+                  position: newPosition,
+                  hireDate: new Date(),
+                  status: 'active'
+                } as any);
+                console.log(`[AUTO-CREATE] Created employee record for user ${input.userId}: ${empNumber}`);
+              }
             }
           }
         }
