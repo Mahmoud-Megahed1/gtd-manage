@@ -196,6 +196,18 @@ export default function HR() {
         )}
 
         {/* Personal Data View for Regular Employees */}
+        {!hasFullAccess && !myProfile && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">لا يوجد ملف موظف</h3>
+              <p className="text-muted-foreground">
+                لم يتم إنشاء ملفك كموظف بعد. يرجى التواصل مع إدارة الموارد البشرية لإنشاء ملفك.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {!hasFullAccess && myProfile && (
           <>
             <Card>
