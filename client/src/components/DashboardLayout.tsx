@@ -54,95 +54,75 @@ const navItems: NavItem[] = [
   // Dashboard - visible to all logged in users
   { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
 
-  // Clients - العملاء
+  // HR - شؤون الموظفين (all employees can see their personal data)
+  { title: "شؤون الموظفين", href: "/hr", icon: <UserCog className="w-5 h-5" /> },
+
+  // العملاء - Clients (Matrix: admin✅, hr_manager👁️, finance_manager👁️, accountant👁️, department_manager👁️, project_manager👁️, project_coordinator👁️, sales_manager✅, admin_assistant👁️+)
   {
     title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: [
-      "admin", "department_manager", "project_manager", "project_coordinator",
-      "sales_manager", "admin_assistant", "hr_manager", "finance_manager", "accountant"
+      "admin", "hr_manager", "finance_manager", "accountant", "department_manager",
+      "project_manager", "project_coordinator", "sales_manager", "admin_assistant"
     ]
   },
 
-  // Projects - المشاريع
+  // المشاريع - Projects (Matrix: admin✅, hr_manager👁️, finance_manager👁️💰, department_manager✅, project_manager✅, project_coordinator👁️✏️, architect👤, interior_designer👤, site_engineer👤, planning_engineer👤, designer👤, technician👤, sales_manager👁️, admin_assistant👁️, procurement_officer👁️, qa_qc👁️)
   {
     title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: [
-      "admin", "department_manager", "project_manager", "project_coordinator",
-      "designer", "technician", "site_engineer", "architect", "interior_designer",
-      "planning_engineer", "hr_manager", "finance_manager", "sales_manager",
-      "admin_assistant", "procurement_officer", "qa_qc"
+      "admin", "hr_manager", "finance_manager", "department_manager", "project_manager",
+      "project_coordinator", "architect", "interior_designer", "site_engineer",
+      "planning_engineer", "designer", "technician", "sales_manager", "admin_assistant",
+      "procurement_officer", "qa_qc"
     ]
   },
 
-  // Tasks - المهام
+  // المهام - Tasks (Matrix: admin✅, hr_manager👁️, department_manager✅, project_manager✅, project_coordinator✏️+, architect✏️, interior_designer✏️, site_engineer✏️, planning_engineer✏️+, designer✏️, technician✏️, admin_assistant👁️, qa_qc✏️)
   {
     title: "المهام", href: "/tasks", icon: <FileDiff className="w-5 h-5" />, roles: [
-      "admin", "department_manager", "project_manager", "project_coordinator",
-      "designer", "technician", "site_engineer", "architect", "interior_designer",
-      "planning_engineer", "hr_manager", "admin_assistant", "qa_qc"
+      "admin", "hr_manager", "department_manager", "project_manager", "project_coordinator",
+      "architect", "interior_designer", "site_engineer", "planning_engineer",
+      "designer", "technician", "admin_assistant", "qa_qc"
     ]
   },
 
-  // Invoices - الفواتير والعروض
+  // الفواتير - Invoices (Matrix: admin✅, finance_manager✅, accountant👁️+, department_manager👁️, sales_manager✅)
   {
     title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: [
-      "admin", "finance_manager", "accountant", "sales_manager"
+      "admin", "finance_manager", "accountant", "department_manager", "sales_manager"
     ]
   },
 
-  // Forms - الاستمارات
+  // الاستمارات - Forms (Matrix: admin✅, hr_manager👁️, department_manager✅, project_manager✅, project_coordinator👁️, sales_manager✅, admin_assistant✅)
   {
     title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" />, roles: [
-      "admin", "department_manager", "project_manager", "project_coordinator",
-      "sales_manager", "admin_assistant", "hr_manager"
+      "admin", "hr_manager", "department_manager", "project_manager",
+      "project_coordinator", "sales_manager", "admin_assistant"
     ]
   },
 
-  // Accounting - المحاسبة
+  // المحاسبة - Accounting (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️, project_manager👁️💰, sales_manager👁️💰, procurement_officer👁️)
   {
-    title: "المحاسبة",
-    href: "/accounting",
-    icon: <Calculator className="w-5 h-5" />,
-    roles: ["admin", "finance_manager", "accountant", "department_manager",
-      "project_manager", "sales_manager", "procurement_officer"]
+    title: "المحاسبة", href: "/accounting", icon: <Calculator className="w-5 h-5" />, roles: [
+      "admin", "finance_manager", "accountant", "department_manager",
+      "project_manager", "sales_manager", "procurement_officer"
+    ]
   },
 
-  // Notifications - الإشعارات (all users can see their notifications)
+  // التقارير - Reports (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️+, project_manager👁️+, planning_engineer👁️, sales_manager👁️+, procurement_officer👁️, qa_qc👁️)
   {
-    title: "الإشعارات",
-    href: "/notifications",
-    icon: <Bell className="w-5 h-5" />
+    title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, roles: [
+      "admin", "finance_manager", "accountant", "department_manager", "project_manager",
+      "planning_engineer", "sales_manager", "procurement_officer", "qa_qc"
+    ]
   },
 
-  // General Reports - التقارير العامة
-  {
-    title: "التقارير العامة",
-    href: "/general-reports",
-    icon: <BarChart3 className="w-5 h-5" />,
-    roles: ["admin", "finance_manager", "accountant", "project_manager",
-      "sales_manager", "department_manager", "procurement_officer", "qa_qc", "planning_engineer"]
-  },
+  // الإشعارات - Notifications (all users)
+  { title: "الإشعارات", href: "/notifications", icon: <Bell className="w-5 h-5" /> },
 
-  // HR - شؤون الموظفين (all employees can see their personal data)
-  {
-    title: "شؤون الموظفين",
-    href: "/hr",
-    icon: <UserCog className="w-5 h-5" />
-  },
+  // سجل النشاطات - Audit Logs (admin only)
+  { title: "سجل النشاطات", href: "/audit-logs", icon: <History className="w-5 h-5" />, roles: ["admin"] },
 
-  // Audit Logs - سجل النشاطات
-  {
-    title: "سجل النشاطات",
-    href: "/audit-logs",
-    icon: <History className="w-5 h-5" />,
-    roles: ["admin"]
-  },
-
-  // Settings - الإعدادات
-  {
-    title: "الإعدادات",
-    href: "/settings",
-    icon: <Settings className="w-5 h-5" />,
-    roles: ["admin"]
-  },
+  // الإعدادات - Settings (admin only)
+  { title: "الإعدادات", href: "/settings", icon: <Settings className="w-5 h-5" />, roles: ["admin"] },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
