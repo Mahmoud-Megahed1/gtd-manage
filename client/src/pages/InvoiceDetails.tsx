@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { useParams, useLocation } from "wouter";
 import { Receipt, FileText, ArrowLeft, Paperclip, Trash2, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -77,214 +77,160 @@ export default function InvoiceDetails() {
   const { invoice, client, items } = data;
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/invoices")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+    <>
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                {invoice.type === "invoice" ? (
-                  <Receipt className="w-6 h-6 text-primary" />
-                ) : (
-                  <FileText className="w-6 h-6 text-primary" />
-                )}
+              <Button variant="ghost" size="icon" onClick={() => setLocation("/invoices")}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  {invoice.type === "invoice" ? (
+                    <Receipt className="w-6 h-6 text-primary" />
+                  ) : (
+                    <FileText className="w-6 h-6 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">{invoice.invoiceNumber}</h1>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: ar })}
+                  </p>
+                </div>
+                <Badge>{statusLabel(invoice.status)}</Badge>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">{invoice.invoiceNumber}</h1>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: ar })}
-                </p>
-              </div>
-              <Badge>{statusLabel(invoice.status)}</Badge>
             </div>
           </div>
-        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>بيانات العميل</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {client ? (
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">الاسم</div>
-                  <div className="font-medium">{client.name}</div>
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات العميل</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {client ? (
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">الاسم</div>
+                    <div className="font-medium">{client.name}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">البريد</div>
+                    <div className="font-medium">{client.email || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">الهاتف</div>
+                    <div className="font-medium">{client.phone || "-"}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">البريد</div>
-                  <div className="font-medium">{client.email || "-"}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">الهاتف</div>
-                  <div className="font-medium">{client.phone || "-"}</div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">لا يوجد عميل مرتبط</div>
-            )}
-          </CardContent>
-        </Card>
+              ) : (
+                <div className="text-sm text-muted-foreground">لا يوجد عميل مرتبط</div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>بنود الفاتورة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {items && items.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="p-2 text-right">الوصف</th>
-                      <th className="p-2 text-center">الكمية</th>
-                      <th className="p-2 text-center">السعر</th>
-                      <th className="p-2 text-center">الإجمالي</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item: any, idx: number) => (
-                      <tr key={idx} className="border-b">
-                        <td className="p-2">{item.description}</td>
-                        <td className="p-2 text-center">{item.quantity}</td>
-                        <td className="p-2 text-center">{Number(item.unitPrice).toLocaleString()} ريال</td>
-                        <td className="p-2 text-center font-medium">{Number(item.total).toLocaleString()} ريال</td>
+          <Card>
+            <CardHeader>
+              <CardTitle>بنود الفاتورة</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {items && items.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="p-2 text-right">الوصف</th>
+                        <th className="p-2 text-center">الكمية</th>
+                        <th className="p-2 text-center">السعر</th>
+                        <th className="p-2 text-center">الإجمالي</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-muted/50">
-                      <td colSpan={3} className="p-2 text-left font-bold">المجموع الفرعي</td>
-                      <td className="p-2 text-center font-bold">{Number(invoice.subtotal).toLocaleString()} ريال</td>
-                    </tr>
-                    {invoice.tax > 0 && (
+                    </thead>
+                    <tbody>
+                      {items.map((item: any, idx: number) => (
+                        <tr key={idx} className="border-b">
+                          <td className="p-2">{item.description}</td>
+                          <td className="p-2 text-center">{item.quantity}</td>
+                          <td className="p-2 text-center">{Number(item.unitPrice).toLocaleString()} ريال</td>
+                          <td className="p-2 text-center font-medium">{Number(item.total).toLocaleString()} ريال</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
                       <tr className="bg-muted/50">
-                        <td colSpan={3} className="p-2 text-left">الضريبة (15%)</td>
-                        <td className="p-2 text-center">{Number(invoice.tax).toLocaleString()} ريال</td>
+                        <td colSpan={3} className="p-2 text-left font-bold">المجموع الفرعي</td>
+                        <td className="p-2 text-center font-bold">{Number(invoice.subtotal).toLocaleString()} ريال</td>
                       </tr>
-                    )}
-                    <tr className="bg-primary/10">
-                      <td colSpan={3} className="p-2 text-left font-bold text-lg">الإجمالي</td>
-                      <td className="p-2 text-center font-bold text-lg text-primary">{Number(invoice.total).toLocaleString()} ريال</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">لا توجد بنود</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Formatted Form Data */}
-        {invoice.formData && (() => {
-          try {
-            const fd = JSON.parse(invoice.formData);
-            const projectNatureMap: Record<string, string> = {
-              design: 'تصميم', execution: 'تنفيذ', visit: 'استشارة موقع',
-              office: 'استشارة مكتب', online: 'استشارة اونلاين', other: 'مخصص'
-            };
-            const siteNatureMap: Record<string, string> = {
-              room: 'غرفة', studio: 'استديو', apartment: 'شقة', villa: 'فيلا',
-              palace: 'قصر', land: 'ارض', farm: 'مزرعة', chalet: 'شاليه',
-              building: 'عمارة', office: 'مكتب', company: 'شركة', shop: 'محل تجاري',
-              spa: 'سبا', salon: 'صالون', hotel: 'فندق', other: 'مخصص'
-            };
-            const paymentLabels: Record<string, string> = {
-              tamara: 'Tamara', mispay: 'Mispay', visa: 'Visa', mada: 'Mada',
-              stcpay: 'STC Pay', bank: 'تحويل بنكي', pos: 'نقاط بيع', cash: 'نقدي'
-            };
-            const activePayments = Object.entries(fd.paymentMethods || {})
-              .filter(([, v]) => v)
-              .map(([k]) => paymentLabels[k] || k);
-
-            return (
-              <Card>
-                <CardHeader>
-                  <CardTitle>تفاصيل المشروع</CardTitle>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">طبيعة المشروع</div>
-                    <div className="font-medium">{projectNatureMap[fd.projectNature] || fd.projectNature || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">طبيعة الموقع</div>
-                    <div className="font-medium">{siteNatureMap[fd.siteNature] || fd.siteNature || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">طريقة الدفع</div>
-                    <div className="font-medium">{activePayments.length > 0 ? activePayments.join(', ') : '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">شروط الدفع</div>
-                    <div className="font-medium">{fd.paymentTermType || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">صلاحية العرض</div>
-                    <div className="font-medium">{fd.validityPeriod || '-'}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          } catch {
-            return null; // If not valid JSON, don't show anything
-          }
-        })()}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>المرفقات</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(attachments || []).length > 0 ? (
-              attachments!.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between border rounded p-3">
-                  <div className="flex items-center gap-2">
-                    <Paperclip className="w-4 h-4" />
-                    <a href={a.fileUrl} target="_blank" rel="noreferrer" className="text-sm underline">
-                      {a.fileName}
-                    </a>
-                    <span className="text-xs text-muted-foreground">{a.mimeType}</span>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteAttachment.mutate({ id: a.id })}
-                  >
-                    <Trash2 className="w-4 h-4 ml-2" />
-                    حذف
-                  </Button>
+                      {invoice.tax > 0 && (
+                        <tr className="bg-muted/50">
+                          <td colSpan={3} className="p-2 text-left">الضريبة (15%)</td>
+                          <td className="p-2 text-center">{Number(invoice.tax).toLocaleString()} ريال</td>
+                        </tr>
+                      )}
+                      <tr className="bg-primary/10">
+                        <td colSpan={3} className="p-2 text-left font-bold text-lg">الإجمالي</td>
+                        <td className="p-2 text-center font-bold text-lg text-primary">{Number(invoice.total).toLocaleString()} ريال</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground">لا توجد مرفقات</div>
-            )}
-          </CardContent>
-        </Card>
+              ) : (
+                <p className="text-muted-foreground">لا توجد بنود</p>
+              )}
+            </CardContent>
+          </Card>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setLocation("/invoices")}>
-            العودة
-          </Button>
-          <Button variant="default" onClick={() => window.print()}>
-            <Printer className="w-4 h-4 ml-2" />
-            طباعة
-          </Button>
-          {user?.role === "admin" && (
-            <Button variant="destructive" onClick={() => deleteInvoice.mutate({ id })}>
-              حذف المستند
+          <Card>
+            <CardHeader>
+              <CardTitle>المرفقات</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(attachments || []).length > 0 ? (
+                attachments!.map((a: any) => (
+                  <div key={a.id} className="flex items-center justify-between border rounded p-3">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      <a href={a.fileUrl} target="_blank" rel="noreferrer" className="text-sm underline">
+                        {a.fileName}
+                      </a>
+                      <span className="text-xs text-muted-foreground">{a.mimeType}</span>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteAttachment.mutate({ id: a.id })}
+                    >
+                      <Trash2 className="w-4 h-4 ml-2" />
+                      حذف
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">لا توجد مرفقات</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setLocation("/invoices")}>
+              العودة
             </Button>
-          )}
+            <Button variant="default" onClick={() => window.print()}>
+              <Printer className="w-4 h-4 ml-2" />
+              طباعة
+            </Button>
+            {user?.role === "admin" && (
+              <Button variant="destructive" onClick={() => deleteInvoice.mutate({ id })}>
+                حذف المستند
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
 
-      {/* Print View - Hidden on screen, visible only when printing */}
+      {/* Print View - OUTSIDE DashboardLayout so it shows when printing */}
       <div className="print-view-wrapper">
-        <div className="invoice-print-view" style={{ padding: '20mm', fontFamily: 'Tajawal, sans-serif', direction: 'rtl' }}>
+        <div style={{ padding: '20mm', fontFamily: 'Tajawal, sans-serif', direction: 'rtl' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '2px solid #bfa670', paddingBottom: '15px' }}>
             <div style={{ width: '30%' }}>
@@ -361,7 +307,6 @@ export default function InvoiceDetails() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
-
