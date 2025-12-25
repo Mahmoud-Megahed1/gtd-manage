@@ -545,6 +545,8 @@ export const appRouter = router({
         clientId: z.number(),
         name: z.string(),
         description: z.string().optional(),
+        // projectType is REQUIRED and IMMUTABLE after creation
+        projectType: z.enum(['design', 'execution', 'design_execution', 'supervision']),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         budget: z.number().optional(),
@@ -568,7 +570,8 @@ export const appRouter = router({
         id: z.number(),
         name: z.string().optional(),
         description: z.string().optional(),
-        status: z.enum(['design', 'execution', 'delivery', 'completed', 'cancelled']).optional(),
+        // status is lifecycle state (can be changed), projectType is immutable
+        status: z.enum(['in_progress', 'delivered', 'cancelled']).optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         budget: z.number().optional(),
@@ -581,7 +584,26 @@ export const appRouter = router({
         // Get current project for comparison
         const currentProject = await db.getProjectById(id);
 
+        // Status transition guard - prevent invalid transitions
+        // Valid: in_progress → delivered, in_progress → cancelled
+        // Invalid: cancelled → *, delivered → * (except by admin)
+        if (input.status && currentProject) {
+          const currentStatus = currentProject.status;
+          const newStatus = input.status;
+
+          if (currentStatus !== newStatus) {
+            // Only allow transitions FROM in_progress
+            if (currentStatus !== 'in_progress' && ctx.user.role !== 'admin') {
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: `لا يمكن تغيير حالة المشروع من "${currentStatus}" - فقط المدير يمكنه ذلك`
+              });
+            }
+          }
+        }
+
         await db.updateProject(id, data);
+
         await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id, undefined, ctx);
 
         // Notify assignedTo user if changed
@@ -611,10 +633,8 @@ export const appRouter = router({
             if (teamMembers.length > 0) {
               const { createNotification } = await import('./routers/notifications');
               const statusNames: Record<string, string> = {
-                'design': 'التصميم',
-                'execution': 'التنفيذ',
-                'delivery': 'التسليم',
-                'completed': 'مكتمل',
+                'in_progress': 'قيد التقدم',
+                'delivered': 'تم التسليم',
                 'cancelled': 'ملغي'
               };
 

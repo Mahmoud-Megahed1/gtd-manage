@@ -17,7 +17,10 @@ import {
   BarChart3,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  FolderOpen,
+  ClipboardList,
+  Layers
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
@@ -114,12 +117,11 @@ export default function ProjectDetails() {
     onError: () => toast.error("تعذر حذف العضو")
   });
 
+  // Status labels for lifecycle (in_progress, delivered, cancelled)
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
-      design: "تصميم",
-      execution: "تنفيذ",
-      delivery: "تسليم",
-      completed: "مكتمل",
+      in_progress: "قيد التقدم",
+      delivered: "تم التسليم",
       cancelled: "ملغي"
     };
     return statusMap[status] || status;
@@ -127,13 +129,28 @@ export default function ProjectDetails() {
 
   const getStatusColor = (status: string) => {
     const colorMap: Record<string, string> = {
-      design: "bg-blue-500/10 text-blue-500",
-      execution: "bg-yellow-500/10 text-yellow-500",
-      delivery: "bg-purple-500/10 text-purple-500",
-      completed: "bg-green-500/10 text-green-500",
+      in_progress: "bg-blue-500/10 text-blue-500",
+      delivered: "bg-green-500/10 text-green-500",
       cancelled: "bg-red-500/10 text-red-500"
     };
     return colorMap[status] || "bg-gray-500/10 text-gray-500";
+  };
+
+  // Project type labels (immutable after creation)
+  const getProjectTypeLabel = (projectType: string) => {
+    const typeMap: Record<string, string> = {
+      design: "تصميم",
+      execution: "تنفيذ",
+      design_execution: "تصميم وتنفيذ",
+      supervision: "إشراف"
+    };
+    return typeMap[projectType] || projectType;
+  };
+
+  // Check if project type allows financial section
+  // Only execution and design_execution have financials
+  const projectHasFinancials = (projectType: string) => {
+    return projectType === 'execution' || projectType === 'design_execution';
   };
 
   const totalBOQ = boq.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -199,10 +216,18 @@ export default function ProjectDetails() {
                 )}
               </p>
             </div>
+            {/* Project Type Badge (immutable) */}
+            {project.projectType && (
+              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-300">
+                {getProjectTypeLabel(project.projectType)}
+              </Badge>
+            )}
+            {/* Status Badge (lifecycle state) */}
             <Badge className={getStatusColor(project.status)}>
               {getStatusLabel(project.status)}
             </Badge>
           </div>
+
           <Button
             size="lg"
             className="gap-2"
@@ -313,8 +338,10 @@ export default function ProjectDetails() {
 
         {/* Tabs */}
         <Tabs defaultValue="tasks" className="w-full">
-          <TabsList className={`grid w-full max-w-3xl ${canViewFinancials ? 'grid-cols-3' : 'grid-cols-2'}`}>
-            {canViewFinancials && (
+          {/* First row of tabs: المالية - المهام الزمنية - الفريق */}
+          <TabsList className="grid w-full max-w-4xl grid-cols-6 mb-2">
+            {/* Financial tab - only shows for execution or design_execution projects */}
+            {canViewFinancials && project.projectType && projectHasFinancials(project.projectType) && (
               <TabsTrigger value="financials" className="gap-2">
                 <DollarSign className="w-4 h-4" />
                 المالية
@@ -327,6 +354,19 @@ export default function ProjectDetails() {
             <TabsTrigger value="team" className="gap-2">
               <Users className="w-4 h-4" />
               الفريق
+            </TabsTrigger>
+            {/* Second row tabs: ملفات المشروع - استمارات المشروع - مراحل المشروع */}
+            <TabsTrigger value="files" className="gap-2">
+              <FolderOpen className="w-4 h-4" />
+              ملفات المشروع
+            </TabsTrigger>
+            <TabsTrigger value="forms" className="gap-2">
+              <ClipboardList className="w-4 h-4" />
+              استمارات المشروع
+            </TabsTrigger>
+            <TabsTrigger value="phases" className="gap-2">
+              <Layers className="w-4 h-4" />
+              مراحل المشروع
             </TabsTrigger>
           </TabsList>
 
@@ -496,7 +536,65 @@ export default function ProjectDetails() {
           <TabsContent value="tasks" className="mt-6">
             <ProjectTasksContent projectId={projectId} />
           </TabsContent>
+
+          {/* ملفات المشروع */}
+          <TabsContent value="files" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FolderOpen className="w-5 h-5" />
+                  ملفات المشروع
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <FolderOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>لا توجد ملفات مرفقة بالمشروع</p>
+                  <p className="text-sm mt-2">يمكنك إضافة ملفات التصميم والمخططات والمستندات هنا</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* استمارات المشروع */}
+          <TabsContent value="forms" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5" />
+                  استمارات المشروع
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <ClipboardList className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>لا توجد استمارات مرتبطة بالمشروع</p>
+                  <p className="text-sm mt-2">يمكنك ربط استمارات العميل والتعديلات بالمشروع</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* مراحل المشروع */}
+          <TabsContent value="phases" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5" />
+                  مراحل المشروع
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <Layers className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>لا توجد مراحل محددة للمشروع</p>
+                  <p className="text-sm mt-2">يمكنك إضافة مراحل التصميم والتنفيذ والمراجعة هنا</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
 
         <Card>
           <CardHeader>

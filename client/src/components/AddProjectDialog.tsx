@@ -29,7 +29,8 @@ export function AddProjectDialog() {
     clientId: "",
     name: "",
     description: "",
-    status: "design" as "design" | "execution" | "delivery" | "completed" | "cancelled",
+    // projectType is immutable after creation
+    projectType: "design" as "design" | "execution" | "design_execution" | "supervision",
     startDate: "",
     endDate: "",
     budget: "",
@@ -49,7 +50,7 @@ export function AddProjectDialog() {
         clientId: "",
         name: "",
         description: "",
-        status: "design",
+        projectType: "design",
         startDate: "",
         endDate: "",
         budget: "",
@@ -63,7 +64,7 @@ export function AddProjectDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.clientId || !formData.name) {
       toast.error("يرجى ملء الحقول المطلوبة");
       return;
@@ -73,6 +74,7 @@ export function AddProjectDialog() {
       clientId: parseInt(formData.clientId),
       name: formData.name,
       description: formData.description || undefined,
+      projectType: formData.projectType,
       startDate: formData.startDate ? new Date(formData.startDate) : undefined,
       endDate: formData.endDate ? new Date(formData.endDate) : undefined,
       budget: formData.budget ? parseInt(formData.budget) : undefined,
@@ -133,22 +135,23 @@ export function AddProjectDialog() {
               />
             </div>
 
-            {/* Status */}
+            {/* Project Type - نوع المشروع (غير قابل للتغيير بعد الإنشاء) */}
             <div className="space-y-2">
-              <Label htmlFor="status">الحالة</Label>
+              <Label htmlFor="projectType">
+                نوع المشروع <span className="text-red-500">*</span>
+              </Label>
               <Select
-                value={formData.status}
-                onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                value={formData.projectType}
+                onValueChange={(value: any) => setFormData({ ...formData, projectType: value })}
               >
-                <SelectTrigger id="status">
+                <SelectTrigger id="projectType">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="design">تصميم</SelectItem>
                   <SelectItem value="execution">تنفيذ</SelectItem>
-                  <SelectItem value="delivery">تسليم</SelectItem>
-                  <SelectItem value="completed">مكتمل</SelectItem>
-                  <SelectItem value="cancelled">ملغي</SelectItem>
+                  <SelectItem value="design_execution">تصميم وتنفيذ</SelectItem>
+                  <SelectItem value="supervision">إشراف</SelectItem>
                 </SelectContent>
               </Select>
             </div>

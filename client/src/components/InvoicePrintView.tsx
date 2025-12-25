@@ -104,7 +104,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
     ];
 
     return (
-        <div className="invoice-print-view print-only">
+        <div className="invoice-print-view">
             {/* Header */}
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
                 <div style={{ width: '30%' }}>

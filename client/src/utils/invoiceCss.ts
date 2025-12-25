@@ -576,4 +576,15 @@ export const INVOICE_CSS = `
         display: block !important;
         visibility: visible !important; 
         opacity: 1 !important;
+    }
+
+    /* NUCLEAR VISIBILITY OVERRIDE FOR EXPORT */
+    .print-view-wrapper * {
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    body {
+        background-color: white !important;
+        color: black !important;
     }`;

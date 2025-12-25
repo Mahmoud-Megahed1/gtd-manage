@@ -302,7 +302,19 @@ export const projects = mysqlTable("projects", {
 	clientId: int().notNull(),
 	name: varchar({ length: 255 }).notNull(),
 	description: text(),
-	status: mysqlEnum(['design', 'execution', 'delivery', 'completed', 'cancelled']).default('design').notNull(),
+	// projectType is IMMUTABLE after creation - defines what kind of project this is
+	// - design: تصميم فقط - لا يوجد قسم مالي
+	// - execution: تنفيذ فقط - يوجد قسم مالي
+	// - design_execution: تصميم وتنفيذ - يوجد قسم مالي
+	// - supervision: إشراف - يوجد ملفات ومراحل، لا يوجد قسم مالي (مثل التصميم)
+	projectType: mysqlEnum(['design', 'execution', 'design_execution', 'supervision']).default('design').notNull(),
+	// status represents lifecycle state, NOT project type
+	// TODO: Future expansion may need: 'on_hold', 'archived', 'paused'
+	// TODO: Consider adding statusChangedAt, deliveredAt for reporting
+	// NOTE: delivered = read-only except notes/files, cancelled = read-only completely
+	status: mysqlEnum(['in_progress', 'delivered', 'cancelled']).default('in_progress').notNull(),
+
+
 	startDate: timestamp({ mode: 'date' }),
 	endDate: timestamp({ mode: 'date' }),
 	budget: int(),

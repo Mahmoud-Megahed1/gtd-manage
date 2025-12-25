@@ -607,14 +607,24 @@ export default function IntegratedInvoiceForm() {
             position: relative !important;
             left: 0 !important;
             top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
         }
         ${INVOICE_CSS}
     </style>
 </head>
-<body>
-    <div class="print-view-wrapper" style="display:block !important; visibility:visible !important;">
+<body style="background-color: white !important; margin: 0; padding: 0;">
+    <div class="print-view-wrapper" style="display:block !important; visibility:visible !important; width: 210mm; margin: 0 auto;">
         ${htmlContent}
     </div>
+    <script>
+        window.onload = function() {
+            var wrapper = document.querySelector('.print-view-wrapper');
+            if (!wrapper || wrapper.innerHTML.trim().length === 0) {
+                alert('Detailed Error: Exported content is empty inside the wrapper.');
+            }
+        }
+    </script>
 </body>
 </html>`;
                     const blob = new Blob([fullHtml], { type: 'text/html' });
