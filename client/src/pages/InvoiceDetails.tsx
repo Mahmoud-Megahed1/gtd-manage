@@ -172,34 +172,19 @@ export default function InvoiceDetails() {
       </html>
     `;
 
-    // Use Blob URL and iframe approach
-    const blob = new Blob([printContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
+    // Use window.open with document.write approach
+    const printWindow = window.open('', 'printWindow', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printContent);
+      printWindow.document.close();
 
-    // Create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    iframe.src = url;
-
-    document.body.appendChild(iframe);
-
-    iframe.onload = () => {
+      // Wait for fonts and content to load then print
       setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-
-        // Cleanup after print
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-          URL.revokeObjectURL(url);
-        }, 1000);
-      }, 500);
-    };
+        printWindow.focus();
+        printWindow.print();
+      }, 1000);
+    }
   };
 
   if (isLoading) {
