@@ -395,15 +395,24 @@
     .print-view-wrapper {
         display: block !important;
         visibility: visible !important;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: white;
+        position: static !important;
+        left: auto !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: white !important;
+        z-index: 9999 !important;
     }
 
     .print-view-wrapper * {
-        visibility: visible;
+        visibility: visible !important;
+    }
+
+    .invoice-print-view {
+        display: block !important;
+        visibility: visible !important;
+        width: 100% !important;
+        padding: 15mm !important;
+        background: white !important;
     }
 
     .invoice-action-bar,
