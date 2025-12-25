@@ -170,10 +170,11 @@ export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
     },
 
     // 1️⃣3️⃣ sales_manager (مدير مبيعات)
-    // العملاء: VCU | الفواتير: VCU
+    // العملاء: VCU | الفواتير: VCU | الاستمارات: VCU
     sales_manager: {
         clients: ['view', 'create', 'edit'],
         invoices: ['view', 'create', 'edit'],
+        forms: ['view', 'create', 'edit'],
         hr: ['view', 'create'], // بياناته + طلب إجازة
     },
 
@@ -184,7 +185,10 @@ export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
     },
 
     // 1️⃣5️⃣ admin_assistant (مساعد إداري)
+    // العملاء: إنشاء | الاستمارات: VCU
     admin_assistant: {
+        clients: ['view', 'create'],
+        forms: ['view', 'create', 'edit'],
         hr: ['view', 'create'], // بياناته + طلب إجازة
     },
 
