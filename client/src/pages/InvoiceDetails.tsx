@@ -10,7 +10,6 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LOGO_BASE64, BARCODE_BASE64 } from "@/utils/assets";
 
 export default function InvoiceDetails() {
   const params = useParams();
@@ -56,6 +55,7 @@ export default function InvoiceDetails() {
       <head>
         <meta charset="UTF-8">
         <title>فاتورة ${invoice.invoiceNumber}</title>
+        <base href="${window.location.origin}/" />
         <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -104,7 +104,7 @@ export default function InvoiceDetails() {
       <body>
         <div class="header">
           <div style="width: 30%">
-            <img src="${LOGO_BASE64}" alt="Logo" style="max-height: 80px; width: auto;" onerror="this.style.display='none'" />
+            <img src="/logo.png" alt="Logo" style="max-height: 80px; width: auto;" onerror="this.style.display='none'" />
           </div>
           <div style="width: 65%; text-align: right;">
             <h1>GOLDEN TOUCH <span>DESIGN</span></h1>
@@ -168,7 +168,7 @@ export default function InvoiceDetails() {
         </table>
 
         <div class="footer">
-          <img src="${BARCODE_BASE64}" alt="Barcode" style="height: 40px; margin-bottom: 10px;" onerror="this.style.display='none'" />
+          <img src="/barcode.jpg" alt="Barcode" style="height: 40px; margin-bottom: 10px;" onerror="this.style.display='none'" />
           <p><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
           <p>الرياض, حي السفارات, مربع الفزاري, مبنى 3293, بوابة 5 | سجل تجاري C.R. 7017891396</p>
           <p style="color: #666;">500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET</p>

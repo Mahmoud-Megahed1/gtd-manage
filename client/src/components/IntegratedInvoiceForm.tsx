@@ -7,7 +7,6 @@ import { useLocation } from "wouter";
 import './IntegratedInvoiceForm.css';
 import { InvoicePrintView } from './InvoicePrintView';
 import { INVOICE_CSS } from '../utils/invoiceCss';
-import { BARCODE_BASE64 } from '../utils/assets';
 import { useRef } from 'react';
 
 // Types
@@ -536,7 +535,7 @@ export default function IntegratedInvoiceForm() {
                     <div style={{ height: '4px', background: 'linear-gradient(90deg, #ccc, #bfa670)', marginBottom: '10px', width: '100%' }}></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <div className="barcode-placeholder" style={{ order: 2, height: '100px', width: '200px', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
-                            <img src={BARCODE_BASE64} alt="Barcode" style={{ height: '80px', width: 'auto' }} />
+                            <img src="/barcode.jpg" alt="Barcode" style={{ height: '80px', width: 'auto' }} />
                         </div>
                         <div style={{ textAlign: 'right', order: 1, width: '70%' }}>
                             <p style={{ fontSize: '16px', marginBottom: '5px', color: 'var(--secondary-color)' }}><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
