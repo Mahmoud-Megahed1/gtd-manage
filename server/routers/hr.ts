@@ -165,6 +165,20 @@ export const hrRouter = router({
       return await db.select().from(employees).orderBy(desc(employees.createdAt));
     }),
 
+    // Get users without employee records
+    getUnlinkedUsers: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+
+      // Get all user IDs that have employee records
+      const linkedEmployees = await db.select({ userId: employees.userId }).from(employees);
+      const linkedUserIds = new Set(linkedEmployees.map(e => e.userId));
+
+      // Get all users and filter out those with employee records
+      const allUsers = await db.select().from(users);
+      return allUsers.filter(u => !linkedUserIds.has(u.id));
+    }),
+
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
