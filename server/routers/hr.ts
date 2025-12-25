@@ -32,10 +32,41 @@ const adminProcedure = protectedProcedure
 export const hrRouter = router({
   // ============= MY PROFILE (Self-Service for All Employees) =============
   myProfile: router({
-    // Get current user's employee record
+    // Get current user's employee record (auto-create if not exists)
     get: protectedProcedure.query(async ({ ctx }) => {
-      const emp = await getEmployeeByUserId(ctx.user.id);
-      if (!emp) return null;
+      let emp = await getEmployeeByUserId(ctx.user.id);
+
+      // AUTO-CREATE: If no employee record, create one automatically
+      if (!emp) {
+        const db = await getDb();
+        if (db) {
+          const roleToPosition: Record<string, string> = {
+            'admin': 'مدير عام', 'department_manager': 'مدير قسم', 'project_manager': 'مدير مشاريع',
+            'project_coordinator': 'منسق مشاريع', 'architect': 'مهندس معماري', 'interior_designer': 'مصمم داخلي',
+            'site_engineer': 'مهندس موقع', 'planning_engineer': 'مهندس تخطيط', 'designer': 'مصمم',
+            'technician': 'فني', 'finance_manager': 'مدير مالي', 'accountant': 'محاسب',
+            'sales_manager': 'مسؤول مبيعات', 'hr_manager': 'مسؤول موارد بشرية', 'admin_assistant': 'مساعد إداري',
+            'procurement_officer': 'مسؤول مشتريات', 'storekeeper': 'أمين مخازن', 'qa_qc': 'مسؤول جودة',
+          };
+
+          const empNumber = `EMP-${ctx.user.id}-${Date.now().toString().slice(-4)}`;
+          const position = roleToPosition[ctx.user.role] || 'موظف';
+
+          await db.insert(employees).values({
+            userId: ctx.user.id,
+            employeeNumber: empNumber,
+            position: position,
+            hireDate: new Date(),
+            status: 'active'
+          } as any);
+
+          console.log(`[AUTO-CREATE] Created employee record for user ${ctx.user.id}: ${empNumber}`);
+
+          // Fetch the newly created record
+          emp = await getEmployeeByUserId(ctx.user.id);
+        }
+      }
+
       return emp;
     }),
 
