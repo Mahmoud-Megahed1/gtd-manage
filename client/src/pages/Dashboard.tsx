@@ -5,7 +5,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Users, FolderKanban, Receipt, FileText, UserCog, Edit, Trash2, Calculator, Clock, Calendar, DollarSign, ClipboardList } from "lucide-react";
+import { Users, FolderKanban, Receipt, FileText, UserCog, Edit, Trash2, Calculator, Clock, Calendar, DollarSign, ClipboardList, BarChart3 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { AddUserDialog } from "@/components/AddUserDialog";
