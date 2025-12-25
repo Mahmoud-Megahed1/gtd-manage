@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { useParams, useLocation } from "wouter";
-import { Receipt, FileText, ArrowLeft, Paperclip, Trash2 } from "lucide-react";
+import { Receipt, FileText, ArrowLeft, Paperclip, Trash2, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -270,11 +270,95 @@ export default function InvoiceDetails() {
           <Button variant="outline" onClick={() => setLocation("/invoices")}>
             العودة
           </Button>
+          <Button variant="default" onClick={() => window.print()}>
+            <Printer className="w-4 h-4 ml-2" />
+            طباعة
+          </Button>
           {user?.role === "admin" && (
             <Button variant="destructive" onClick={() => deleteInvoice.mutate({ id })}>
               حذف المستند
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Print View - Hidden on screen, visible only when printing */}
+      <div className="print-view-wrapper">
+        <div className="invoice-print-view" style={{ padding: '20mm', fontFamily: 'Tajawal, sans-serif', direction: 'rtl' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '2px solid #bfa670', paddingBottom: '15px' }}>
+            <div style={{ width: '30%' }}>
+              <img src="/assets/logo.png" alt="Logo" style={{ maxHeight: '80px', width: 'auto' }} onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
+            </div>
+            <div style={{ width: '65%', textAlign: 'left' }}>
+              <h1 style={{ margin: 0, color: '#bfa670', fontSize: '24px' }}>GOLDEN TOUCH <span style={{ color: '#666' }}>DESIGN</span></h1>
+              <h3 style={{ margin: '5px 0' }}>شركة اللمسة الذهبية للتصميم</h3>
+              <p style={{ margin: 0, fontSize: '12px', color: '#555' }}>سجل تجاري C.R. 7017891396</p>
+              <p style={{ margin: '5px 0', fontSize: '12px' }}>
+                <strong>رقم الفاتورة:</strong> {invoice.invoiceNumber} |
+                <strong> التاريخ:</strong> {format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: ar })}
+              </p>
+            </div>
+          </div>
+
+          {/* Client Info */}
+          {client && (
+            <div style={{ marginBottom: '20px', padding: '10px', background: '#f9f9f9', borderRadius: '5px' }}>
+              <h3 style={{ margin: '0 0 10px', color: '#333' }}>بيانات العميل</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div><strong>الاسم:</strong> {client.name}</div>
+                <div><strong>الهاتف:</strong> {client.phone || '-'}</div>
+                <div><strong>البريد:</strong> {client.email || '-'}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Items Table */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <thead>
+              <tr style={{ background: '#bfa670', color: 'white' }}>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'right' }}>#</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'right' }}>الوصف</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center' }}>الكمية</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center' }}>السعر</th>
+                <th style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center' }}>الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items?.map((item: any, idx: number) => (
+                <tr key={idx}>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{idx + 1}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.description}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{item.quantity}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{Number(item.unitPrice).toLocaleString()} ريال</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{Number(item.total).toLocaleString()} ريال</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background: '#f5f5f5' }}>
+                <td colSpan={4} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'left', fontWeight: 'bold' }}>المجموع الفرعي</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center', fontWeight: 'bold' }}>{Number(invoice.subtotal).toLocaleString()} ريال</td>
+              </tr>
+              {invoice.tax > 0 && (
+                <tr style={{ background: '#f5f5f5' }}>
+                  <td colSpan={4} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'left' }}>ضريبة القيمة المضافة (15%)</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>{Number(invoice.tax).toLocaleString()} ريال</td>
+                </tr>
+              )}
+              <tr style={{ background: '#bfa670', color: 'white' }}>
+                <td colSpan={4} style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'left', fontWeight: 'bold', fontSize: '16px' }}>الإجمالي</td>
+                <td style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center', fontWeight: 'bold', fontSize: '16px' }}>{Number(invoice.total).toLocaleString()} ريال</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          {/* Footer */}
+          <div style={{ marginTop: '30px', paddingTop: '15px', borderTop: '2px solid #bfa670', textAlign: 'center' }}>
+            <p style={{ margin: '5px 0', fontSize: '12px' }}><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
+            <p style={{ margin: '5px 0', fontSize: '11px' }}>الرياض, حي السفارات, مربع الفزاري, مبنى 3293, بوابة 5 | سجل تجاري C.R. 7017891396</p>
+            <p style={{ margin: 0, fontSize: '10px', color: '#666' }}>500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET</p>
+          </div>
         </div>
       </div>
     </DashboardLayout>
