@@ -176,6 +176,95 @@ export default function ProjectDetails() {
     return projectType === 'execution' || projectType === 'design_execution';
   };
 
+  // Predefined task templates by project type
+  const designTasks = [
+    "جمع المعلومات (متطلبات العميل - المخططات والصور)",
+    "الرفع المعماري (2D+3D الكونسبت - مخطط الوضع القائم)",
+    "توزيع الحركة والمخططات (مخطط توزيع اولي - تحديد وتوزيع الحركة والاثاث والديكور)",
+    "المود بورد + الماتريال (اختيار الألوان والخامات والاضاءة والاثاث)",
+    "التصميم ثلاثي الابعاد (تطبيق التطشيبات ثم الديكور ثم الاثاث - رندر مبدئي)",
+    "جلسات التعديل (تعديل طلبات العميل وفقا لاستمارة التعديلات)",
+    "المخططات التنفيذية (المخططات التنفيذية كاملة - جداول الكميات)",
+    "الإخراج النهائي فيديو + صور + VR",
+    "ملفات التسليم (تجهيز ملفات التسليم PDF - فيديو و VR)",
+    "التسليم النهائي",
+    "مخصص"
+  ];
+
+  const executionTasks = [
+    "هدم و ترحيل و طلب حاوية مخلفات",
+    "تعميد مقاسات و كميات مباني (جدران - اسقف - حديد - خرسانة)",
+    "تعميد مقاسات و كميات تشطيب (كهرباء - سباكة - لياسة - دهان - بلاط - ابواب - نوافذ - عزل)",
+    "تعميد مقاسات و كميات ديكور (تكسيات جدران - تكسيات ارضيات - لوحات - جبس - جبس بورد)",
+    "تعميد مقاسات و كميات اثاث (اسرة - خزائن - طاولات - رفوف - كنب - ستائر - سجاد)",
+    "تعميد الخامات مع العميل (تشطيب - ديكور - اثاث)",
+    "طلب مواد العظم",
+    "طلب مواد التشطيب",
+    "طلب مواد الديكور",
+    "طلب الاثاث",
+    "اعمال نجارة العظم",
+    "اعمال حديد العظم",
+    "صبة النظافة",
+    "صب القواعد",
+    "صب الاعمدة",
+    "صب الجسور",
+    "صب الاسقف",
+    "عزل القواعد",
+    "عزل الرقاب",
+    "بناء الجدران",
+    "تأسيس سباكة",
+    "تأسيس كهرباء",
+    "تأسيس التكييف",
+    "تأسيس كاميرات وشبكات",
+    "تأسيس سمارت هوم",
+    "تأسيس لاندسكيب (احواض - كهرباء - سباكة)",
+    "لياسة داخلية",
+    "لياسة خارجية",
+    "لياسة السور",
+    "عزل مائي حمامات ومطابخ",
+    "عزل مائي سطح",
+    "عزل حراري جدران",
+    "عزل حراري اسقف",
+    "جبس الاسقف",
+    "جبس الديكور",
+    "فتحات جبس التكييف والصيانة",
+    "فتحات جبس الانارة و الكهرباء",
+    "بلاط الحمامات والمطابخ",
+    "بلاط الارضيات الداخلية والخارجية",
+    "دهان الاسقف والجدران الداخلية",
+    "دهان الجدران والواجهات الخارجية",
+    "تركيب الشبابيك",
+    "تركيب الابواب",
+    "تركيب المفاتيح والافياش",
+    "تركيب الانارة",
+    "تركيب المراحيض والمغاسل",
+    "تركيب السخانات و الخزانات",
+    "تركيب المضخات",
+    "تركيب تكسيات ديكور الجدران",
+    "تركيب تكسيات ديكور الارضيات",
+    "تركيب اللوحات والمعلقات الجدارية",
+    "تركيب الستائر",
+    "تركيب غرف النوم",
+    "تركيب الكنب",
+    "تركيب الطاولات (جاهزة)",
+    "تركيب الرفوف والطاولات (تفصيل)",
+    "تركيب المظلات والسواتر",
+    "تركيب الديكورات الخارجية واللاندسكيب",
+    "الزراعة",
+    "النظافة",
+    "مخصص"
+  ];
+
+  // Get available tasks based on project type
+  const getAvailableTasks = () => {
+    const projectType = project?.projectType;
+    if (projectType === 'design') return designTasks;
+    if (projectType === 'execution') return executionTasks;
+    if (projectType === 'design_execution') return [...designTasks, ...executionTasks];
+    return [];
+  };
+
+
   const totalBOQ = boq.reduce((sum, item) => sum + (item.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalInstallments = installments.reduce((sum, inst) => sum + inst.amount, 0);
@@ -808,6 +897,44 @@ export default function ProjectDetails() {
                     <Layers className="w-4 h-4" />
                     إضافة مرحلة جديدة
                   </h4>
+
+                  {/* Quick Task Selection */}
+                  {getAvailableTasks().length > 0 && (
+                    <div className="mb-4">
+                      <label className="text-sm font-medium mb-2 block">اختر من المهام الجاهزة:</label>
+                      <select
+                        className="w-full p-2 border rounded-md bg-background text-sm"
+                        onChange={(e) => {
+                          const selectedTask = e.target.value;
+                          if (selectedTask) {
+                            const input = document.querySelector('input[name="phaseName"]') as HTMLInputElement;
+                            if (input) input.value = selectedTask;
+                          }
+                          e.target.value = '';
+                        }}
+                      >
+                        <option value="">-- اختر مهمة جاهزة --</option>
+                        {project?.projectType === 'design_execution' && (
+                          <>
+                            <optgroup label="مهام التصميم">
+                              {designTasks.map((task, i) => (
+                                <option key={`d-${i}`} value={task}>{task}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="مهام التنفيذ">
+                              {executionTasks.map((task, i) => (
+                                <option key={`e-${i}`} value={task}>{task}</option>
+                              ))}
+                            </optgroup>
+                          </>
+                        )}
+                        {project?.projectType !== 'design_execution' && getAvailableTasks().map((task, i) => (
+                          <option key={i} value={task}>{task}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="grid gap-3 md:grid-cols-2">
                     <Input name="phaseName" placeholder="اسم المرحلة *" required />
                     <Input name="phaseDesc" placeholder="الوصف (اختياري)" />
@@ -819,6 +946,7 @@ export default function ProjectDetails() {
                     إضافة مرحلة
                   </Button>
                 </form>
+
 
                 {tasks && tasks.length > 0 ? (
                   <div className="space-y-4">
