@@ -94,6 +94,7 @@ function getDetailedPermissions(role: string): DetailedPermissions {
   }
 
   const rolePermsMap: Record<string, DetailedPermissions> = {
+    // إدارة الموارد البشرية
     hr_manager: {
       hr: fullPerms,
       projects: readonlyPerms,
@@ -101,6 +102,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: readonlyPerms,
     },
+
+    // الإدارة المالية
     finance_manager: {
       hr: ownPerms,
       projects: { ...readonlyPerms, viewFinancials: true },
@@ -112,7 +115,16 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       hr: ownPerms,
       projects: nonePerms,
       tasks: nonePerms,
-      accounting: { ...readonlyPerms, submit: true }, // Can submit for approval
+      accounting: { ...readonlyPerms, submit: true },
+      clients: readonlyPerms,
+    },
+
+    // إدارة المشاريع
+    department_manager: {
+      hr: { ...ownPerms, view: true }, // يمكنه رؤية HR قسمه
+      projects: fullPerms,
+      tasks: fullPerms,
+      accounting: readonlyPerms,
       clients: readonlyPerms,
     },
     project_manager: {
@@ -122,14 +134,16 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: { ...readonlyPerms, viewFinancials: true },
       clients: readonlyPerms,
     },
-    designer: {
-      hr: { ...ownPerms, submit: true }, // Can request leave
-      projects: { ...ownPerms, view: false, viewOwn: true }, // Only assigned projects
-      tasks: { ...ownPerms, edit: true }, // Can update task status
+    project_coordinator: {
+      hr: ownPerms,
+      projects: { ...readonlyPerms, edit: true },
+      tasks: { ...ownPerms, edit: true, create: true },
       accounting: nonePerms,
-      clients: nonePerms,
+      clients: readonlyPerms,
     },
-    site_engineer: {
+
+    // المهندسين والفنيين
+    architect: {
       hr: { ...ownPerms, submit: true },
       projects: { ...ownPerms, view: false, viewOwn: true },
       tasks: { ...ownPerms, edit: true },
@@ -143,15 +157,81 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
     },
-    architect: {
+    site_engineer: {
       hr: { ...ownPerms, submit: true },
       projects: { ...ownPerms, view: false, viewOwn: true },
       tasks: { ...ownPerms, edit: true },
       accounting: nonePerms,
       clients: nonePerms,
     },
+    planning_engineer: {
+      hr: { ...ownPerms, submit: true },
+      projects: { ...ownPerms, view: false, viewOwn: true },
+      tasks: { ...ownPerms, edit: true, create: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+    designer: {
+      hr: { ...ownPerms, submit: true },
+      projects: { ...ownPerms, view: false, viewOwn: true },
+      tasks: { ...ownPerms, edit: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+    technician: {
+      hr: { ...ownPerms, submit: true },
+      projects: { ...ownPerms, view: false, viewOwn: true },
+      tasks: { ...ownPerms, edit: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+
+    // المبيعات
+    sales_manager: {
+      hr: ownPerms,
+      projects: readonlyPerms,
+      tasks: nonePerms,
+      accounting: { ...readonlyPerms, viewFinancials: true },
+      clients: fullPerms,
+    },
+
+    // الدعم الإداري
+    admin_assistant: {
+      hr: ownPerms,
+      projects: readonlyPerms,
+      tasks: readonlyPerms,
+      accounting: nonePerms,
+      clients: { ...readonlyPerms, create: true },
+    },
+
+    // المشتريات والمخازن
+    procurement_officer: {
+      hr: ownPerms,
+      projects: readonlyPerms,
+      tasks: nonePerms,
+      accounting: readonlyPerms,
+      clients: nonePerms,
+    },
+    storekeeper: {
+      hr: ownPerms,
+      projects: nonePerms,
+      tasks: nonePerms,
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+
+    // ضبط الجودة
+    qa_qc: {
+      hr: ownPerms,
+      projects: readonlyPerms,
+      tasks: { ...readonlyPerms, edit: true },
+      accounting: nonePerms,
+      clients: nonePerms,
+    },
+
+    // موظف عادي (fallback)
     employee: {
-      hr: { ...ownPerms, submit: true }, // Can request leave
+      hr: { ...ownPerms, submit: true },
       projects: nonePerms,
       tasks: nonePerms,
       accounting: nonePerms,

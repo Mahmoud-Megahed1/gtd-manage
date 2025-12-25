@@ -392,7 +392,7 @@
     }
 
     /* Show the dedicated print view */
-    .print-view-container {
+    .print-view-wrapper {
         display: block !important;
         visibility: visible !important;
         position: absolute;
@@ -402,7 +402,7 @@
         background: white;
     }
 
-    .print-view-container * {
+    .print-view-wrapper * {
         visibility: visible;
     }
 
@@ -594,3 +594,17 @@
 }
 
 /* Screen styles for print view - visibility now controlled by .print-view-wrapper in print.css */
+
+/* Hide print view wrapper on screen, show only during print */
+.print-view-wrapper {
+    display: none;
+    visibility: hidden;
+    position: absolute;
+    left: -9999px;
+}
+
+/* Ensure InvoicePrintView is visible during print */
+.invoice-print-view {
+    display: block;
+    visibility: visible;
+}
