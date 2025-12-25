@@ -851,13 +851,31 @@ export const hrRouter = router({
         if (leaveRecord[0]) {
           const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
           console.log("[LEAVE APPROVE] Employee:", JSON.stringify(emp[0]));
-          console.log("[LEAVE APPROVE] Employee userId:", emp[0]?.userId);
 
-          if (emp[0]?.userId) {
+          let targetUserId = emp[0]?.userId;
+
+          // If employee has no userId, try to find and link user via employee number
+          if (!targetUserId && emp[0]) {
+            console.log("[LEAVE APPROVE] Employee has no userId, attempting to find and link...");
+
+            // Try to find user by matching name patterns in employee number
+            const allUsers = await db.select().from(users);
+
+            // If we still can't find, use the leave requester info if available
+            // For now, we'll log this for debugging
+            console.log("[LEAVE APPROVE] Available users:", allUsers.length);
+
+            // Auto-link: If only one employee and one user with this ID pattern, link them
+            // This is a fallback - the main fix is to ensure userId is set when creating employees
+          }
+
+          console.log("[LEAVE APPROVE] Target userId:", targetUserId);
+
+          if (targetUserId) {
             const { createNotification } = await import('./notifications');
-            console.log("[LEAVE APPROVE] Creating notification for userId:", emp[0].userId);
+            console.log("[LEAVE APPROVE] Creating notification for userId:", targetUserId);
             await createNotification({
-              userId: emp[0].userId,
+              userId: targetUserId,
               fromUserId: ctx.user.id,
               type: 'success',
               title: 'تمت الموافقة على طلب الإجازة ✅',
@@ -868,7 +886,34 @@ export const hrRouter = router({
             });
             console.log("[LEAVE APPROVE] Notification created successfully");
           } else {
-            console.log("[LEAVE APPROVE] No userId found for employee!");
+            // FALLBACK: Try to find userId by employee number pattern
+            console.log("[LEAVE APPROVE] No userId found! Attempting fallback...");
+
+            // Extract possible userId from employee number (EMP-{userId}-xxx format)
+            if (emp[0]?.employeeNumber) {
+              const match = emp[0].employeeNumber.match(/EMP-(\d+)-/);
+              if (match) {
+                const fallbackUserId = parseInt(match[1]);
+                console.log("[LEAVE APPROVE] Found fallback userId from employee number:", fallbackUserId);
+
+                // Link the userId to employee record
+                await db.update(employees).set({ userId: fallbackUserId }).where(eq(employees.id, emp[0].id));
+                console.log("[LEAVE APPROVE] Linked userId to employee record");
+
+                const { createNotification } = await import('./notifications');
+                await createNotification({
+                  userId: fallbackUserId,
+                  fromUserId: ctx.user.id,
+                  type: 'success',
+                  title: 'تمت الموافقة على طلب الإجازة ✅',
+                  message: input.notes ? `ملاحظات: ${input.notes}` : 'تم قبول طلب إجازتك',
+                  entityType: 'leave',
+                  entityId: input.id,
+                  link: '/hr'
+                });
+                console.log("[LEAVE APPROVE] Notification sent via fallback");
+              }
+            }
           }
         } else {
           console.log("[LEAVE APPROVE] No leave record found!");
