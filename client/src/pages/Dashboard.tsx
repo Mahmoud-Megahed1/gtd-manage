@@ -230,13 +230,15 @@ export default function Dashboard() {
                 </Link>
               )}
 
-              {/* Forms - generally available */}
-              <Link href="/forms">
-                <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <FileText className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">الاستمارات</span>
-                </div>
-              </Link>
+              {/* Forms - for those with forms access */}
+              {(permissions?.permissions.forms?.view || currentUser?.role === 'admin' || currentUser?.role === 'project_manager' || currentUser?.role === 'department_manager' || currentUser?.role === 'sales_manager' || currentUser?.role === 'admin_assistant') && (
+                <Link href="/forms">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <FileText className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">الاستمارات</span>
+                  </div>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>
