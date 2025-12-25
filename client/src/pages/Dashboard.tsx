@@ -239,6 +239,16 @@ export default function Dashboard() {
                   </div>
                 </Link>
               )}
+
+              {/* Reports - for those with reports access */}
+              {(permissions?.permissions.reports?.view || currentUser?.role === 'admin') && (
+                <Link href="/general-reports">
+                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
+                    <BarChart3 className="w-10 h-10 text-purple-500 mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">التقارير العامة</span>
+                  </div>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>
