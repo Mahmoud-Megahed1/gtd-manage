@@ -20,7 +20,10 @@ import {
   AlertCircle,
   FolderOpen,
   ClipboardList,
-  Layers
+  Layers,
+  Trash2,
+  Download,
+  Upload
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
@@ -104,6 +107,16 @@ export default function ProjectDetails() {
     { entityType: 'project', entityId: projectId },
     { enabled: projectId > 0 }
   );
+  const deleteFile = trpc.files.delete.useMutation({
+    onSuccess: () => {
+      refetchFiles();
+      toast.success("تم حذف الملف");
+    },
+    onError: () => toast.error("تعذر حذف الملف")
+  });
+
+  // Upload progress state
+  const [uploadProgress, setUploadProgress] = useState<{ progress: number; speed: string; fileName: string } | null>(null);
 
   // Project forms
   const { data: allForms } = trpc.forms.list.useQuery();
@@ -564,10 +577,27 @@ export default function ProjectDetails() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+
+                        const startTime = Date.now();
+                        setUploadProgress({ progress: 0, speed: '0 KB/s', fileName: file.name });
+
                         const reader = new FileReader();
+                        reader.onprogress = (event) => {
+                          if (event.lengthComputable) {
+                            const percent = Math.round((event.loaded / event.total) * 100);
+                            const elapsed = (Date.now() - startTime) / 1000;
+                            const speed = elapsed > 0 ? (event.loaded / 1024 / elapsed).toFixed(1) : '0';
+                            setUploadProgress({
+                              progress: percent,
+                              speed: `${speed} KB/s`,
+                              fileName: file.name
+                            });
+                          }
+                        };
                         reader.onload = async () => {
                           const base64 = (reader.result as string).split(",")[1];
                           try {
+                            setUploadProgress(prev => prev ? { ...prev, progress: 90 } : null);
                             await uploadFile.mutateAsync({
                               entityType: "project",
                               entityId: projectId,
@@ -575,18 +605,22 @@ export default function ProjectDetails() {
                               fileData: base64,
                               mimeType: file.type
                             });
+                            setUploadProgress(prev => prev ? { ...prev, progress: 100 } : null);
+                            setTimeout(() => setUploadProgress(null), 1000);
                             refetchFiles();
                             toast.success("تم رفع الملف بنجاح");
                           } catch (err: any) {
+                            setUploadProgress(null);
                             toast.error(err?.message || "فشل رفع الملف");
                           }
                         };
                         reader.readAsDataURL(file);
+                        e.target.value = '';
                       }}
                     />
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild disabled={!!uploadProgress}>
                       <span>
-                        <FolderOpen className="w-4 h-4 ml-2" />
+                        <Upload className="w-4 h-4 ml-2" />
                         رفع ملف
                       </span>
                     </Button>
@@ -594,20 +628,64 @@ export default function ProjectDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Upload Progress Bar */}
+                {uploadProgress && (
+                  <div className="mb-4 p-4 bg-muted rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium truncate">{uploadProgress.fileName}</span>
+                      <span className="text-sm text-muted-foreground">{uploadProgress.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-primary h-3 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress.progress}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                      <span>السرعة: {uploadProgress.speed}</span>
+                      <span>{uploadProgress.progress < 100 ? 'جاري الرفع...' : 'اكتمل!'}</span>
+                    </div>
+                  </div>
+                )}
+
                 {projectFiles && projectFiles.length > 0 ? (
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {projectFiles.map((file: any) => (
-                      <div key={file.id} className="flex items-center gap-3 p-3 border rounded hover:bg-muted/50">
-                        <FileText className="w-8 h-8 text-primary" />
+                      <div key={file.id} className="flex items-center gap-3 p-3 border rounded hover:bg-muted/50 group">
+                        <FileText className="w-8 h-8 text-primary flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{file.fileName}</p>
                           <p className="text-xs text-muted-foreground">
                             {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : ''}
                           </p>
                         </div>
-                        <a href={file.fileUrl} target="_blank" rel="noreferrer">
-                          <Button variant="ghost" size="sm">فتح</Button>
-                        </a>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // Download file properly instead of opening new tab
+                              const link = document.createElement('a');
+                              link.href = file.fileUrl;
+                              link.download = file.fileName;
+                              link.click();
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              if (confirm('هل تريد حذف هذا الملف؟')) {
+                                deleteFile.mutate({ id: file.id });
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -621,6 +699,7 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
           </TabsContent>
+
 
 
           {/* استمارات المشروع */}
