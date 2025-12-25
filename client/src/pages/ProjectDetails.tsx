@@ -777,6 +777,49 @@ export default function ProjectDetails() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Add Phase Form */}
+                <form
+                  className="mb-6 p-4 border rounded-lg bg-muted/30"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget as any;
+                    const name = form.phaseName.value;
+                    const description = form.phaseDesc.value;
+                    const startDate = form.phaseStart.value;
+                    const endDate = form.phaseEnd.value;
+                    if (!name) return;
+
+                    try {
+                      await createTask.mutateAsync({
+                        projectId,
+                        name,
+                        description: description || undefined,
+                        startDate: startDate ? new Date(startDate) : undefined,
+                        endDate: endDate ? new Date(endDate) : undefined
+                      });
+                      form.reset();
+                      toast.success("تم إضافة المرحلة");
+                    } catch (err: any) {
+                      toast.error("تعذر إضافة المرحلة");
+                    }
+                  }}
+                >
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Layers className="w-4 h-4" />
+                    إضافة مرحلة جديدة
+                  </h4>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input name="phaseName" placeholder="اسم المرحلة *" required />
+                    <Input name="phaseDesc" placeholder="الوصف (اختياري)" />
+                    <Input name="phaseStart" type="date" placeholder="تاريخ البداية" />
+                    <Input name="phaseEnd" type="date" placeholder="تاريخ النهاية" />
+                  </div>
+                  <Button type="submit" className="mt-3" disabled={createTask.isPending}>
+                    <Layers className="w-4 h-4 ml-2" />
+                    إضافة مرحلة
+                  </Button>
+                </form>
+
                 {tasks && tasks.length > 0 ? (
                   <div className="space-y-4">
                     {tasks.map((task: any, idx: number) => {
@@ -792,7 +835,7 @@ export default function ProjectDetails() {
                       const isCompleted = task.status === 'completed';
 
                       return (
-                        <div key={task.id} className="relative">
+                        <div key={task.id} className="relative group">
                           {idx < tasks.length - 1 && (
                             <div className="absolute left-5 top-12 w-0.5 h-full bg-border" />
                           )}
@@ -804,9 +847,39 @@ export default function ProjectDetails() {
                             <div className="flex-1 bg-muted/50 rounded-lg p-4">
                               <div className="flex items-center justify-between mb-2">
                                 <h4 className="font-semibold">{task.name}</h4>
-                                <Badge variant={isCompleted ? 'default' : 'outline'}>
-                                  {isCompleted ? 'مكتملة' : 'جارية'}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={isCompleted ? 'default' : 'outline'}>
+                                    {isCompleted ? 'مكتملة' : 'جارية'}
+                                  </Badge>
+                                  {/* Action Buttons */}
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                    {!isCompleted && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-green-600 hover:text-green-700"
+                                        onClick={() => {
+                                          // Mark as completed (TODO: Add update mutation)
+                                          toast.info("TODO: إضافة تحديث حالة المرحلة");
+                                        }}
+                                      >
+                                        <CheckCircle2 className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-500 hover:text-red-600"
+                                      onClick={() => {
+                                        if (confirm('هل تريد حذف هذه المرحلة؟')) {
+                                          deleteTask.mutate({ taskId: task.id });
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
                               {task.description && (
                                 <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
@@ -838,12 +911,13 @@ export default function ProjectDetails() {
                   <div className="text-center py-8 text-muted-foreground">
                     <Layers className="mx-auto h-12 w-12 mb-4 opacity-50" />
                     <p>لا توجد مراحل محددة للمشروع</p>
-                    <p className="text-sm mt-2">أضف مهام زمنية من تاب "المهام الزمنية" لعرضها كمراحل</p>
+                    <p className="text-sm mt-2">أضف مرحلة جديدة من الفورم أعلاه</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
+
 
         </Tabs>
 
