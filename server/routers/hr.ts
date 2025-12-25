@@ -146,16 +146,40 @@ export const hrRouter = router({
 
     // Get current user's leave requests
     myLeaves: protectedProcedure.query(async ({ ctx }) => {
-      const emp = await getEmployeeByUserId(ctx.user.id);
-      if (!emp) return [];
-
       const db = await getDb();
       if (!db) {
+        const emp = await getEmployeeByUserId(ctx.user.id);
+        if (!emp) return [];
         const demo = await import("../_core/demoStore");
         return demo.list("leaves").filter((r: any) => r.employeeId === emp.id);
       }
 
-      return await db.select().from(leaves).where(eq(leaves.employeeId, emp.id)).orderBy(desc(leaves.createdAt));
+      // Find ALL employee records that could belong to this user
+      const allMyEmployees = await db.select().from(employees).where(eq(employees.userId, ctx.user.id));
+
+      // Also look for employees with matching userId pattern in employeeNumber
+      const patternEmployees = await db.select().from(employees).where(eq(employees.userId, null as any));
+      const matchingByPattern = patternEmployees.filter(e =>
+        e.employeeNumber && e.employeeNumber.includes(`-${ctx.user.id}-`)
+      );
+
+      // Combine all possible employee IDs
+      const allEmployeeIds = [
+        ...allMyEmployees.map(e => e.id),
+        ...matchingByPattern.map(e => e.id)
+      ];
+
+      console.log(`[MY_LEAVES] User ${ctx.user.id} has employee IDs: ${JSON.stringify(allEmployeeIds)}`);
+
+      if (allEmployeeIds.length === 0) return [];
+
+      // Query leaves for ALL possible employee IDs
+      const allLeaves = await db.select().from(leaves).orderBy(desc(leaves.createdAt));
+      const myLeaves = allLeaves.filter(l => allEmployeeIds.includes(l.employeeId));
+
+      console.log(`[MY_LEAVES] Found ${myLeaves.length} leaves for user ${ctx.user.id}`);
+
+      return myLeaves;
     }),
 
     // Get current user's performance reviews
