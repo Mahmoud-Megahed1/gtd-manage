@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LOGO_BASE64, BARCODE_BASE64 } from "@/utils/assets";
 
 export default function InvoiceDetails() {
   const params = useParams();
@@ -102,6 +103,9 @@ export default function InvoiceDetails() {
       </head>
       <body>
         <div class="header">
+          <div style="width: 30%">
+            <img src="${LOGO_BASE64}" alt="Logo" style="max-height: 80px; width: auto;" onerror="this.style.display='none'" />
+          </div>
           <div style="width: 65%; text-align: right;">
             <h1>GOLDEN TOUCH <span>DESIGN</span></h1>
             <h3>شركة اللمسة الذهبية للتصميم</h3>
@@ -164,6 +168,7 @@ export default function InvoiceDetails() {
         </table>
 
         <div class="footer">
+          <img src="${BARCODE_BASE64}" alt="Barcode" style="height: 40px; margin-bottom: 10px;" onerror="this.style.display='none'" />
           <p><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
           <p>الرياض, حي السفارات, مربع الفزاري, مبنى 3293, بوابة 5 | سجل تجاري C.R. 7017891396</p>
           <p style="color: #666;">500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET</p>
