@@ -56,12 +56,30 @@ export const hrRouter = router({
 
           const userPosition = roleToPosition[ctx.user.role];
 
-          // Find matching unlinked employee by position
+          console.log(`[AUTO-LINK] Checking ${unlinkedEmployees.length} unlinked employees for user ${ctx.user.id}, role: ${ctx.user.role}, position: ${userPosition}`);
+
+          // Strategy 1: Find by exact position match
           let matchingEmployee = unlinkedEmployees.find(e => e.position === userPosition);
+
+          // Strategy 2: Find by employee number containing userId
+          if (!matchingEmployee) {
+            matchingEmployee = unlinkedEmployees.find(e =>
+              e.employeeNumber && e.employeeNumber.includes(`-${ctx.user.id}-`)
+            );
+            if (matchingEmployee) {
+              console.log(`[AUTO-LINK] Found employee by employeeNumber pattern: ${matchingEmployee.employeeNumber}`);
+            }
+          }
+
+          // Strategy 3: If only ONE unlinked employee exists, assume it's this user
+          if (!matchingEmployee && unlinkedEmployees.length === 1) {
+            matchingEmployee = unlinkedEmployees[0];
+            console.log(`[AUTO-LINK] Only one unlinked employee exists, using it: ${matchingEmployee.id}`);
+          }
 
           // If found, link it to this user
           if (matchingEmployee) {
-            console.log(`[AUTO-LINK] Linking existing employee ${matchingEmployee.id} to user ${ctx.user.id}`);
+            console.log(`[AUTO-LINK] Linking existing employee ${matchingEmployee.id} (${matchingEmployee.employeeNumber}) to user ${ctx.user.id}`);
             await db.update(employees).set({ userId: ctx.user.id }).where(eq(employees.id, matchingEmployee.id));
             emp = await getEmployeeByUserId(ctx.user.id);
           } else {
