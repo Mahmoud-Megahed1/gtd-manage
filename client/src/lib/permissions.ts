@@ -55,11 +55,14 @@ export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
     },
 
     // 2️⃣ department_manager (مدير قسم)
+    // المشاريع: VCU | المهام: VCU | الاستمارات: VCU | HR: عرض القسم | المحاسبة: عرض | التقارير: VCU
     department_manager: {
         clients: ['view'],
         projects: ['view', 'create', 'edit'],
         tasks: ['view', 'create', 'edit'],
         invoices: ['view'],
+        accounting: ['view'],
+        'accounting.reports': ['view', 'create'],
         forms: ['view', 'create', 'edit'],
         'forms.change_orders': ['view', 'create', 'edit', 'approve'],
         hr: ['view'],
