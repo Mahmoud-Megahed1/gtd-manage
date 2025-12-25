@@ -98,6 +98,16 @@ export default function ProjectDetails() {
   );
   // Team management
   const { data: teamMembers } = trpc.projects.listTeam.useQuery({ projectId });
+
+  // Project files (attachments)
+  const { data: projectFiles, refetch: refetchFiles } = trpc.files.list.useQuery(
+    { entityType: 'project', entityId: projectId },
+    { enabled: projectId > 0 }
+  );
+
+  // Project forms
+  const { data: allForms } = trpc.forms.list.useQuery();
+  const projectForms = allForms?.filter((f: any) => f.projectId === projectId) || [];
   const { data: allUsers } = trpc.users.list.useQuery();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [teamRole, setTeamRole] = useState<string>("member");
@@ -541,58 +551,221 @@ export default function ProjectDetails() {
           <TabsContent value="files" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FolderOpen className="w-5 h-5" />
-                  ملفات المشروع
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="w-5 h-5" />
+                    ملفات المشروع ({projectFiles?.length || 0})
+                  </div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = async () => {
+                          const base64 = (reader.result as string).split(",")[1];
+                          try {
+                            await uploadFile.mutateAsync({
+                              entityType: "project",
+                              entityId: projectId,
+                              fileName: file.name,
+                              fileData: base64,
+                              mimeType: file.type
+                            });
+                            refetchFiles();
+                            toast.success("تم رفع الملف بنجاح");
+                          } catch (err: any) {
+                            toast.error(err?.message || "فشل رفع الملف");
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <Button variant="outline" size="sm" asChild>
+                      <span>
+                        <FolderOpen className="w-4 h-4 ml-2" />
+                        رفع ملف
+                      </span>
+                    </Button>
+                  </label>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <FolderOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>لا توجد ملفات مرفقة بالمشروع</p>
-                  <p className="text-sm mt-2">يمكنك إضافة ملفات التصميم والمخططات والمستندات هنا</p>
-                </div>
+                {projectFiles && projectFiles.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {projectFiles.map((file: any) => (
+                      <div key={file.id} className="flex items-center gap-3 p-3 border rounded hover:bg-muted/50">
+                        <FileText className="w-8 h-8 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{file.fileName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : ''}
+                          </p>
+                        </div>
+                        <a href={file.fileUrl} target="_blank" rel="noreferrer">
+                          <Button variant="ghost" size="sm">فتح</Button>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FolderOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p>لا توجد ملفات مرفقة بالمشروع</p>
+                    <p className="text-sm mt-2">يمكنك إضافة ملفات التصميم والمخططات والمستندات هنا</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
+
 
           {/* استمارات المشروع */}
           <TabsContent value="forms" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5" />
-                  استمارات المشروع
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="w-5 h-5" />
+                    استمارات المشروع ({projectForms.length})
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLocation(`/forms?projectId=${projectId}`)}
+                  >
+                    <ClipboardList className="w-4 h-4 ml-2" />
+                    إضافة استمارة
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <ClipboardList className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>لا توجد استمارات مرتبطة بالمشروع</p>
-                  <p className="text-sm mt-2">يمكنك ربط استمارات العميل والتعديلات بالمشروع</p>
-                </div>
+                {projectForms.length > 0 ? (
+                  <div className="space-y-3">
+                    {projectForms.map((form: any) => (
+                      <div key={form.id} className="flex items-center justify-between p-4 border rounded hover:bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <ClipboardList className="w-6 h-6 text-primary" />
+                          <div>
+                            <p className="font-medium">{form.formNumber}</p>
+                            <p className="text-sm text-muted-foreground">{form.formType}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant={
+                            form.status === 'approved' ? 'default' :
+                              form.status === 'rejected' ? 'destructive' :
+                                form.status === 'reviewed' ? 'secondary' : 'outline'
+                          }>
+                            {form.status === 'approved' ? 'مقبولة' :
+                              form.status === 'rejected' ? 'مرفوضة' :
+                                form.status === 'reviewed' ? 'مراجعة' : 'معلقة'}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setLocation(`/forms/${form.id}`)}
+                          >
+                            عرض
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ClipboardList className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p>لا توجد استمارات مرتبطة بالمشروع</p>
+                    <p className="text-sm mt-2">يمكنك إنشاء استمارة جديدة وربطها بالمشروع</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* مراحل المشروع */}
+          {/* مراحل المشروع - using tasks as phases */}
           <TabsContent value="phases" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Layers className="w-5 h-5" />
-                  مراحل المشروع
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5" />
+                    مراحل المشروع ({tasks?.length || 0})
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Layers className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>لا توجد مراحل محددة للمشروع</p>
-                  <p className="text-sm mt-2">يمكنك إضافة مراحل التصميم والتنفيذ والمراجعة هنا</p>
-                </div>
+                {tasks && tasks.length > 0 ? (
+                  <div className="space-y-4">
+                    {tasks.map((task: any, idx: number) => {
+                      const start = task.startDate ? new Date(task.startDate) : null;
+                      const end = task.endDate ? new Date(task.endDate) : null;
+                      const now = new Date();
+                      let progress = 0;
+                      if (start && end) {
+                        const total = end.getTime() - start.getTime();
+                        const elapsed = now.getTime() - start.getTime();
+                        progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                      }
+                      const isCompleted = task.status === 'completed';
+
+                      return (
+                        <div key={task.id} className="relative">
+                          {idx < tasks.length - 1 && (
+                            <div className="absolute left-5 top-12 w-0.5 h-full bg-border" />
+                          )}
+                          <div className="flex items-start gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500 text-white' : 'bg-primary/10 text-primary'
+                              }`}>
+                              {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
+                            </div>
+                            <div className="flex-1 bg-muted/50 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold">{task.name}</h4>
+                                <Badge variant={isCompleted ? 'default' : 'outline'}>
+                                  {isCompleted ? 'مكتملة' : 'جارية'}
+                                </Badge>
+                              </div>
+                              {task.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
+                              )}
+                              {start && end && (
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span>من: {start.toLocaleDateString('ar-SA')}</span>
+                                  <span>إلى: {end.toLocaleDateString('ar-SA')}</span>
+                                </div>
+                              )}
+                              {!isCompleted && start && end && (
+                                <div className="mt-2">
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-primary h-2 rounded-full transition-all"
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">{Math.round(progress)}% مكتمل</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Layers className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p>لا توجد مراحل محددة للمشروع</p>
+                    <p className="text-sm mt-2">أضف مهام زمنية من تاب "المهام الزمنية" لعرضها كمراحل</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
+
         </Tabs>
 
 
