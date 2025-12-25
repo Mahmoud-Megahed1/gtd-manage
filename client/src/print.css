@@ -14,10 +14,17 @@
 @media print {
     @page {
         size: A4;
-        margin: 0;
+        margin: 10mm;
     }
 
     /* 1. Hide everything by default in print */
+    html,
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     body * {
         visibility: hidden;
     }
@@ -25,26 +32,34 @@
     /* 2. Hide the main app container specifically to avoid unwanted layout */
     .invoice-form-container,
     .invoice-page,
+    .invoice-action-bar,
     nav,
     aside,
-    .invoice-action-bar,
-    .no-print {
+    header:not(.print-view-wrapper header),
+    .no-print,
+    button,
+    [class*="sidebar"],
+    [class*="navbar"],
+    [class*="menu"] {
         display: none !important;
     }
 
     /* 3. Show ONLY the print view wrapper and its children */
     .print-view-wrapper,
-    .print-view-wrapper * {
+    .print-view-wrapper *,
+    .invoice-print-view,
+    .invoice-print-view * {
         visibility: visible !important;
-        display: block !important;
     }
 
     .print-view-wrapper {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: white;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        background: white !important;
+        z-index: 9999 !important;
     }
 
     /* 4. Restore flex layout for specific internal components if needed */
@@ -83,5 +98,28 @@
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
+        max-width: 100% !important;
+    }
+
+    /* 7. Fix any inherited display issues */
+    .print-view-wrapper div,
+    .print-view-wrapper section,
+    .print-view-wrapper article,
+    .print-view-wrapper p,
+    .print-view-wrapper h1,
+    .print-view-wrapper h2,
+    .print-view-wrapper h3,
+    .print-view-wrapper h4,
+    .print-view-wrapper span,
+    .print-view-wrapper ul,
+    .print-view-wrapper li {
+        display: block !important;
+    }
+
+    /* 8. Ensure text is readable */
+    .print-view-wrapper * {
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }
