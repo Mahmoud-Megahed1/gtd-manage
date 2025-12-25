@@ -210,8 +210,8 @@ export default function Dashboard() {
                 </Link>
               )}
 
-              {/* Invoices - for those with accounting access */}
-              {(permissions?.permissions.accounting.view || currentUser?.role === 'admin') && (
+              {/* Invoices - for those with invoices access */}
+              {(permissions?.permissions.invoices?.view || currentUser?.role === 'admin') && (
                 <Link href="/invoices">
                   <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
                     <Receipt className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
@@ -231,7 +231,7 @@ export default function Dashboard() {
               )}
 
               {/* Forms - for those with forms access */}
-              {(permissions?.permissions.forms?.view || currentUser?.role === 'admin' || currentUser?.role === 'project_manager' || currentUser?.role === 'department_manager' || currentUser?.role === 'sales_manager' || currentUser?.role === 'admin_assistant') && (
+              {(permissions?.permissions.forms?.view || currentUser?.role === 'admin') && (
                 <Link href="/forms">
                   <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
                     <FileText className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />

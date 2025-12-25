@@ -46,6 +46,8 @@ type DetailedPermissions = {
   accounting: SubPermissions;
   clients: SubPermissions;
   forms: SubPermissions;
+  invoices: SubPermissions;
+  reports: SubPermissions;
 };
 
 function getPermissionLevel(role: string, section: string): PermissionLevel {
@@ -91,7 +93,7 @@ function getDetailedPermissions(role: string): DetailedPermissions {
   const nonePerms: SubPermissions = { view: false, viewOwn: false, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: false };
 
   if (role === 'admin') {
-    return { hr: fullPerms, projects: fullPerms, tasks: fullPerms, accounting: fullPerms, clients: fullPerms, forms: fullPerms };
+    return { hr: fullPerms, projects: fullPerms, tasks: fullPerms, accounting: fullPerms, clients: fullPerms, forms: fullPerms, invoices: fullPerms, reports: fullPerms };
   }
 
   const rolePermsMap: Record<string, DetailedPermissions> = {
@@ -103,6 +105,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: readonlyPerms,
       forms: readonlyPerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
 
     // الإدارة المالية
@@ -113,6 +117,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: fullPerms,
       clients: readonlyPerms,
       forms: nonePerms,
+      invoices: fullPerms,
+      reports: fullPerms,
     },
     accountant: {
       hr: ownPerms,
@@ -121,6 +127,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: { ...readonlyPerms, submit: true },
       clients: readonlyPerms,
       forms: nonePerms,
+      invoices: { ...readonlyPerms, create: true },
+      reports: readonlyPerms,
     },
 
     // إدارة المشاريع
@@ -131,6 +139,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: readonlyPerms,
       clients: readonlyPerms,
       forms: fullPerms,
+      invoices: readonlyPerms,
+      reports: { ...readonlyPerms, create: true },
     },
     project_manager: {
       hr: ownPerms,
@@ -139,6 +149,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: { ...readonlyPerms, viewFinancials: true },
       clients: readonlyPerms,
       forms: fullPerms,
+      invoices: nonePerms,
+      reports: { ...readonlyPerms, create: true },
     },
     project_coordinator: {
       hr: ownPerms,
@@ -147,6 +159,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: readonlyPerms,
       forms: readonlyPerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
 
     // المهندسين والفنيين
@@ -157,6 +171,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
     interior_designer: {
       hr: { ...ownPerms, submit: true },
@@ -165,6 +181,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
     site_engineer: {
       hr: { ...ownPerms, submit: true },
@@ -173,6 +191,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
     planning_engineer: {
       hr: { ...ownPerms, submit: true },
@@ -181,6 +201,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: readonlyPerms,
     },
     designer: {
       hr: { ...ownPerms, submit: true },
@@ -189,6 +211,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
     technician: {
       hr: { ...ownPerms, submit: true },
@@ -197,6 +221,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
 
     // المبيعات
@@ -207,6 +233,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: { ...readonlyPerms, viewFinancials: true },
       clients: fullPerms,
       forms: fullPerms,
+      invoices: fullPerms,
+      reports: { ...readonlyPerms, create: true },
     },
 
     // الدعم الإداري
@@ -217,6 +245,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: { ...readonlyPerms, create: true },
       forms: fullPerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
 
     // المشتريات والمخازن
@@ -227,6 +257,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: readonlyPerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: readonlyPerms,
     },
     storekeeper: {
       hr: ownPerms,
@@ -235,6 +267,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
 
     // ضبط الجودة
@@ -245,6 +279,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: readonlyPerms,
     },
 
     // موظف عادي (fallback)
@@ -255,10 +291,12 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       accounting: nonePerms,
       clients: nonePerms,
       forms: nonePerms,
+      invoices: nonePerms,
+      reports: nonePerms,
     },
   };
 
-  return rolePermsMap[role] || { hr: nonePerms, projects: nonePerms, tasks: nonePerms, accounting: nonePerms, clients: nonePerms, forms: nonePerms };
+  return rolePermsMap[role] || { hr: nonePerms, projects: nonePerms, tasks: nonePerms, accounting: nonePerms, clients: nonePerms, forms: nonePerms, invoices: nonePerms, reports: nonePerms };
 }
 
 // Export permissions for frontend
