@@ -210,7 +210,7 @@ export default function IntegratedInvoiceForm() {
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
                     <div style={{ width: '30%' }}>
                         <div className="logo-placeholder">
-                            <img src="/assets/logo.png" alt="Logo" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                            <img src="/logo.png" alt="Logo" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
                                 onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                         </div>
                     </div>
