@@ -215,7 +215,152 @@ export default function InvoiceDetails() {
             <Button variant="outline" onClick={() => setLocation("/invoices")}>
               العودة
             </Button>
-            <Button variant="default" onClick={() => window.print()}>
+            <Button variant="default" onClick={() => {
+              // Create print content
+              const printContent = `
+                <!DOCTYPE html>
+                <html lang="ar" dir="rtl">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>فاتورة ${invoice.invoiceNumber}</title>
+                  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+                  <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { 
+                      font-family: 'Tajawal', sans-serif; 
+                      padding: 20mm; 
+                      background: white;
+                      color: #333;
+                    }
+                    .header { 
+                      display: flex; 
+                      justify-content: space-between; 
+                      align-items: flex-start; 
+                      margin-bottom: 20px; 
+                      border-bottom: 2px solid #bfa670; 
+                      padding-bottom: 15px; 
+                    }
+                    .header h1 { margin: 0; color: #bfa670; font-size: 24px; }
+                    .header h1 span { color: #666; }
+                    .header h3 { margin: 5px 0; }
+                    .header p { margin: 0; font-size: 12px; color: #555; }
+                    .client-info { 
+                      margin-bottom: 20px; 
+                      padding: 10px; 
+                      background: #f9f9f9; 
+                      border-radius: 5px; 
+                    }
+                    .client-info h3 { margin: 0 0 10px; color: #333; }
+                    .client-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th { background: #bfa670; color: white; padding: 10px; border: 1px solid #ddd; }
+                    td { padding: 8px; border: 1px solid #ddd; }
+                    .text-center { text-align: center; }
+                    .text-left { text-align: left; }
+                    .subtotal { background: #f5f5f5; }
+                    .total-row { background: #bfa670; color: white; font-weight: bold; font-size: 16px; }
+                    .footer { 
+                      margin-top: 30px; 
+                      padding-top: 15px; 
+                      border-top: 2px solid #bfa670; 
+                      text-align: center; 
+                    }
+                    .footer p { margin: 5px 0; font-size: 12px; }
+                    @media print {
+                      body { padding: 10mm; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="header">
+                    <div style="width: 30%">
+                      <img src="/assets/logo.png" alt="Logo" style="max-height: 80px; width: auto;" onerror="this.style.display='none'" />
+                    </div>
+                    <div style="width: 65%; text-align: left;">
+                      <h1>GOLDEN TOUCH <span>DESIGN</span></h1>
+                      <h3>شركة اللمسة الذهبية للتصميم</h3>
+                      <p>سجل تجاري C.R. 7017891396</p>
+                      <p style="margin-top: 5px;">
+                        <strong>رقم الفاتورة:</strong> ${invoice.invoiceNumber} | 
+                        <strong>التاريخ:</strong> ${format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: ar })}
+                      </p>
+                    </div>
+                  </div>
+
+                  ${client ? `
+                  <div class="client-info">
+                    <h3>بيانات العميل</h3>
+                    <div class="client-grid">
+                      <div><strong>الاسم:</strong> ${client.name}</div>
+                      <div><strong>الهاتف:</strong> ${client.phone || '-'}</div>
+                      <div><strong>البريد:</strong> ${client.email || '-'}</div>
+                    </div>
+                  </div>
+                  ` : ''}
+
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="text-center">#</th>
+                        <th>الوصف</th>
+                        <th class="text-center">الكمية</th>
+                        <th class="text-center">السعر</th>
+                        <th class="text-center">الإجمالي</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${items?.map((item: any, idx: number) => `
+                        <tr>
+                          <td class="text-center">${idx + 1}</td>
+                          <td>${item.description}</td>
+                          <td class="text-center">${item.quantity}</td>
+                          <td class="text-center">${Number(item.unitPrice).toLocaleString()} ريال</td>
+                          <td class="text-center">${Number(item.total).toLocaleString()} ريال</td>
+                        </tr>
+                      `).join('') || ''}
+                    </tbody>
+                    <tfoot>
+                      <tr class="subtotal">
+                        <td colspan="4" class="text-left" style="font-weight: bold;">المجموع الفرعي</td>
+                        <td class="text-center" style="font-weight: bold;">${Number(invoice.subtotal).toLocaleString()} ريال</td>
+                      </tr>
+                      ${invoice.tax > 0 ? `
+                      <tr class="subtotal">
+                        <td colspan="4" class="text-left">ضريبة القيمة المضافة (15%)</td>
+                        <td class="text-center">${Number(invoice.tax).toLocaleString()} ريال</td>
+                      </tr>
+                      ` : ''}
+                      <tr class="total-row">
+                        <td colspan="4" class="text-left">الإجمالي</td>
+                        <td class="text-center">${Number(invoice.total).toLocaleString()} ريال</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+
+                  <div class="footer">
+                    <p><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
+                    <p>الرياض, حي السفارات, مربع الفزاري, مبنى 3293, بوابة 5 | سجل تجاري C.R. 7017891396</p>
+                    <p style="color: #666;">500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET</p>
+                  </div>
+
+                  <script>
+                    window.onload = function() {
+                      setTimeout(function() {
+                        window.print();
+                      }, 500);
+                    };
+                  </script>
+                </body>
+                </html>
+              `;
+
+              const printWindow = window.open('', '_blank');
+              if (printWindow) {
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+              }
+            }}>
               <Printer className="w-4 h-4 ml-2" />
               طباعة
             </Button>
