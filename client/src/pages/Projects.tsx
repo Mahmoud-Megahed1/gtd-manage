@@ -12,6 +12,11 @@ import { AddProjectDialog } from "@/components/AddProjectDialog";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Edit2 } from "lucide-react";
 
 export default function Projects() {
   const { data: projects, isLoading, refetch } = trpc.projects.list.useQuery();
@@ -41,10 +46,22 @@ export default function Projects() {
     onError: () => toast.error("تعذر حذف المشروع"),
   });
 
+  const updateProject = trpc.projects.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث المشروع");
+      refetch();
+      setEditProject(null);
+    },
+    onError: () => toast.error("تعذر تحديث المشروع"),
+  });
+
+  const [editProject, setEditProject] = useState<any>(null);
+
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
       design: "تصميم",
       execution: "تنفيذ",
+      in_progress: "قيد التنفيذ",
       delivery: "تسليم",
       completed: "مكتمل",
       cancelled: "ملغي"
@@ -56,6 +73,7 @@ export default function Projects() {
     const colorMap: Record<string, string> = {
       design: "bg-blue-500/10 text-blue-500",
       execution: "bg-yellow-500/10 text-yellow-500",
+      in_progress: "bg-orange-500/10 text-orange-500",
       delivery: "bg-purple-500/10 text-purple-500",
       completed: "bg-green-500/10 text-green-500",
       cancelled: "bg-red-500/10 text-red-500"
@@ -149,6 +167,20 @@ export default function Projects() {
                   >
                     عرض التفاصيل
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setEditProject({
+                      id: project.id,
+                      name: project.name,
+                      status: project.status,
+                      budget: project.budget || 0,
+                      description: project.description || ""
+                    })}
+                  >
+                    <Edit2 className="w-4 h-4 ml-2" />
+                    تعديل المشروع
+                  </Button>
                   {canDelete && (
                     <Button
                       variant="destructive"
@@ -175,6 +207,72 @@ export default function Projects() {
           </Card>
         )}
       </div>
+
+      {/* Edit Project Dialog */}
+      <Dialog open={!!editProject} onOpenChange={(open) => !open && setEditProject(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعديل المشروع</DialogTitle>
+          </DialogHeader>
+          {editProject && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateProject.mutate({
+                  id: editProject.id,
+                  name: editProject.name,
+                  status: editProject.status,
+                  budget: editProject.budget,
+                  description: editProject.description
+                });
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <Label>اسم المشروع</Label>
+                <Input
+                  value={editProject.name}
+                  onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>الحالة</Label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={editProject.status}
+                  onChange={(e) => setEditProject({ ...editProject, status: e.target.value })}
+                >
+                  <option value="design">تصميم</option>
+                  <option value="execution">تنفيذ</option>
+                  <option value="in_progress">قيد التنفيذ</option>
+                  <option value="delivery">تسليم</option>
+                  <option value="completed">مكتمل</option>
+                  <option value="cancelled">ملغي</option>
+                </select>
+              </div>
+              <div>
+                <Label>الميزانية</Label>
+                <Input
+                  type="number"
+                  value={editProject.budget}
+                  onChange={(e) => setEditProject({ ...editProject, budget: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label>الوصف</Label>
+                <Input
+                  value={editProject.description}
+                  onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">حفظ التغييرات</Button>
+                <Button type="button" variant="outline" onClick={() => setEditProject(null)}>إلغاء</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
