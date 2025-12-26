@@ -179,8 +179,28 @@ export default function ProjectReport() {
 
         <style>{`
           @media print {
+            /* Hide navigation and header */
             .print\\:hidden { display: none !important; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            nav, aside, header, [data-sidebar], .sidebar { display: none !important; }
+            
+            /* Make main content full width */
+            main, [data-main-content] { 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              width: 100% !important;
+              max-width: 100% !important;
+            }
+            
+            /* Reset body and html */
+            html, body { 
+              margin: 0 !important; 
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact; 
+              print-color-adjust: exact;
+            }
+            
+            /* Show only report content */
+            .p-6 { padding: 20px !important; }
           }
         `}</style>
       </div>
