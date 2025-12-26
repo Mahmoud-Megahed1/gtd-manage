@@ -249,7 +249,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 left-0 z-40 h-screen w-72 bg-card border-r border-border transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } lg:translate-x-0`}
       >
         <div className="flex flex-col h-full">
@@ -369,7 +369,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:mr-72 pt-16 lg:pt-0">
+      <main className="lg:ml-72 pt-16 lg:pt-0">
         <div className="p-2">
           {children}
         </div>

@@ -202,11 +202,11 @@ export const generateInvoiceHtml = (invoice: any) => {
                         </div>
 
                         <div class="form-group">
-                            <label>متطلبات التصميم</label>
+                            <label>التصميم المطلوب</label>
                             <span class="value-box">${designReq}${designReq === 'other' ? ' - ' + otherDesignReq : ''}</span>
                         </div>
                         <div class="form-group">
-                            <label>النمط (الستايل)</label>
+                            <label>طراز التصميم</label>
                             <span class="value-box">${style}${style === 'other' ? ' - ' + otherStyle : ''}</span>
                         </div>
                     </div>
