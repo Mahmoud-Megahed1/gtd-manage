@@ -222,7 +222,7 @@ export const invoices = mysqlTable("invoices", {
 	id: int().autoincrement().notNull(),
 	invoiceNumber: varchar({ length: 50 }).notNull(),
 	type: mysqlEnum(['invoice', 'quote']).notNull(),
-	clientId: int().notNull(),
+	clientId: int(),
 	projectId: int(),
 	issueDate: timestamp({ mode: 'date' }).notNull(),
 	dueDate: timestamp({ mode: 'date' }),

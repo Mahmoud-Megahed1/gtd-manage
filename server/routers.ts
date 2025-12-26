@@ -1359,7 +1359,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         type: z.enum(['invoice', 'quote']),
-        clientId: z.number(),
+        clientId: z.number().nullable(),
         projectId: z.number().optional(),
         issueDate: z.date(),
         dueDate: z.date().optional(),
