@@ -355,7 +355,7 @@ export default function Fatore() {
             taxEnabled
         });
 
-        createInvoice.mutate({
+        const mutationPayload = {
             type: typeMap[docType] || 'invoice',
             clientId,
             projectId: projectId || undefined,
@@ -374,14 +374,22 @@ export default function Fatore() {
                 unitPrice: i.price,
                 total: i.quantity * i.price * (1 - i.discount / 100)
             }))
-        }, {
+        };
+
+        const mutationOptions = {
             onSuccess: () => {
                 alert('تم حفظ الفاتورة بنجاح وتم تسجيلها في المحاسبة');
             },
-            onError: (err) => {
+            onError: (err: any) => {
                 alert('حدث خطأ أثناء الحفظ: ' + err.message);
             }
-        });
+        };
+
+        if (editId) {
+            updateInvoice.mutate({ id: editId, ...mutationPayload }, mutationOptions);
+        } else {
+            createInvoice.mutate(mutationPayload, mutationOptions);
+        }
     };
 
     const handlePrint = async () => {
@@ -405,7 +413,7 @@ export default function Fatore() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 p-1 max-w-7xl" dir="rtl">
+            <div className="space-y-6 p-1" dir="rtl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
