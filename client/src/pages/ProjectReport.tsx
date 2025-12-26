@@ -179,28 +179,51 @@ export default function ProjectReport() {
 
         <style>{`
           @media print {
-            /* Hide navigation and header */
-            .print\\:hidden { display: none !important; }
-            nav, aside, header, [data-sidebar], .sidebar { display: none !important; }
-            
-            /* Make main content full width */
-            main, [data-main-content] { 
-              margin: 0 !important; 
-              padding: 0 !important; 
-              width: 100% !important;
-              max-width: 100% !important;
+            /* Basic resets */
+            *, *::before, *::after {
+              text-shadow: none !important;
+              box-shadow: none !important;
             }
             
-            /* Reset body and html */
-            html, body { 
-              margin: 0 !important; 
+            /* Hide all UI elements */
+            nav, aside, header, [data-sidebar], .sidebar, button, .print\\:hidden { 
+              display: none !important; 
+            }
+            
+            /* Force content visibility and sizing */
+            html, body, #root, .min-h-screen {
+              height: auto !important;
+              overflow: visible !important;
+              background: white !important;
+              color: black !important;
+            }
+            
+            /* Layout overrides */
+            main {
+              margin: 0 !important;
               padding: 0 !important;
-              -webkit-print-color-adjust: exact; 
-              print-color-adjust: exact;
+              width: 100% !important;
+              position: static !important;
             }
             
-            /* Show only report content */
-            .p-6 { padding: 20px !important; }
+            /* The Report Container */
+            .p-6 {
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            
+            /* Text Colors - Critical for Dark Mode users */
+            p, h1, h2, h3, h4, span, div, td, th {
+              color: #000 !important;
+            }
+            .text-muted-foreground {
+              color: #333 !important;
+            }
+            
+            /* Borders */
+            .border, .border-t {
+              border-color: #ddd !important;
+            }
           }
         `}</style>
       </div>
