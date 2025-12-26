@@ -123,7 +123,7 @@ export default function Fatore() {
     const updateInvoice = trpc.invoices.update.useMutation();
 
     const { data: clients } = trpc.clients.list.useQuery();
-    const { data: clientProjects } = trpc.projects.list.useQuery(
+    const { data: clientProjects, isLoading: isLoadingProjects } = trpc.projects.list.useQuery(
         { clientId: clientId || undefined },
         { enabled: !!clientId }
     );
@@ -529,9 +529,18 @@ export default function Fatore() {
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={projectId || ""}
                                     onChange={e => setProjectId(Number(e.target.value))}
-                                    disabled={!clientId}
+                                    disabled={!clientId || isLoadingProjects}
                                 >
-                                    <option value="">-- اختر المشروع --</option>
+                                    <option value="">
+                                        {!clientId
+                                            ? "-- يرجى اختيار العميل أولاً --"
+                                            : isLoadingProjects
+                                                ? "جاري تحميل المشاريع..."
+                                                : clientProjects && clientProjects.length === 0
+                                                    ? "-- لا توجد مشاريع لهذا العميل --"
+                                                    : "-- اختر المشروع --"
+                                        }
+                                    </option>
                                     {clientProjects?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
                             </div>
