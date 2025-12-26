@@ -208,16 +208,16 @@ export const generateInvoiceHtml = (invoice: any) => {
                             <label>عدد الطوابق</label>
                             <span class="value-box">${formData.floors || '-'}</span>
                         </div>
+                    </div>
+                     <div class="form-row">
+                         <div class="form-group">
+                            <label>رقم عداد الكهرباء</label>
+                            <span class="value-box">${formData.electricMeter || '-'}</span>
+                        </div>
                          <div class="form-group">
                             <label>المساحة</label>
                             <span class="value-box">${formData.area || '-'}</span>
                         </div>
-                         <div class="form-group">
-                            <label>عداد الكهرباء</label>
-                            <span class="value-box">${formData.electricMeter || '-'}</span>
-                        </div>
-                    </div>
-                     <div class="form-row">
                         <div class="form-group">
                             <label>متطلبات التصميم</label>
                             <span class="value-box">${designReq}${designReq === 'other' ? ' - ' + otherDesignReq : ''}</span>

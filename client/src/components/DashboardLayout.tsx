@@ -370,7 +370,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <main className="lg:mr-72 pt-16 lg:pt-0">
-        <div className="p-6">
+        <div className="p-2">
           {children}
         </div>
       </main>

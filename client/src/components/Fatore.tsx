@@ -417,163 +417,7 @@ export default function Fatore() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Project Info - Moved to Right (First in RTL) */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>بيانات المشروع</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">اختر المشروع (إن وجد)</label>
-                                <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={projectId || ""}
-                                    onChange={e => setProjectId(Number(e.target.value))}
-                                    disabled={!clientId}
-                                >
-                                    <option value="">-- اختر المشروع --</option>
-                                    {clientProjects?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
-                            </div>
-
-                            <hr className="border-muted" />
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Row 1 in Print: Nature, Site */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">طبيعة المشروع</label>
-                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectNature} onChange={e => setProjectNature(e.target.value)}>
-                                        <option value="">اختر...</option>
-                                        <option value="تصميم">تصميم</option>
-                                        <option value="تنفيذ">تنفيذ</option>
-                                        <option value="استشارة في موقع المشروع">استشارة في موقع المشروع</option>
-                                        <option value="استشارة في المكتب">استشارة في المكتب</option>
-                                        <option value="استشارة اونلاين">استشارة اونلاين</option>
-                                        <option value="other">مخصص</option>
-                                    </select>
-                                    {projectNature === 'other' && (
-                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherProjectNature} onChange={e => setOtherProjectNature(e.target.value)} />
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">طبيعة الموقع</label>
-                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={siteNature} onChange={e => setSiteNature(e.target.value)}>
-                                        <option value="">اختر...</option>
-                                        <option value="غرفة">غرفة</option>
-                                        <option value="استديو">استديو</option>
-                                        <option value="غرف متعددة">غرف متعددة</option>
-                                        <option value="شقة">شقة</option>
-                                        <option value="فيلا">فيلا</option>
-                                        <option value="قصر">قصر</option>
-                                        <option value="ارض">ارض</option>
-                                        <option value="مزرعة">مزرعة</option>
-                                        <option value="شاليه">شاليه</option>
-                                        <option value="عمارة">عمارة</option>
-                                        <option value="مكتب">مكتب</option>
-                                        <option value="شركة">شركة</option>
-                                        <option value="محل تجاري">محل تجاري</option>
-                                        <option value="معرض تجاري">معرض تجاري</option>
-                                        <option value="صالون تجميل">صالون تجميل</option>
-                                        <option value="سبا">سبا</option>
-                                        <option value="صالون تجميل وسبا">صالون تجميل وسبا</option>
-                                        <option value="مشتل">مشتل</option>
-                                        <option value="محل ورود">محل ورود</option>
-                                        <option value="محل عطور">محل عطور</option>
-                                        <option value="محل هدايا">محل هدايا</option>
-                                        <option value="فندق">فندق</option>
-                                        <option value="مستشفى">مستشفى</option>
-                                        <option value="مستوصف">مستوصف</option>
-                                        <option value="عيادة">عيادة</option>
-                                        <option value="مدرسة">مدرسة</option>
-                                        <option value="مبنى حكومي">مبنى حكومي</option>
-                                        <option value="برج">برج</option>
-                                        <option value="مول">مول</option>
-                                        <option value="سوق شعبي">سوق شعبي</option>
-                                        <option value="حديقة عامة">حديقة عامة</option>
-                                        <option value="حديقة خاصة">حديقة خاصة</option>
-                                        <option value="بوث">بوث</option>
-                                        <option value="ورشة سيارات">ورشة سيارات</option>
-                                        <option value="other">مخصص</option>
-                                    </select>
-                                    {siteNature === 'other' && (
-                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherSiteNature} onChange={e => setOtherSiteNature(e.target.value)} />
-                                    )}
-                                </div>
-
-                                {/* Row 2 in Print: Location, Floors */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">موقع المشروع</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">عدد الطوابق</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={floors} onChange={e => setFloors(e.target.value)} />
-                                </div>
-
-                                {/* Row 3 in Print: Area, Electric Meter */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">المساحة</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">رقم عداد الكهرباء</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} />
-                                </div>
-
-                                {/* Row 4 in Print: Design Req, Style */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">التصميم المطلوب</label>
-                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={designReq} onChange={e => setDesignReq(e.target.value)}>
-                                        <option value="">اختر...</option>
-                                        <option value="داخلي">داخلي</option>
-                                        <option value="خارجي">خارجي</option>
-                                        <option value="لاندسكيب">لاندسكيب</option>
-                                        <option value="معماري">معماري</option>
-                                        <option value="داخلي وخارجي">داخلي وخارجي</option>
-                                        <option value="داخلي ولاندسكيب">داخلي ولاندسكيب</option>
-                                        <option value="داخلي وخارجي ولاندسكيب">داخلي وخارجي ولاندسكيب</option>
-                                        <option value="خارجي ولاندسكيب">خارجي ولاندسكيب</option>
-                                        <option value="داخلي وخارجي ومعماري">داخلي وخارجي ومعماري</option>
-                                        <option value="other">مخصص</option>
-                                    </select>
-                                    {designReq === 'other' && (
-                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherDesignReq} onChange={e => setOtherDesignReq(e.target.value)} />
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">طراز التصميم</label>
-                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={style} onChange={e => setStyle(e.target.value)}>
-                                        <option value="">اختر...</option>
-                                        <option value="مودرن">مودرن</option>
-                                        <option value="كلاسيك">كلاسيك</option>
-                                        <option value="نيو كلاسيك">نيو كلاسيك</option>
-                                        <option value="بوهيمي">بوهيمي</option>
-                                        <option value="مينيمل">مينيمل</option>
-                                        <option value="صناعي">صناعي</option>
-                                        <option value="شعبي">شعبي</option>
-                                        <option value="نجدي">نجدي</option>
-                                        <option value="حجازي">حجازي</option>
-                                        <option value="إسلامي">إسلامي</option>
-                                        <option value="other">مخصص</option>
-                                    </select>
-                                    {style === 'other' && (
-                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherStyle} onChange={e => setOtherStyle(e.target.value)} />
-                                    )}
-                                </div>
-
-                                <div className="space-y-2 md:col-span-2">
-                                    <label className="text-sm font-medium">ملاحظات</label>
-                                    <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Basic Info & Client - Moved to Left (Second in RTL) */}
+                    {/* Basic Info & Client - Moved to Right (First in RTL) */}
                     <Card>
                         <CardHeader>
                             <CardTitle>بيانات الفاتورة والعميل</CardTitle>
@@ -638,6 +482,162 @@ export default function Fatore() {
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-sm font-medium">المدينة / الحي</label>
                                     <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientCity} onChange={e => setClientCity(e.target.value)} />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Project Info - Moved to Left (Second in RTL) */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>بيانات المشروع</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">اختر المشروع (إن وجد)</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    value={projectId || ""}
+                                    onChange={e => setProjectId(Number(e.target.value))}
+                                    disabled={!clientId}
+                                >
+                                    <option value="">-- اختر المشروع --</option>
+                                    {clientProjects?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+
+                            <hr className="border-muted" />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Row 1: Nature, Site */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">طبيعة المشروع</label>
+                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectNature} onChange={e => setProjectNature(e.target.value)}>
+                                        <option value="">اختر...</option>
+                                        <option value="تصميم">تصميم</option>
+                                        <option value="تنفيذ">تنفيذ</option>
+                                        <option value="استشارة في موقع المشروع">استشارة في موقع المشروع</option>
+                                        <option value="استشارة في المكتب">استشارة في المكتب</option>
+                                        <option value="استشارة اونلاين">استشارة اونلاين</option>
+                                        <option value="other">مخصص</option>
+                                    </select>
+                                    {projectNature === 'other' && (
+                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherProjectNature} onChange={e => setOtherProjectNature(e.target.value)} />
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">طبيعة الموقع</label>
+                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={siteNature} onChange={e => setSiteNature(e.target.value)}>
+                                        <option value="">اختر...</option>
+                                        <option value="غرفة">غرفة</option>
+                                        <option value="استديو">استديو</option>
+                                        <option value="غرف متعددة">غرف متعددة</option>
+                                        <option value="شقة">شقة</option>
+                                        <option value="فيلا">فيلا</option>
+                                        <option value="قصر">قصر</option>
+                                        <option value="ارض">ارض</option>
+                                        <option value="مزرعة">مزرعة</option>
+                                        <option value="شاليه">شاليه</option>
+                                        <option value="عمارة">عمارة</option>
+                                        <option value="مكتب">مكتب</option>
+                                        <option value="شركة">شركة</option>
+                                        <option value="محل تجاري">محل تجاري</option>
+                                        <option value="معرض تجاري">معرض تجاري</option>
+                                        <option value="صالون تجميل">صالون تجميل</option>
+                                        <option value="سبا">سبا</option>
+                                        <option value="صالون تجميل وسبا">صالون تجميل وسبا</option>
+                                        <option value="مشتل">مشتل</option>
+                                        <option value="محل ورود">محل ورود</option>
+                                        <option value="محل عطور">محل عطور</option>
+                                        <option value="محل هدايا">محل هدايا</option>
+                                        <option value="فندق">فندق</option>
+                                        <option value="مستشفى">مستشفى</option>
+                                        <option value="مستوصف">مستوصف</option>
+                                        <option value="عيادة">عيادة</option>
+                                        <option value="مدرسة">مدرسة</option>
+                                        <option value="مبنى حكومي">مبنى حكومي</option>
+                                        <option value="برج">برج</option>
+                                        <option value="مول">مول</option>
+                                        <option value="سوق شعبي">سوق شعبي</option>
+                                        <option value="حديقة عامة">حديقة عامة</option>
+                                        <option value="حديقة خاصة">حديقة خاصة</option>
+                                        <option value="بوث">بوث</option>
+                                        <option value="ورشة سيارات">ورشة سيارات</option>
+                                        <option value="other">مخصص</option>
+                                    </select>
+                                    {siteNature === 'other' && (
+                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherSiteNature} onChange={e => setOtherSiteNature(e.target.value)} />
+                                    )}
+                                </div>
+
+                                {/* Row 2: Location, Floors */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">موقع المشروع</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">عدد الطوابق</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={floors} onChange={e => setFloors(e.target.value)} />
+                                </div>
+
+                                {/* Row 3: Meter, Area (Swapped per request) */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">رقم عداد الكهرباء</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">المساحة</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} />
+                                </div>
+
+                                {/* Row 4: Design Req, Style */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">التصميم المطلوب</label>
+                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={designReq} onChange={e => setDesignReq(e.target.value)}>
+                                        <option value="">اختر...</option>
+                                        <option value="داخلي">داخلي</option>
+                                        <option value="خارجي">خارجي</option>
+                                        <option value="لاندسكيب">لاندسكيب</option>
+                                        <option value="معماري">معماري</option>
+                                        <option value="داخلي وخارجي">داخلي وخارجي</option>
+                                        <option value="داخلي ولاندسكيب">داخلي ولاندسكيب</option>
+                                        <option value="داخلي وخارجي ولاندسكيب">داخلي وخارجي ولاندسكيب</option>
+                                        <option value="خارجي ولاندسكيب">خارجي ولاندسكيب</option>
+                                        <option value="داخلي وخارجي ومعماري">داخلي وخارجي ومعماري</option>
+                                        <option value="other">مخصص</option>
+                                    </select>
+                                    {designReq === 'other' && (
+                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherDesignReq} onChange={e => setOtherDesignReq(e.target.value)} />
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">طراز التصميم</label>
+                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={style} onChange={e => setStyle(e.target.value)}>
+                                        <option value="">اختر...</option>
+                                        <option value="مودرن">مودرن</option>
+                                        <option value="كلاسيك">كلاسيك</option>
+                                        <option value="نيو كلاسيك">نيو كلاسيك</option>
+                                        <option value="بوهيمي">بوهيمي</option>
+                                        <option value="مينيمل">مينيمل</option>
+                                        <option value="صناعي">صناعي</option>
+                                        <option value="شعبي">شعبي</option>
+                                        <option value="نجدي">نجدي</option>
+                                        <option value="حجازي">حجازي</option>
+                                        <option value="إسلامي">إسلامي</option>
+                                        <option value="other">مخصص</option>
+                                    </select>
+                                    {style === 'other' && (
+                                        <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherStyle} onChange={e => setOtherStyle(e.target.value)} />
+                                    )}
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-medium">ملاحظات</label>
+                                    <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} />
                                 </div>
                             </div>
                         </CardContent>
