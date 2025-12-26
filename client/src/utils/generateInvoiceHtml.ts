@@ -34,8 +34,21 @@ export const generateInvoiceHtml = (invoice: any) => {
     // Table Items
     const invoiceItems = invoice.items || [];
 
-    // Terms
-    const terms = formData.terms || []; // Array of strings
+    // Terms - check formData first, then try to parse from invoice.terms
+    let terms = formData.terms || [];
+    if ((!terms || terms.length === 0) && invoice.terms) {
+        // invoice.terms might be a JSON string array
+        try {
+            terms = typeof invoice.terms === 'string' ? JSON.parse(invoice.terms) : invoice.terms;
+        } catch {
+            // If parse fails, it might be a single string - wrap in array
+            terms = [invoice.terms];
+        }
+    }
+    // Fallback if still empty
+    if (!terms || terms.length === 0) {
+        terms = [];
+    }
 
     // CSS (Copied from Fatore.CSS / fatore.HTML)
     const css = `
@@ -208,7 +221,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                 <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="width: 30%;">
                         <div class="logo-placeholder">
-                            <img src="/LOGO.png" alt="Logo" class="logo-img">
+                            <img src="${window.location.origin}/LOGO.png" alt="Logo" class="logo-img">
                         </div>
                     </div>
                     <div style="width: 65%; text-align: left;">
@@ -355,7 +368,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                      <div style="height: 4px; background: linear-gradient(90deg, #ccc, #bfa670); margin-bottom: 10px; width: 100%;"></div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                          <div class="barcode-placeholder" style="order: 2; height: 100px; width: 200px; display: flex; align-items: flex-end; justify-content: flex-end;">
-                             <img src="/barcode.jpg" alt="Barcode" style="height: 80px; width: auto;">
+                             <img src="${window.location.origin}/barcode.jpg" alt="Barcode" style="height: 80px; width: auto;">
                         </div>
                         <div style="text-align: right; order: 1; width: 70%;">
                              <p style="font-size: 16px; margin-bottom: 5px; color: var(--secondary-color);"><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
