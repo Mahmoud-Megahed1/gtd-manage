@@ -414,98 +414,10 @@ export default function Fatore() {
                             الرقم المتسلسل: <span className="font-mono font-bold text-primary">{serialNumber}</span>
                         </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={resetForm}>
-                            <Plus className="w-4 h-4 ml-2" />
-                            جديد
-                        </Button>
-                        <Button variant="outline" onClick={saveAsHTML}>
-                            <Download className="w-4 h-4 ml-2" />
-                            تصدير HTML
-                        </Button>
-                        <Button variant="secondary" onClick={handlePrint}>
-                            <Printer className="w-4 h-4 ml-2" />
-                            طباعة
-                        </Button>
-                        <Button onClick={handleSaveToDB}>
-                            <Save className="w-4 h-4 ml-2" />
-                            حفظ في النظام
-                        </Button>
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Basic Info & Client */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>بيانات الفاتورة والعميل</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">تاريخ الإصدار</label>
-                                    <input
-                                        type="date"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                        value={issueDate}
-                                        onChange={e => setIssueDate(e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">نوع المستند</label>
-                                    <select
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        value={docType}
-                                        onChange={e => setDocType(e.target.value as any)}
-                                    >
-                                        <option value="عرض سعر وفاتورة سداد">عرض سعر وفاتورة سداد</option>
-                                        <option value="عرض سعر">عرض سعر</option>
-                                        <option value="فاتورة سداد">فاتورة سداد</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <hr className="border-muted" />
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">اختر العميل</label>
-                                <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={clientId}
-                                    onChange={(e) => {
-                                        const cid = Number(e.target.value);
-                                        setClientId(cid);
-                                        const c = clients?.find((cl: any) => cl.id === cid);
-                                        if (c) {
-                                            setClientName(c.name || "");
-                                            setClientPhone(c.phone || "");
-                                            setClientCity(c.city || "");
-                                        }
-                                    }}
-                                >
-                                    <option value={0}>عميل جديد...</option>
-                                    {clients?.map((C: any) => <option key={C.id} value={C.id}>{C.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">اسم العميل</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientName} onChange={e => setClientName(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">رقم الجوال</label>
-                                    <input type="tel" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-right" value={clientPhone} onChange={e => setClientPhone(e.target.value)} />
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <label className="text-sm font-medium">المدينة / الحي</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientCity} onChange={e => setClientCity(e.target.value)} />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Project Info */}
+                    {/* Project Info - Moved to Right (First in RTL) */}
                     <Card>
                         <CardHeader>
                             <CardTitle>بيانات المشروع</CardTitle>
@@ -632,26 +544,75 @@ export default function Fatore() {
 
                             <hr className="border-muted" />
 
+                            {/* Legacy inputs hidden based on specific user request to match screenshot */}
+                        </CardContent>
+                    </Card>
+
+                    {/* Basic Info & Client - Moved to Left (Second in RTL) */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>بيانات الفاتورة والعميل</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">تاريخ الإصدار</label>
+                                    <input
+                                        type="date"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                        value={issueDate}
+                                        onChange={e => setIssueDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">نوع المستند</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={docType}
+                                        onChange={e => setDocType(e.target.value as any)}
+                                    >
+                                        <option value="عرض سعر وفاتورة سداد">عرض سعر وفاتورة سداد</option>
+                                        <option value="عرض سعر">عرض سعر</option>
+                                        <option value="فاتورة سداد">فاتورة سداد</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <hr className="border-muted" />
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">اختر العميل</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    value={clientId}
+                                    onChange={(e) => {
+                                        const cid = Number(e.target.value);
+                                        setClientId(cid);
+                                        const c = clients?.find((cl: any) => cl.id === cid);
+                                        if (c) {
+                                            setClientName(c.name || "");
+                                            setClientPhone(c.phone || "");
+                                            setClientCity(c.city || "");
+                                        }
+                                    }}
+                                >
+                                    <option value={0}>عميل جديد...</option>
+                                    {clients?.map((C: any) => <option key={C.id} value={C.id}>{C.name}</option>)}
+                                </select>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">موقع المشروع</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} />
+                                    <label className="text-sm font-medium">اسم العميل</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientName} onChange={e => setClientName(e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">عدد الطوابق</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={floors} onChange={e => setFloors(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">المساحة</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">رقم عداد الكهرباء</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} />
+                                    <label className="text-sm font-medium">رقم الجوال</label>
+                                    <input type="tel" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-right" value={clientPhone} onChange={e => setClientPhone(e.target.value)} />
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
-                                    <label className="text-sm font-medium">ملاحظات</label>
-                                    <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} />
+                                    <label className="text-sm font-medium">المدينة / الحي</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={clientCity} onChange={e => setClientCity(e.target.value)} />
                                 </div>
                             </div>
                         </CardContent>
@@ -941,6 +902,26 @@ export default function Fatore() {
                             )}
                         </CardContent>
                     </Card>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex flex-wrap gap-4 justify-start mt-8 border-t pt-6 bg-background sticky bottom-0 p-4 shadow-lg z-10">
+                    <Button onClick={handleSaveToDB} className="bg-[#bfa670] hover:bg-[#a68e59] text-white min-w-[150px]">
+                        <Save className="w-5 h-5 ml-2" />
+                        حفظ في النظام
+                    </Button>
+                    <Button variant="outline" onClick={handlePrint} className="bg-gray-50">
+                        <Printer className="w-5 h-5 ml-2" />
+                        طباعة
+                    </Button>
+                    <Button variant="outline" onClick={saveAsHTML} className="bg-gray-50">
+                        <Download className="w-5 h-5 ml-2" />
+                        تصدير HTML
+                    </Button>
+                    <Button variant="ghost" onClick={resetForm}>
+                        <Plus className="w-5 h-5 ml-2" />
+                        جديد
+                    </Button>
                 </div>
             </div>
 
