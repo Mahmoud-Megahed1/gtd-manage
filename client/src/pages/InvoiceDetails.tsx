@@ -44,6 +44,16 @@ export default function InvoiceDetails() {
     return (s: string) => map[s] || s;
   }, []);
 
+  // Move formData parsing BEFORE early returns to avoid React hooks order violation
+  const formData = useMemo(() => {
+    if (!data?.invoice?.formData) return {};
+    try {
+      return typeof data.invoice.formData === 'string' ? JSON.parse(data.invoice.formData) : data.invoice.formData;
+    } catch { return {}; }
+  }, [data?.invoice?.formData]);
+
+  const inlineImages = formData?.images || [];
+
   // Print function using utility
   const handlePrint = () => {
     if (!data?.invoice) return;
@@ -99,14 +109,6 @@ export default function InvoiceDetails() {
   }
 
   const { invoice, client, items } = data;
-
-  const formData = useMemo(() => {
-    try {
-      return typeof invoice.formData === 'string' ? JSON.parse(invoice.formData) : invoice.formData;
-    } catch { return {}; }
-  }, [invoice.formData]);
-
-  const inlineImages = formData?.images || [];
 
   return (
     <DashboardLayout>
