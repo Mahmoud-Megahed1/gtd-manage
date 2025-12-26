@@ -2709,6 +2709,237 @@ export const appRouter = router({
 
   // ============= GENERAL REPORTS =============
   generalReports: generalReportsRouter,
+
+  // ============= RFI (Request for Information) =============
+  rfi: router({
+    list: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) return [];
+        const { rfis } = await import("../drizzle/schema");
+        return await conn.select().from(rfis).where(eq(rfis.projectId, input.projectId)).orderBy(desc(rfis.createdAt));
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        title: z.string(),
+        question: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { rfis } = await import("../drizzle/schema");
+        const rfiNumber = generateUniqueNumber('RFI');
+        await conn.insert(rfis).values({
+          projectId: input.projectId,
+          rfiNumber,
+          title: input.title,
+          question: input.question,
+          submittedBy: ctx.user.id,
+          status: 'open'
+        });
+        await logAudit(ctx.user.id, 'CREATE_RFI', 'rfi', undefined, `RFI: ${input.title}`, ctx);
+        return { success: true, rfiNumber };
+      }),
+
+    answer: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        answer: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { rfis } = await import("../drizzle/schema");
+        await conn.update(rfis).set({
+          answer: input.answer,
+          answeredBy: ctx.user.id,
+          answeredAt: new Date(),
+          status: 'answered'
+        }).where(eq(rfis.id, input.id));
+        await logAudit(ctx.user.id, 'ANSWER_RFI', 'rfi', input.id, undefined, ctx);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { rfis } = await import("../drizzle/schema");
+        await conn.delete(rfis).where(eq(rfis.id, input.id));
+        await logAudit(ctx.user.id, 'DELETE_RFI', 'rfi', input.id, undefined, ctx);
+        return { success: true };
+      }),
+  }),
+
+  // ============= SUBMITTALS =============
+  submittals: router({
+    list: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) return [];
+        const { submittals } = await import("../drizzle/schema");
+        return await conn.select().from(submittals).where(eq(submittals.projectId, input.projectId)).orderBy(desc(submittals.createdAt));
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        title: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { submittals } = await import("../drizzle/schema");
+        const submittalCode = generateUniqueNumber('SUB');
+        await conn.insert(submittals).values({
+          projectId: input.projectId,
+          submittalCode,
+          title: input.title,
+          submittedBy: ctx.user.id,
+          status: 'submitted'
+        });
+        await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'submittal', undefined, `Submittal: ${input.title}`, ctx);
+        return { success: true, submittalCode };
+      }),
+
+    approve: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { submittals } = await import("../drizzle/schema");
+        await conn.update(submittals).set({
+          status: 'approved',
+          approvedBy: ctx.user.id,
+          approvedAt: new Date()
+        }).where(eq(submittals.id, input.id));
+        await logAudit(ctx.user.id, 'APPROVE_SUBMITTAL', 'submittal', input.id, undefined, ctx);
+        return { success: true };
+      }),
+
+    reject: protectedProcedure
+      .input(z.object({ id: z.number(), notes: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { submittals } = await import("../drizzle/schema");
+        await conn.update(submittals).set({
+          status: 'rejected',
+          notes: input.notes
+        }).where(eq(submittals.id, input.id));
+        await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id, undefined, ctx);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { submittals } = await import("../drizzle/schema");
+        await conn.delete(submittals).where(eq(submittals.id, input.id));
+        await logAudit(ctx.user.id, 'DELETE_SUBMITTAL', 'submittal', input.id, undefined, ctx);
+        return { success: true };
+      }),
+  }),
+
+  // ============= DRAWINGS =============
+  drawings: router({
+    list: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) return [];
+        const { drawings } = await import("../drizzle/schema");
+        return await conn.select().from(drawings).where(eq(drawings.projectId, input.projectId)).orderBy(desc(drawings.createdAt));
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        title: z.string(),
+        discipline: z.string().optional()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { drawings } = await import("../drizzle/schema");
+        const drawingCode = generateUniqueNumber('DWG');
+        await conn.insert(drawings).values({
+          projectId: input.projectId,
+          drawingCode,
+          title: input.title,
+          discipline: input.discipline,
+          status: 'draft'
+        });
+        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'drawing', undefined, `Drawing: ${input.title}`, ctx);
+        return { success: true, drawingCode };
+      }),
+
+    addVersion: protectedProcedure
+      .input(z.object({
+        drawingId: z.number(),
+        version: z.string(),
+        fileUrl: z.string(),
+        notes: z.string().optional()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { drawingVersions, drawings } = await import("../drizzle/schema");
+        const result = await conn.insert(drawingVersions).values({
+          drawingId: input.drawingId,
+          version: input.version,
+          fileUrl: input.fileUrl,
+          notes: input.notes,
+          createdBy: ctx.user.id
+        });
+        // Update current version
+        await conn.update(drawings).set({ currentVersionId: Number(result[0].insertId) }).where(eq(drawings.id, input.drawingId));
+        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, `Version: ${input.version}`, ctx);
+        return { success: true };
+      }),
+
+    versions: protectedProcedure
+      .input(z.object({ drawingId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) return [];
+        const { drawingVersions } = await import("../drizzle/schema");
+        return await conn.select().from(drawingVersions).where(eq(drawingVersions.drawingId, input.drawingId)).orderBy(desc(drawingVersions.createdAt));
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'projects');
+        const conn = await db.getDb();
+        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not connected' });
+        const { drawings, drawingVersions } = await import("../drizzle/schema");
+        await conn.delete(drawingVersions).where(eq(drawingVersions.drawingId, input.id));
+        await conn.delete(drawings).where(eq(drawings.id, input.id));
+        await logAudit(ctx.user.id, 'DELETE_DRAWING', 'drawing', input.id, undefined, ctx);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
