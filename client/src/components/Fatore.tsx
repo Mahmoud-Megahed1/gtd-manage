@@ -965,7 +965,7 @@ export default function Fatore() {
                             <input type="text" className={`other-input ${siteNature === 'other' ? '' : 'hidden'}`} placeholder="حدد..." value={otherSiteNature} onChange={e => setOtherSiteNature(e.target.value)} />
                         </div>
                         <div className="form-group">
-                            <label>المطلوب تصميمه</label>
+                            <label>التصميم المطلوب</label>
                             <select value={designReq} onChange={e => setDesignReq(e.target.value)}>
                                 <option value="">اختر...</option>
                                 <option value="داخلي">داخلي</option>
@@ -982,7 +982,7 @@ export default function Fatore() {
                             <input type="text" className={`other-input ${designReq === 'other' ? '' : 'hidden'}`} placeholder="حدد..." value={otherDesignReq} onChange={e => setOtherDesignReq(e.target.value)} />
                         </div>
                         <div className="form-group">
-                            <label>الاستايل</label>
+                            <label>طراز التصميم</label>
                             <select value={style} onChange={e => setStyle(e.target.value)}>
                                 <option value="">اختر...</option>
                                 <option value="مودرن">مودرن</option>
@@ -1000,90 +1000,9 @@ export default function Fatore() {
                             <input type="text" className={`other-input ${style === 'other' ? '' : 'hidden'}`} placeholder="حدد..." value={otherStyle} onChange={e => setOtherStyle(e.target.value)} />
                         </div>
                     </div>
-
-                    <div className="form-row">
-                        <div className="form-group"><label>موقع المشروع</label><input type="text" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} /></div>
-                        <div className="form-group"><label>عدد الطوابق</label><input type="text" value={floors} onChange={e => setFloors(e.target.value)} /></div>
-                        <div className="form-group"><label>المساحة تقريبية</label><input type="text" value={area} onChange={e => setArea(e.target.value)} /></div>
-                        <div className="form-group"><label>رقم عداد الكهرباء</label><input type="text" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} /></div>
-                    </div>
-                    <div className="form-row">
-                        <div className="form-group" style={{ flex: '100%' }}>
-                            <label>ملاحظات</label>
-                            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="اكتب ملاحظاتك..."></textarea>
-                        </div>
-                    </div>
                 </section>
 
-                {/* Conditional Sections */}
-                {showDesign && (
-                    <section id="designServices" className="service-section">
-                        <h2>خدمات التصميم المقدمة</h2>
-                        <div className="service-list">
-                            {designServicesList.map((item, idx) => (
-                                <label key={idx} className="checkbox-item" style={idx === designServicesList.length - 1 ? { fontWeight: 'bold', color: 'var(--primary-color)' } : {}}>
-                                    <input type="checkbox" checked={!!checkedDesignServices[item]} onChange={e => setCheckedDesignServices(prev => ({ ...prev, [item]: e.target.checked }))} />
-                                    {item}
-                                </label>
-                            ))}
-                            {customDesignServices.map((item) => (
-                                <div key={item.id} className="checkbox-item" style={{ width: '100%' }}>
-                                    <input type="checkbox" checked={item.checked} onChange={e => {
-                                        const updated = customDesignServices.map(i => i.id === item.id ? { ...i, checked: e.target.checked } : i);
-                                        setCustomDesignServices(updated);
-                                    }} />
-                                    <input type="text" value={item.text} placeholder="اكتب الخدمة الإضافية هنا..." onChange={e => handleUpdateCustomService('design', item.id, e.target.value)} style={{ borderBottom: '1px dashed #ccc', width: '90%' }} />
-                                    <span className="no-print" style={{ color: 'red', cursor: 'pointer', marginRight: '5px' }} onClick={() => handleDeleteCustomService('design', item.id)}>x</span>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="btn btn-secondary btn-small no-print" onClick={() => handleAddCustomService('design')}>+ إضافة خيار مخصص</button>
-                    </section>
-                )}
 
-                {showExecution && (
-                    <section id="executionServices" className="service-section">
-                        <h2>خدمات التنفيذ المقدمة</h2>
-                        <div className="service-list">
-                            {executionServicesList.map((item, idx) => (
-                                <label key={idx} className="checkbox-item">
-                                    <input type="checkbox" checked={!!checkedExecutionServices[item]} onChange={e => setCheckedExecutionServices(prev => ({ ...prev, [item]: e.target.checked }))} />
-                                    {item}
-                                </label>
-                            ))}
-                            {customExecutionServices.map((item) => (
-                                <div key={item.id} className="checkbox-item" style={{ width: '100%' }}>
-                                    <input type="checkbox" checked={item.checked} onChange={e => {
-                                        const updated = customExecutionServices.map(i => i.id === item.id ? { ...i, checked: e.target.checked } : i);
-                                        setCustomExecutionServices(updated);
-                                    }} />
-                                    <input type="text" value={item.text} placeholder="اكتب الخدمة الإضافية هنا..." onChange={e => handleUpdateCustomService('execution', item.id, e.target.value)} style={{ borderBottom: '1px dashed #ccc', width: '90%' }} />
-                                    <span className="no-print" style={{ color: 'red', cursor: 'pointer', marginRight: '5px' }} onClick={() => handleDeleteCustomService('execution', item.id)}>x</span>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="btn btn-secondary btn-small no-print" onClick={() => handleAddCustomService('execution')}>+ إضافة خيار مخصص</button>
-                    </section>
-                )}
-
-                {showGeneric && (
-                    <section id="genericServices" className="service-section">
-                        <h2>الخدمات المقدمة</h2>
-                        <div className="service-list">
-                            {customGenericServices.map((item) => (
-                                <div key={item.id} className="checkbox-item" style={{ width: '100%' }}>
-                                    <input type="checkbox" checked={item.checked} onChange={e => {
-                                        const updated = customGenericServices.map(i => i.id === item.id ? { ...i, checked: e.target.checked } : i);
-                                        setCustomGenericServices(updated);
-                                    }} />
-                                    <input type="text" value={item.text} placeholder="اكتب الخدمة الإضافية هنا..." onChange={e => handleUpdateCustomService('generic', item.id, e.target.value)} style={{ borderBottom: '1px dashed #ccc', width: '90%' }} />
-                                    <span className="no-print" style={{ color: 'red', cursor: 'pointer', marginRight: '5px' }} onClick={() => handleDeleteCustomService('generic', item.id)}>x</span>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="btn btn-secondary btn-small no-print" onClick={() => handleAddCustomService('generic')}>+ إضافة خيار مخصص</button>
-                    </section>
-                )}
 
                 <section style={{ marginTop: '10px' }}>
                     <h2>الكميات والاسعار</h2>
