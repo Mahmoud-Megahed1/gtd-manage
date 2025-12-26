@@ -12,23 +12,31 @@ import { Receipt, Plus, FileText, ArrowRight, Trash2, Search } from "lucide-reac
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 
 export default function Invoices() {
-  const { data: allInvoices, isLoading: loadingAll, refetch: refetchAll } = trpc.invoices.list.useQuery({});
-  const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = trpc.invoices.list.useQuery({ type: "invoice" });
-  const { data: quotes, isLoading: loadingQuotes, refetch: refetchQuotes } = trpc.invoices.list.useQuery({ type: "quote" });
-  const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const utils = trpc.useUtils();
 
   // Accountant can only VIEW invoices - admin/finance_manager can add/delete
   const canModify = ['admin', 'finance_manager'].includes(user?.role || '');
+
+  // Debounce effect
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: allInvoices, isLoading: loadingAll, refetch: refetchAll } = trpc.invoices.list.useQuery({ search: debouncedSearch });
+  const { data: invoices, isLoading: loadingInvoices, refetch: refetchInvoices } = trpc.invoices.list.useQuery({ type: "invoice", search: debouncedSearch });
+  const { data: quotes, isLoading: loadingQuotes, refetch: refetchQuotes } = trpc.invoices.list.useQuery({ type: "quote", search: debouncedSearch });
+
+  const [showNewInvoice, setShowNewInvoice] = useState(false);
 
   const deleteInvoice = trpc.invoices.delete.useMutation({
     onSuccess: () => {
@@ -78,17 +86,7 @@ export default function Invoices() {
     return colorMap[status] || "bg-gray-500/10 text-gray-500";
   };
 
-  const filterInvoices = (list: any[] | undefined) => {
-    if (!list) return [];
-    if (!searchQuery) return list;
-    const lowerQuery = searchQuery.toLowerCase();
-    return list.filter((item) =>
-      item.invoiceNumber.toLowerCase().includes(lowerQuery) ||
-      (item.clientName && item.clientName.toLowerCase().includes(lowerQuery)) ||
-      item.total.toString().includes(lowerQuery)
-    );
-  };
-
+  const getList = (list: any[] | undefined) => list || [];
 
   const InvoiceCard = ({ invoice }: { invoice: any }) => (
     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
@@ -213,8 +211,6 @@ export default function Invoices() {
           )}
         </div>
 
-
-
         {/* Search */}
         <div className="relative">
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -251,9 +247,9 @@ export default function Invoices() {
                   </Card>
                 ))}
               </div>
-            ) : filterInvoices(allInvoices).length > 0 ? (
+            ) : getList(allInvoices).length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filterInvoices(allInvoices).map((invoice) => (
+                {getList(allInvoices).map((invoice) => (
                   <InvoiceCard key={invoice.id} invoice={invoice} />
                 ))}
               </div>
@@ -278,9 +274,9 @@ export default function Invoices() {
                   </Card>
                 ))}
               </div>
-            ) : filterInvoices(invoices).length > 0 ? (
+            ) : getList(invoices).length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filterInvoices(invoices).map((invoice) => (
+                {getList(invoices).map((invoice) => (
                   <InvoiceCard key={invoice.id} invoice={invoice} />
                 ))}
               </div>
@@ -305,9 +301,9 @@ export default function Invoices() {
                   </Card>
                 ))}
               </div>
-            ) : filterInvoices(quotes).length > 0 ? (
+            ) : getList(quotes).length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filterInvoices(quotes).map((quote) => (
+                {getList(quotes).map((quote) => (
                   <InvoiceCard key={quote.id} invoice={quote} />
                 ))}
               </div>

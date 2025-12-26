@@ -4,7 +4,7 @@
  Unauthorized use or reproduction is prohibited.
 */
 import DashboardLayout from "@/components/DashboardLayout";
-import IntegratedInvoiceForm from "@/components/IntegratedInvoiceForm";
+import FatoreComponent from "@/components/Fatore";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Fatore() {
@@ -13,7 +13,7 @@ export default function Fatore() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <IntegratedInvoiceForm />
+        <FatoreComponent />
       </div>
     </DashboardLayout>
   );

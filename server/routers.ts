@@ -1193,13 +1193,27 @@ export const appRouter = router({
   // ============= INVOICES =============
   invoices: router({
     list: protectedProcedure
-      .input(z.object({ type: z.enum(['invoice', 'quote']).optional() }))
+      .input(z.object({
+        type: z.enum(['invoice', 'quote']).optional(),
+        search: z.string().optional()
+      }))
       .query(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'invoices');
-        const allInvoices = await db.getAllInvoices();
+        let allInvoices = await db.getAllInvoices();
+
         if (input.type) {
-          return allInvoices.filter(inv => inv.type === input.type);
+          allInvoices = allInvoices.filter(inv => inv.type === input.type);
         }
+
+        if (input.search) {
+          const lower = input.search.toLowerCase();
+          allInvoices = allInvoices.filter(inv =>
+            (inv.invoiceNumber || '').toLowerCase().includes(lower) ||
+            (inv.clientName || '').toLowerCase().includes(lower) ||
+            (inv.notes || '').toLowerCase().includes(lower)
+          );
+        }
+
         return allInvoices;
       }),
 
@@ -1310,22 +1324,74 @@ export const appRouter = router({
         id: z.number(),
         status: z.enum(['draft', 'sent', 'paid', 'cancelled']).optional(),
         notes: z.string().optional(),
-        formData: z.string().optional()
+        formData: z.string().optional(),
+        // Expanded fields for full edit
+        clientId: z.number().optional(),
+        projectId: z.number().optional(),
+        issueDate: z.date().optional(),
+        subtotal: z.number().optional(),
+        tax: z.number().optional(),
+        discount: z.number().optional(),
+        total: z.number().optional(),
+        items: z.array(z.object({
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+          total: z.number()
+        })).optional()
       }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'invoices');
-        const { id, ...data } = input;
+        const { id, items, ...data } = input;
+
+        // 1. Update Invoice Header
         await db.updateInvoice(id, data);
 
-        // INTEGRATION: Update sale status if invoice status changes
-        if (data.status) {
-          const statusMap: Record<string, string> = {
-            'draft': 'pending',
-            'sent': 'pending',
-            'paid': 'completed',
-            'cancelled': 'cancelled'
-          };
-          await db.updateSaleByInvoiceId(id, { status: statusMap[data.status] || 'pending' });
+        // 2. Update Items if provided
+        if (items) {
+          // Delete old items using the same logic as deleteInvoice (direct DB call since no specific helper exposed)
+          // Start by getting connection to delete existing items
+          const database = await db.getDb();
+          if (database) {
+            // We need to import invoiceItems table reference, but we are in routers.ts
+            // Best to use a helper in db.ts if possible, or use the existing deleteInvoiceItem one by one? 
+            // Too slow. Let's use `db.deleteInvoiceItemsByInvoiceId` if I add it, or just use raw `deleteInvoice` logic via a new helper.
+            // Actually, `db.deleteInvoice` deletes items. 
+            // Let's rely on `db.updateInvoiceWithItems` helper that I should add to db.ts?
+            // OR: Since I can't easily import schema here without potentially breaking things or circular deps,
+            // I will add `replaceInvoiceItems` to `server/db.ts` and call it.
+            await db.replaceInvoiceItems(id, items.map((item, idx) => ({
+              invoiceId: id,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              total: item.total,
+              sortOrder: idx
+            })));
+          }
+        }
+
+        // 3. INTEGRATION: Update sale status/amount
+        if (data.status || data.total) {
+          const updateData: any = {};
+
+          if (data.status) {
+            const statusMap: Record<string, string> = {
+              'draft': 'pending',
+              'sent': 'pending',
+              'paid': 'completed',
+              'cancelled': 'cancelled'
+            };
+            updateData.status = (statusMap[data.status] || 'pending');
+          }
+
+          if (data.total !== undefined) {
+            updateData.amount = data.total;
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            await db.updateSaleByInvoiceId(id, updateData);
+          }
         }
 
         await logAudit(ctx.user.id, 'UPDATE_INVOICE', 'invoice', id, undefined, ctx);
