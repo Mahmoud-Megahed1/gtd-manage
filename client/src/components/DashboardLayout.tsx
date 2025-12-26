@@ -54,18 +54,7 @@ const navItems: NavItem[] = [
   // Dashboard - visible to all logged in users
   { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
 
-  // HR - شؤون الموظفين (all employees can see their personal data)
-  { title: "شؤون الموظفين", href: "/hr", icon: <UserCog className="w-5 h-5" /> },
-
-  // العملاء - Clients (Matrix: admin✅, hr_manager👁️, finance_manager👁️, accountant👁️, department_manager👁️, project_manager👁️, project_coordinator👁️, sales_manager✅, admin_assistant👁️+)
-  {
-    title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: [
-      "admin", "hr_manager", "finance_manager", "accountant", "department_manager",
-      "project_manager", "project_coordinator", "sales_manager", "admin_assistant"
-    ]
-  },
-
-  // المشاريع - Projects (Matrix: admin✅, hr_manager👁️, finance_manager👁️💰, department_manager✅, project_manager✅, project_coordinator👁️✏️, architect👤, interior_designer👤, site_engineer👤, planning_engineer👤, designer👤, technician👤, sales_manager👁️, admin_assistant👁️, procurement_officer👁️, qa_qc👁️)
+  // المشاريع - Projects (Most important for project management company)
   {
     title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: [
       "admin", "hr_manager", "finance_manager", "department_manager", "project_manager",
@@ -74,6 +63,18 @@ const navItems: NavItem[] = [
       "procurement_officer", "qa_qc"
     ]
   },
+
+  // العملاء - Clients
+  {
+    title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: [
+      "admin", "hr_manager", "finance_manager", "accountant", "department_manager",
+      "project_manager", "project_coordinator", "sales_manager", "admin_assistant"
+    ]
+  },
+
+  // HR - شؤون الموظفين (all employees can see their personal data)
+  { title: "شؤون الموظفين", href: "/hr", icon: <UserCog className="w-5 h-5" /> },
+
 
   // الفواتير - Invoices (Matrix: admin✅, finance_manager✅, accountant👁️+, department_manager👁️, sales_manager✅)
   {
