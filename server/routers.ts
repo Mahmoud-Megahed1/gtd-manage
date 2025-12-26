@@ -1349,26 +1349,14 @@ export const appRouter = router({
 
         // 2. Update Items if provided
         if (items) {
-          // Delete old items using the same logic as deleteInvoice (direct DB call since no specific helper exposed)
-          // Start by getting connection to delete existing items
-          const database = await db.getDb();
-          if (database) {
-            // We need to import invoiceItems table reference, but we are in routers.ts
-            // Best to use a helper in db.ts if possible, or use the existing deleteInvoiceItem one by one? 
-            // Too slow. Let's use `db.deleteInvoiceItemsByInvoiceId` if I add it, or just use raw `deleteInvoice` logic via a new helper.
-            // Actually, `db.deleteInvoice` deletes items. 
-            // Let's rely on `db.updateInvoiceWithItems` helper that I should add to db.ts?
-            // OR: Since I can't easily import schema here without potentially breaking things or circular deps,
-            // I will add `replaceInvoiceItems` to `server/db.ts` and call it.
-            await db.replaceInvoiceItems(id, items.map((item, idx) => ({
-              invoiceId: id,
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              total: item.total,
-              sortOrder: idx
-            })));
-          }
+          await db.replaceInvoiceItems(id, items.map((item, idx) => ({
+            invoiceId: id,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+            sortOrder: idx
+          })));
         }
 
         // 3. INTEGRATION: Update sale status/amount

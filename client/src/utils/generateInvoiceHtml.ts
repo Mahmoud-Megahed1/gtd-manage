@@ -194,28 +194,53 @@ export const generateInvoiceHtml = (invoice: any) => {
                     <div class="form-row">
                         <div class="form-group">
                             <label>طبيعة المشروع</label>
-                            <span class="value-box">${projectNature}${projectNature === 'أخرى' ? ' - ' + otherProjectNature : ''}</span>
+                            <span class="value-box">${projectNature}${projectNature === 'other' ? ' - ' + otherProjectNature : ''}</span>
                         </div>
                         <div class="form-group">
                             <label>طبيعة الموقع</label>
-                            <span class="value-box">${siteNature}${siteNature === 'أخرى' ? ' - ' + otherSiteNature : ''}</span>
+                            <span class="value-box">${siteNature}${siteNature === 'other' ? ' - ' + otherSiteNature : ''}</span>
                         </div>
                         <div class="form-group">
-                            <label>متطلبات التصميم</label>
-                            <span class="value-box">${designReq}</span>
+                            <label>الموقع</label>
+                            <span class="value-box">${formData.projectLocation || '-'}</span>
                         </div>
-                           <div class="form-group">
-                            <label>النمط (الستايل)</label>
-                            <span class="value-box">${style}</span>
+                        <div class="form-group">
+                            <label>عدد الطوابق</label>
+                            <span class="value-box">${formData.floors || '-'}</span>
+                        </div>
+                         <div class="form-group">
+                            <label>المساحة</label>
+                            <span class="value-box">${formData.area || '-'}</span>
+                        </div>
+                         <div class="form-group">
+                            <label>عداد الكهرباء</label>
+                            <span class="value-box">${formData.electricMeter || '-'}</span>
                         </div>
                     </div>
+                     <div class="form-row">
+                        <div class="form-group">
+                            <label>متطلبات التصميم</label>
+                            <span class="value-box">${designReq}${designReq === 'other' ? ' - ' + otherDesignReq : ''}</span>
+                        </div>
+                        <div class="form-group">
+                            <label>النمط (الستايل)</label>
+                            <span class="value-box">${style}${style === 'other' ? ' - ' + otherStyle : ''}</span>
+                        </div>
+                    </div>
+                    ${formData.notes ? `
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ملاحظات</label>
+                            <span class="value-box" style="height: auto; white-space: pre-wrap;">${formData.notes}</span>
+                        </div>
+                    </div>` : ''}
 
-                    ${(projectNature === 'تصميم' || projectNature === 'تصميم وتنفيذ' || projectNature === 'أخرى') && designServices.length > 0 ? `
+                    ${(projectNature === 'تصميم' || projectNature === 'تنفيذ' || projectNature === 'other') && designServices.length > 0 ? `
                         <h3>خدمات التصميم:</h3>
                         ${renderServiceList(designServices)}
                     ` : ''}
 
-                    ${(projectNature === 'تنفيذ' || projectNature === 'تصميم وتنفيذ' || projectNature === 'أخرى') && executionServices.length > 0 ? `
+                    ${(projectNature === 'تنفيذ' || projectNature === 'other') && executionServices.length > 0 ? `
                         <h3>خدمات التنفيذ:</h3>
                         ${renderServiceList(executionServices)}
                     ` : ''}
@@ -231,25 +256,38 @@ export const generateInvoiceHtml = (invoice: any) => {
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 50%;">الوصف</th>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 40%;">الوصف</th>
                                 <th style="width: 10%;">الوحدة</th>
                                 <th style="width: 10%;">الكمية</th>
-                                <th style="width: 15%;">سعر الوحدة</th>
+                                <th style="width: 10%;">سعر الوحدة</th>
+                                <th style="width: 10%;">الخصم</th>
                                 <th style="width: 15%;">الاجمالي</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${invoiceItems.map((item: any) => {
+                            ${invoiceItems.map((item: any, idx: number) => {
         const qty = Number(item.quantity) || 0;
         const price = Number(item.price) || 0;
-        const discount = Number(item.discount) || 0;
-        const total = (qty * price) - discount;
+        const discount = Number(item.discount) || 0; // Discount is percentage in Fatore.tsx logic usually, but let's check input
+        // In Fatore.tsx, discount input key was 'discount'
+        // Logic: total = total - (total * (item.discount / 100));
+        // BUT item.discount here might be value or percent.
+        // Let's assume Fatore.tsx passes the calculated total or raw.
+        // Fatore.tsx getInvoiceData passes raw 'discount'.
+        // So we need to match the calculation logic.
+        const rawTotal = qty * price;
+        const discountAmount = rawTotal * (discount / 100);
+        const total = rawTotal - discountAmount;
+
         return `
                                     <tr>
+                                        <td>${idx + 1}</td>
                                         <td style="text-align: right;">${item.description}</td>
-                                        <td>${item.unit}</td>
+                                        <td>${item.unit === 'meter' ? 'متر' : item.unit === 'piece' ? 'قطعة' : 'مشروع'}</td>
                                         <td>${qty}</td>
                                         <td>${price}</td>
+                                        <td>${discount}%</td>
                                         <td>${total.toFixed(2)}</td>
                                     </tr>
                                 `;
@@ -258,30 +296,31 @@ export const generateInvoiceHtml = (invoice: any) => {
                     </table>
 
                     <div class="totals-section">
-                        <div class="total-row"><span>المجموع الفرعي:</span> <span>${totals.subtotal.toFixed(2)} ريال</span></div>
-                        ${totals.enableTax ? `<div class="total-row"><span>ضريبة القيمة المضافة (15%):</span> <span>${totals.tax.toFixed(2)} ريال</span></div>` : ''}
-                        <div class="total-row" style="font-size: 14px; margin-top: 5px; border-top: 1px solid #777; padding-top: 3px;">
-                            <span>الإجمالي الكلي:</span> <span>${totals.total.toFixed(2)} ريال</span>
+                        <div class="total-row"><span>المجموع الفرعي:</span> <span>${totals.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                        ${totals.enableTax ? `<div class="total-row"><span>ضريبة (15%):</span> <span>${totals.tax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>` : ''}
+                        <div class="total-row" style="font-size: 16px; margin-top: 5px; border-top: 2px solid #333; padding-top: 3px;">
+                            <span>الإجمالي النهائي:</span> <span>${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </section>
 
                 <section style="margin-top: 10px; border-top: 2px solid #ccc; padding-top: 5px;">
-                    <h3>الشروط والأحكام والملاحظات:</h3>
+                    <h3>الشروط والأحكام:</h3>
                     <ul class="terms-ul">
                         ${terms.map((t: string) => `<li>${t}</li>`).join('')}
                     </ul>
                 </section>
 
                 <footer>
+                     <div style="height: 4px; background: linear-gradient(90deg, #ccc, #bfa670); margin-bottom: 10px; width: 100%;"></div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div>
-                            <p style="margin: 0; font-weight: bold;">العنوان: أبها - حي المنسك</p>
-                            <p style="margin: 0;">جوال: 0500160892</p>
-                            <p style="margin: 0; font-size: 10px; color: #777;">تم اصدار هذه الفاتورة الكترونيا</p>
+                         <div class="barcode-placeholder" style="order: 2; height: 100px; width: 200px; display: flex; align-items: flex-end; justify-content: flex-end;">
+                             <img src="/barcode.jpg" alt="Barcode" style="height: 80px; width: auto;">
                         </div>
-                        <div class="barcode-placeholder">
-                           <img src="/BARCODE.jpg" class="logo-img" style="max-height: 50px;">
+                        <div style="text-align: right; order: 1; width: 70%;">
+                             <p style="font-size: 16px; margin-bottom: 5px; color: var(--secondary-color);"><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
+                            <p style="margin: 4px 0; font-size: 14px; font-weight: bold;">الرياض, حي السفارات, مربع الفزاري, مبنى 3293, بوابة 5 <br /> سجل تجاري C . R . 7017891396</p>
+                             <p style="margin: 0; font-size: 12px;">500511616 00966 - WWW.GOLDEN-TOUCH.NET - INFO@GOLDEN-TOUCH.NET</p>
                         </div>
                     </div>
                 </footer>
