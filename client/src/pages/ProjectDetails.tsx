@@ -1031,7 +1031,7 @@ export default function ProjectDetails() {
                                         size="sm"
                                         className="text-green-600 hover:text-green-700"
                                         onClick={() => {
-                                          updateTask.mutate({ id: task.id, status: 'completed', progress: 100 });
+                                          updateTask.mutate({ id: task.id, status: 'done', progress: 100 });
                                         }}
                                       >
                                         <CheckCircle2 className="w-4 h-4" />

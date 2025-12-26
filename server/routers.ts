@@ -874,13 +874,10 @@ export const appRouter = router({
       .input(z.object({ id: z.number(), status: z.string().optional(), progress: z.number().optional() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
-        const conn = await db.getDb();
-        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        const { projectTasks } = await import("../drizzle/schema");
-        await conn.update(projectTasks).set({
-          status: input.status,
+        await db.updateProjectTask(input.id, {
+          status: input.status as any,
           progress: input.progress
-        }).where(eq(projectTasks.id, input.id));
+        });
         await logAudit(ctx.user.id, 'UPDATE_TASK', 'task', input.id, undefined, ctx);
         return { success: true };
       }),
