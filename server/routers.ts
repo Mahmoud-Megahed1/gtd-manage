@@ -2551,6 +2551,7 @@ export const appRouter = router({
       return {
         design: projects.filter(p => p.status === 'design').length,
         execution: projects.filter(p => p.status === 'execution').length,
+        in_progress: projects.filter(p => p.status === 'in_progress').length,
         delivery: projects.filter(p => p.status === 'delivery').length,
         completed: projects.filter(p => p.status === 'completed').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
