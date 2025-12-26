@@ -378,7 +378,15 @@ export async function getInvoiceById(id: number) {
 export async function updateInvoice(id: number, data: Partial<InsertInvoice>) {
   const db = await getDb();
   if (!db) return;
-  await db.update(invoices).set(data).where(eq(invoices.id, id));
+
+  // Filter out undefined values to prevent SQL parameter mismatch
+  const filteredData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  ) as Partial<InsertInvoice>;
+
+  if (Object.keys(filteredData).length === 0) return;
+
+  await db.update(invoices).set(filteredData).where(eq(invoices.id, id));
 }
 
 export async function deleteInvoice(id: number) {
