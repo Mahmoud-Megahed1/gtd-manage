@@ -284,10 +284,24 @@ export default function Dashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                          {user.role === 'admin' && 'مدير'}
-                          {user.role === 'accountant' && 'محاسب'}
+                          {user.role === 'admin' && 'مدير عام'}
+                          {user.role === 'department_manager' && 'مدير قسم'}
                           {user.role === 'project_manager' && 'مدير مشاريع'}
+                          {user.role === 'project_coordinator' && 'منسق مشاريع'}
+                          {user.role === 'architect' && 'مهندس معماري'}
+                          {user.role === 'interior_designer' && 'مصمم داخلي'}
+                          {user.role === 'site_engineer' && 'مهندس موقع'}
+                          {user.role === 'planning_engineer' && 'مهندس تخطيط'}
                           {user.role === 'designer' && 'مصمم'}
+                          {user.role === 'technician' && 'فني'}
+                          {user.role === 'finance_manager' && 'مدير مالي'}
+                          {user.role === 'accountant' && 'محاسب'}
+                          {user.role === 'sales_manager' && 'مسؤول مبيعات'}
+                          {user.role === 'hr_manager' && 'مسؤول موارد بشرية'}
+                          {user.role === 'admin_assistant' && 'مساعد إداري'}
+                          {user.role === 'procurement_officer' && 'مسؤول مشتريات'}
+                          {user.role === 'storekeeper' && 'أمين مخازن'}
+                          {user.role === 'qa_qc' && 'مسؤول جودة'}
                         </Badge>
                         <Button
                           size="sm"
