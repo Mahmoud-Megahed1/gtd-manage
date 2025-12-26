@@ -586,8 +586,7 @@ export default function ProjectDetails() {
                   <Tabs defaultValue="installments" className="w-full">
                     <div className="px-6 pt-6 flex justify-between items-center">
                       <TabsList>
-                        <TabsTrigger value="installments">الأقساط ({installments.length})</TabsTrigger>
-                        <TabsTrigger value="boq">جداول الكميات ({boq.length})</TabsTrigger>
+                        <TabsTrigger value="installments">سجل الفواتير ({sales.length})</TabsTrigger>
                         <TabsTrigger value="expenses">المصروفات ({expenses.length})</TabsTrigger>
                       </TabsList>
                     </div>
