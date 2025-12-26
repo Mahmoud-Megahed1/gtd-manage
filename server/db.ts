@@ -394,9 +394,10 @@ export async function createInvoiceItem(item: InsertInvoiceItem) {
 export async function replaceInvoiceItems(invoiceId: number, items: InsertInvoiceItem[]) {
   const db = await getDb();
   if (!db) {
-    // Demo store logic not strictly needed for production but good for consistency
-    demo.removeBy("invoiceItems", (i: any) => i.invoiceId === invoiceId);
-    items.forEach(i => demo.insert("invoiceItems", i));
+    // Demo store logic: filter out old items and add new ones
+    const existingItems = demo.filter("invoiceItems", (i: any) => i.invoiceId !== invoiceId);
+    items.forEach(i => existingItems.push({ ...i, id: Date.now() + Math.random() }));
+    demo.write("invoiceItems", existingItems);
     return;
   }
 
