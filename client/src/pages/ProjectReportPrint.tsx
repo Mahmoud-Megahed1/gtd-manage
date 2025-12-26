@@ -45,10 +45,10 @@ export default function ProjectReportPrint() {
     }
 
     return (
-        <div className="min-h-screen bg-white text-black p-8 font-sans" dir="rtl">
+        <div className="bg-white text-black p-8 font-sans" dir="rtl">
             {/* Header / Logo */}
             <div className="flex justify-center mb-8">
-                <img src="/logo.png" alt="Logo" className="h-24 object-contain" />
+                <img src="/logo.png" alt="Logo" className="h-24 object-contain print-logo" />
             </div>
 
             <div className="space-y-6 max-w-5xl mx-auto">
@@ -163,15 +163,33 @@ export default function ProjectReportPrint() {
             </div>
 
             <style>{`
+        /* Force white background immediately - outside media query too just in case */
+        body { background: white !important; }
+        
         @media print {
             body { 
                 background: white !important;
+                color: black !important;
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
+                margin: 0 !important;
+                padding: 0 !important;
             }
+            
+            /* Kill the global logo from index.css */
+            body::before { display: none !important; }
+            
+            /* Ensure OUR logo is visible */
+            .print-logo { display: block !important; }
+            
+            /* Reset any weird margins */
             @page { margin: 1cm; size: auto; }
+            
+            /* Ensure content is visible */
+            * { visibility: visible !important; overflow: visible !important; }
         }
       `}</style>
         </div>
     );
 }
+
