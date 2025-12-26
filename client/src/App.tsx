@@ -15,6 +15,7 @@ import ClientDetails from "./pages/ClientDetails";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import ProjectReport from "./pages/ProjectReport";
+import ProjectReportPrint from "./pages/ProjectReportPrint";
 import Invoices from "./pages/Invoices";
 import InvoiceDetails from "./pages/InvoiceDetails";
 import Forms from "./pages/Forms";
@@ -49,6 +50,7 @@ function Router() {
       <Route path={"/clients/:id"} component={ClientDetails} />
       <Route path={"/projects"} component={Projects} />
       <Route path={"/projects/:id/report"} component={ProjectReport} />
+      <Route path={"/print/projects/:id"} component={ProjectReportPrint} />
       <Route path={"/projects/:id"} component={ProjectDetails} />
       <Route path={"/invoices"} component={Invoices} />
       <Route path={"/invoices/:id"} component={InvoiceDetails} />

@@ -37,12 +37,7 @@ export default function ProjectReport() {
     return map[status] || status;
   };
 
-  useEffect(() => {
-    if (project && typeof window !== "undefined") {
-      const t = setTimeout(() => window.print(), 500);
-      return () => clearTimeout(t);
-    }
-  }, [project]);
+  /* Auto-print removed - using dedicated print page */
 
   if (isLoading || !project) {
     return (
@@ -60,13 +55,13 @@ export default function ProjectReport() {
 
   return (
     <DashboardLayout>
-      <div id="printable-content" className="p-6 space-y-6 bg-white min-h-screen" dir="rtl">
-        {/* Header - hidden in print */}
-        <div className="flex items-center justify-between print:hidden">
+      <div className="p-6 space-y-6" dir="rtl">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">تقرير المشروع</h1>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setLocation(`/projects/${project.id}`)}>عودة للتفاصيل</Button>
-            <Button onClick={() => window.print()}>طباعة</Button>
+            <Button onClick={() => window.open(`/print/projects/${projectId}`, '_blank')}>طباعة التقرير (نسخة للطباعة)</Button>
           </div>
         </div>
 
@@ -97,7 +92,7 @@ export default function ProjectReport() {
         {/* Financial Summary */}
         <div>
           <h3 className="font-bold mb-3">الملخص المالي</h3>
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 print:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
             <div className="p-4 border rounded">
               <div className="text-sm text-muted-foreground">الميزانية</div>
               <div className="text-2xl font-bold">{(project.budget || 0).toLocaleString()} ريال</div>
@@ -176,44 +171,6 @@ export default function ProjectReport() {
             </div>
           </div>
         )}
-
-        <style>{`
-          @media print {
-            body { 
-              visibility: hidden; 
-            }
-            #printable-content {
-              visibility: visible;
-              position: absolute;
-              left: 0;
-              top: 100px;
-              width: 100%;
-              padding: 20px !important;
-            }
-            /* Show Logo wrapper if pseudo element not working */
-            body::before {
-              visibility: visible;
-              content: "";
-              display: block;
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 80px;
-              background-image: url("/logo.png");
-              background-repeat: no-repeat;
-              background-position: center;
-              background-size: contain;
-              z-index: 1000;
-            }
-            
-            /* Hide print buttons specifically */
-            .print\\:hidden { display: none !important; }
-            
-            /* Text color force */
-            * { color: black !important; border-color: #ddd !important; }
-          }
-        `}</style>
       </div>
     </DashboardLayout>
   );
