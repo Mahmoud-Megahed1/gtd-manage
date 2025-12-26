@@ -60,7 +60,7 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     hr_manager: { hr: 'full', dashboard: 'full' },
     // Finance roles
     finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own' },
-    accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', hr: 'own' },
+    accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
     // Project roles
     project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own' },
     site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
@@ -122,7 +122,7 @@ function getDetailedPermissions(role: string): DetailedPermissions {
     },
     accountant: {
       hr: ownPerms,
-      projects: nonePerms,
+      projects: readonlyPerms,
       tasks: nonePerms,
       accounting: { ...readonlyPerms, submit: true },
       clients: readonlyPerms,

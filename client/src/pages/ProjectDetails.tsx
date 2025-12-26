@@ -449,7 +449,7 @@ export default function ProjectDetails() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">إجمالي BOQ</p>
+                    <p className="text-sm text-muted-foreground">إجمالي المقايسة (BOQ)</p>
                     <p className="text-2xl font-bold">{totalBOQ.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">ريال</p>
                   </div>
@@ -572,7 +572,7 @@ export default function ProjectDetails() {
                       <span className="font-bold">{(project.budget || 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">إجمالي BOQ:</span>
+                      <span className="text-muted-foreground">إجمالي المقايسة (BOQ):</span>
                       <span className="font-bold">{totalBOQ.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -688,7 +688,10 @@ export default function ProjectDetails() {
 
                       <TabsContent value="boq" className="mt-0">
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="font-bold">جداول الكميات (BOQ)</h3>
+                          <div>
+                            <h3 className="font-bold">جداول الكميات / المقايسة (BOQ)</h3>
+                            <p className="text-sm text-muted-foreground">قائمة بنود الأعمال (مواد، عمالة) وتكاليفها التقديرية.</p>
+                          </div>
                           <Dialog open={isAddBoqOpen} onOpenChange={setIsAddBoqOpen}>
                             <DialogTrigger asChild>
                               <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة بند</Button>
@@ -783,7 +786,10 @@ export default function ProjectDetails() {
 
                       <TabsContent value="expenses" className="mt-0">
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="font-bold">سجل المصروفات</h3>
+                          <div>
+                            <h3 className="font-bold">سجل المصروفات الفعلي</h3>
+                            <p className="text-sm text-muted-foreground">أي مصروفات يضيفها المحاسب أو مدير المشروع هنا ستظهر في إجمالي المصروفات.</p>
+                          </div>
                           <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
                             <DialogTrigger asChild>
                               <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة مصروف</Button>

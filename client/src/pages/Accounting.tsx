@@ -64,7 +64,8 @@ export default function Accounting() {
     category: "",
     description: "",
     amount: "",
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    projectId: "" as string
   });
 
   // ========== Advanced Reports States ==========
@@ -386,7 +387,7 @@ export default function Accounting() {
   const handleSubmitExpense = (e: React.FormEvent) => {
     e.preventDefault();
     createExpense.mutate({
-      projectId: 0,
+      projectId: expenseData.projectId ? parseInt(expenseData.projectId) : undefined,
       category: expenseData.category,
       description: expenseData.description,
       amount: parseFloat(expenseData.amount),
@@ -495,6 +496,20 @@ export default function Accounting() {
               <CardContent className="space-y-4">
                 {showExpenseForm && (
                   <form onSubmit={handleSubmitExpense} className="grid gap-4 p-4 border rounded-lg bg-accent/50">
+                    <div className="grid gap-2">
+                      <Label htmlFor="project">المشروع (اختياري)</Label>
+                      <select
+                        id="project"
+                        className="w-full border rounded px-3 py-2 bg-background"
+                        value={expenseData.projectId}
+                        onChange={(e) => setExpenseData({ ...expenseData, projectId: e.target.value })}
+                      >
+                        <option value="">-- مصروف عام --</option>
+                        {(projects || []).map((p: any) => (
+                          <option key={p.id} value={String(p.id)}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="grid gap-2">
                       <Label htmlFor="category">الفئة</Label>
                       <Input
