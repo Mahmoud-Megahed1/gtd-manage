@@ -92,6 +92,12 @@ export default function ProjectDetails() {
   const answerRfi = trpc.rfi.answer.useMutation({
     onSuccess: () => utils.rfi.list.invalidate({ projectId })
   });
+  const deleteRfi = trpc.rfi.delete.useMutation({
+    onSuccess: () => {
+      utils.rfi.list.invalidate({ projectId });
+      toast.success("تم حذف الـ RFI");
+    }
+  });
   const createSubmittal = trpc.submittals.create.useMutation({
     onSuccess: () => utils.submittals.list.invalidate({ projectId })
   });
@@ -101,6 +107,12 @@ export default function ProjectDetails() {
   const rejectSubmittal = trpc.submittals.reject.useMutation({
     onSuccess: () => utils.submittals.list.invalidate({ projectId })
   });
+  const deleteSubmittal = trpc.submittals.delete.useMutation({
+    onSuccess: () => {
+      utils.submittals.list.invalidate({ projectId });
+      toast.success("تم حذف الـ Submittal");
+    }
+  });
   const createDrawing = trpc.drawings.create.useMutation({
     onSuccess: () => utils.drawings.list.invalidate({ projectId })
   });
@@ -108,6 +120,12 @@ export default function ProjectDetails() {
     onSuccess: () => {
       utils.drawings.list.invalidate({ projectId });
       if (openVersionsId) utils.drawings.versions.invalidate({ drawingId: openVersionsId });
+    }
+  });
+  const deleteDrawing = trpc.drawings.delete.useMutation({
+    onSuccess: () => {
+      utils.drawings.list.invalidate({ projectId });
+      toast.success("تم حذف الرسم");
     }
   });
   const uploadFile = trpc.files.upload.useMutation();
@@ -1095,7 +1113,8 @@ export default function ProjectDetails() {
                     <TableHead>RFI</TableHead>
                     <TableHead>العنوان</TableHead>
                     <TableHead>الحالة</TableHead>
-                    <TableHead className="text-left">إجابة</TableHead>
+                    <TableHead>إجابة</TableHead>
+                    <TableHead className="text-left">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1104,7 +1123,7 @@ export default function ProjectDetails() {
                       <TableCell>{r.rfiNumber}</TableCell>
                       <TableCell>{r.title}</TableCell>
                       <TableCell>{r.status}</TableCell>
-                      <TableCell className="text-left">
+                      <TableCell>
                         <Input
                           defaultValue={r.answer || ""}
                           onBlur={(e) => {
@@ -1112,6 +1131,11 @@ export default function ProjectDetails() {
                             if (v) answerRfi.mutate({ id: r.id, answer: v });
                           }}
                         />
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <Button variant="destructive" size="sm" onClick={() => deleteRfi.mutate({ id: r.id })}>
+                          حذف
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1160,6 +1184,7 @@ export default function ProjectDetails() {
                         <div className="flex gap-2 justify-end">
                           <Button variant="outline" size="sm" onClick={() => approveSubmittal.mutate({ id: s.id })}>اعتماد</Button>
                           <Button variant="outline" size="sm" onClick={() => rejectSubmittal.mutate({ id: s.id })}>رفض</Button>
+                          <Button variant="destructive" size="sm" onClick={() => deleteSubmittal.mutate({ id: s.id })}>حذف</Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1237,6 +1262,9 @@ export default function ProjectDetails() {
                             onClick={() => setOpenVersionsId(openVersionsId === d.id ? null : d.id)}
                           >
                             عرض النسخ
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => deleteDrawing.mutate({ id: d.id })}>
+                            حذف
                           </Button>
                         </div>
                         {openVersionsId === d.id && (
