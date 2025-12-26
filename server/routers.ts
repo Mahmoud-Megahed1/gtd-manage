@@ -680,7 +680,7 @@ export const appRouter = router({
 
     create: managerProcedure
       .input(z.object({
-        clientId: z.number(),
+        clientId: z.number().optional(), // Optional - can create project without client
         name: z.string(),
         description: z.string().optional(),
         // projectType is REQUIRED and IMMUTABLE after creation

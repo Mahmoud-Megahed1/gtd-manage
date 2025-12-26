@@ -65,13 +65,13 @@ export function AddProjectDialog() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.clientId || !formData.name) {
-      toast.error("يرجى ملء الحقول المطلوبة");
+    if (!formData.name) {
+      toast.error("يرجى إدخال اسم المشروع");
       return;
     }
 
     createProject.mutate({
-      clientId: parseInt(formData.clientId),
+      clientId: formData.clientId ? parseInt(formData.clientId) : undefined,
       name: formData.name,
       description: formData.description || undefined,
       projectType: formData.projectType,
@@ -99,10 +99,10 @@ export function AddProjectDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Client */}
+            {/* Client - Optional */}
             <div className="space-y-2">
               <Label htmlFor="clientId">
-                العميل <span className="text-red-500">*</span>
+                العميل <span className="text-muted-foreground text-xs">(اختياري)</span>
               </Label>
               <Select
                 value={formData.clientId}
@@ -112,6 +112,7 @@ export function AddProjectDialog() {
                   <SelectValue placeholder="اختر العميل" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">-- بدون عميل --</SelectItem>
                   {clients?.map((client) => (
                     <SelectItem key={client.id} value={String(client.id)}>
                       {client.name}

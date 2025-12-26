@@ -300,7 +300,7 @@ export const performanceReviews = mysqlTable("performanceReviews", {
 export const projects = mysqlTable("projects", {
 	id: int().autoincrement().notNull(),
 	projectNumber: varchar({ length: 50 }).notNull(),
-	clientId: int().notNull(),
+	clientId: int(), // Optional - project can exist without a client initially
 	name: varchar({ length: 255 }).notNull(),
 	description: text(),
 	// projectType is IMMUTABLE after creation - defines what kind of project this is

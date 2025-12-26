@@ -123,9 +123,10 @@ export default function Fatore() {
     const updateInvoice = trpc.invoices.update.useMutation();
 
     const { data: clients } = trpc.clients.list.useQuery();
+    // Fetch projects - always enabled, filtered by clientId if one is selected
     const { data: clientProjects, isLoading: isLoadingProjects } = trpc.projects.list.useQuery(
         { clientId: clientId || undefined },
-        { enabled: !!clientId }
+        { enabled: true } // Always fetch - show all projects for "New Client"
     );
 
     // Fetch existing invoice if in edit mode
@@ -529,16 +530,16 @@ export default function Fatore() {
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={projectId || ""}
                                     onChange={e => setProjectId(Number(e.target.value))}
-                                    disabled={!clientId || isLoadingProjects}
+                                    disabled={isLoadingProjects}
                                 >
                                     <option value="">
-                                        {!clientId
-                                            ? "-- يرجى اختيار العميل أولاً --"
-                                            : isLoadingProjects
-                                                ? "جاري تحميل المشاريع..."
-                                                : clientProjects && clientProjects.length === 0
-                                                    ? "-- لا توجد مشاريع لهذا العميل --"
-                                                    : "-- اختر المشروع --"
+                                        {isLoadingProjects
+                                            ? "جاري تحميل المشاريع..."
+                                            : clientProjects && clientProjects.length === 0
+                                                ? "-- لا توجد مشاريع --"
+                                                : clientId
+                                                    ? "-- اختر المشروع --"
+                                                    : "-- اختر المشروع (اختياري) --"
                                         }
                                     </option>
                                     {clientProjects?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
