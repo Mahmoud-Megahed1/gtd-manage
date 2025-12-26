@@ -446,6 +446,21 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">إجمالي الفواتير</p>
+                    <p className="text-2xl font-bold">{totalRevenue.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">ريال</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-blue-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
 
             <Card>
               <CardContent className="pt-6">
