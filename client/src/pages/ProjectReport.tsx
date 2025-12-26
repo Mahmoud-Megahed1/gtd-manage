@@ -60,7 +60,7 @@ export default function ProjectReport() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6" dir="rtl">
+      <div id="printable-content" className="p-6 space-y-6 bg-white min-h-screen" dir="rtl">
         {/* Header - hidden in print */}
         <div className="flex items-center justify-between print:hidden">
           <h1 className="text-2xl font-bold">تقرير المشروع</h1>
@@ -179,51 +179,39 @@ export default function ProjectReport() {
 
         <style>{`
           @media print {
-            /* Basic resets */
-            *, *::before, *::after {
-              text-shadow: none !important;
-              box-shadow: none !important;
+            body { 
+              visibility: hidden; 
+            }
+            #printable-content {
+              visibility: visible;
+              position: absolute;
+              left: 0;
+              top: 100px;
+              width: 100%;
+              padding: 20px !important;
+            }
+            /* Show Logo wrapper if pseudo element not working */
+            body::before {
+              visibility: visible;
+              content: "";
+              display: block;
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 80px;
+              background-image: url("/logo.png");
+              background-repeat: no-repeat;
+              background-position: center;
+              background-size: contain;
+              z-index: 1000;
             }
             
-            /* Hide all UI elements */
-            nav, aside, header, [data-sidebar], .sidebar, button, .print\\:hidden { 
-              display: none !important; 
-            }
+            /* Hide print buttons specifically */
+            .print\\:hidden { display: none !important; }
             
-            /* Force content visibility and sizing */
-            html, body, #root, .min-h-screen {
-              height: auto !important;
-              overflow: visible !important;
-              background: white !important;
-              color: black !important;
-            }
-            
-            /* Layout overrides */
-            main {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100% !important;
-              position: static !important;
-            }
-            
-            /* The Report Container */
-            .p-6 {
-              padding: 0 !important;
-              margin: 0 !important;
-            }
-            
-            /* Text Colors - Critical for Dark Mode users */
-            p, h1, h2, h3, h4, span, div, td, th {
-              color: #000 !important;
-            }
-            .text-muted-foreground {
-              color: #333 !important;
-            }
-            
-            /* Borders */
-            .border, .border-t {
-              border-color: #ddd !important;
-            }
+            /* Text color force */
+            * { color: black !important; border-color: #ddd !important; }
           }
         `}</style>
       </div>
