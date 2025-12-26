@@ -1249,6 +1249,8 @@ export const appRouter = router({
         invoiceNumber: z.string().optional(),
         items: z.array(z.object({
           description: z.string(),
+          // include unit in schema so it's not stripped
+          unit: z.string().optional(),
           quantity: z.number(),
           unitPrice: z.number(),
           total: z.number()

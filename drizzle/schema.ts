@@ -211,6 +211,7 @@ export const invoiceItems = mysqlTable("invoiceItems", {
 	id: int().autoincrement().notNull(),
 	invoiceId: int().notNull(),
 	description: text().notNull(),
+	unit: varchar({ length: 50 }),
 	quantity: int().notNull(),
 	unitPrice: int().notNull(),
 	total: int().notNull(),

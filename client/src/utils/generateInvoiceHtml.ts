@@ -289,7 +289,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                         <tbody>
                             ${invoiceItems.map((item: any, idx: number) => {
         const qty = Number(item.quantity) || 0;
-        const price = Number(item.price) || 0;
+        const price = Number(item.price) || Number(item.unitPrice) || 0;
         const discount = Number(item.discount) || 0; // Discount is percentage in Fatore.tsx logic usually, but let's check input
         // In Fatore.tsx, discount input key was 'discount'
         // Logic: total = total - (total * (item.discount / 100));
@@ -301,11 +301,13 @@ export const generateInvoiceHtml = (invoice: any) => {
         const discountAmount = rawTotal * (discount / 100);
         const total = rawTotal - discountAmount;
 
+        const unitLabel = item.unit === 'meter' ? 'متر' : item.unit === 'piece' ? 'قطعة' : item.unit === 'project' ? 'مشروع' : (item.unit || 'مشروع');
+
         return `
                                     <tr>
                                         <td>${idx + 1}</td>
                                         <td style="text-align: right;">${item.description}</td>
-                                        <td>${item.unit === 'meter' ? 'متر' : item.unit === 'piece' ? 'قطعة' : 'مشروع'}</td>
+                                        <td>${unitLabel}</td>
                                         <td>${qty}</td>
                                         <td>${price}</td>
                                         <td>${discount}%</td>

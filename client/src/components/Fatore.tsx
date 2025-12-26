@@ -370,6 +370,7 @@ export default function Fatore() {
             formData,
             items: items.map(i => ({
                 description: i.description,
+                unit: i.unit,
                 quantity: i.quantity,
                 unitPrice: i.price,
                 total: i.quantity * i.price * (1 - i.discount / 100)
