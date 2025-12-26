@@ -63,8 +63,47 @@ export const generateInvoiceHtml = (invoice: any) => {
         th { background-color: var(--secondary-color) !important; color: white !important; font-weight: 500; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
         /* Totals */
-        .totals-section { padding: 5px; border-top: 1px solid #333; display: flex; flex-direction: column; align-items: flex-end; margin-top: 5px; page-break-inside: avoid; }
-        .total-row { display: flex; gap: 15px; align-items: center; font-size: 12px; font-weight: bold; }
+        .totals-section { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start;
+            margin-top: 15px; 
+            padding-top: 10px; 
+            border-top: 2px solid #333;
+            page-break-inside: avoid; 
+        }
+        .subtotals-box {
+            text-align: left;
+            font-size: 11px;
+        }
+        .subtotals-box .total-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 3px;
+        }
+        .grand-total-box {
+            background: linear-gradient(135deg, #bfa670 0%, #d4c4a0 100%);
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .grand-total-box .label {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #1a1a1a;
+        }
+        .grand-total-box .amount {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+        .total-row { display: flex; gap: 15px; alignItems: center; font-size: 12px; font-weight: bold; }
 
         /* Checkboxes */
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -280,10 +319,13 @@ export const generateInvoiceHtml = (invoice: any) => {
                     </table>
 
                     <div class="totals-section">
-                        <div class="total-row"><span>المجموع الفرعي:</span> <span>${totals.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-                        ${totals.enableTax ? `<div class="total-row"><span>ضريبة (15%):</span> <span>${totals.tax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>` : ''}
-                        <div class="total-row" style="font-size: 16px; margin-top: 5px; border-top: 2px solid #333; padding-top: 3px;">
-                            <span>الإجمالي النهائي:</span> <span>${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <div class="grand-total-box">
+                            <div class="label">الإجمالي النهائي</div>
+                            <div class="amount">${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                        <div class="subtotals-box">
+                            <div class="total-row"><span>${totals.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> <span>:المجموع الفرعي</span></div>
+                            ${totals.enableTax ? `<div class="total-row"><span>${totals.tax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> <span>:ضريبة (15%)</span></div>` : ''}
                         </div>
                     </div>
                 </section>
