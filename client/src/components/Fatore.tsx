@@ -83,6 +83,7 @@ export default function Fatore() {
     });
 
     const [paymentTermType, setPaymentTermType] = useState("50-50");
+    const [customPaymentSystem, setCustomPaymentSystem] = useState("");
 
     // Terms with "Other" logic
     const [validityPeriod, setValidityPeriod] = useState("يوم واحد");
@@ -193,6 +194,7 @@ export default function Fatore() {
 
                     if (data.paymentMethods) setPaymentMethods(data.paymentMethods);
                     if (data.paymentTermType) setPaymentTermType(data.paymentTermType);
+                    if (data.customPaymentSystem) setCustomPaymentSystem(data.customPaymentSystem);
 
                     if (data.validityPeriod) setValidityPeriod(data.validityPeriod);
                     if (data.isCustomValidity) setIsCustomValidity(data.isCustomValidity);
@@ -212,7 +214,7 @@ export default function Fatore() {
         } else if (!editId && !serialNumber) {
             const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, '');
             const randomPart = Math.floor(1000 + Math.random() * 9000);
-            setSerialNumber(`INV-${datePart}-${randomPart}`);
+            setSerialNumber(`${datePart}${randomPart}`);
         }
     }, [existingInvoice, editId]);
 
@@ -261,6 +263,61 @@ export default function Fatore() {
     };
 
     // Helper to construct invoice Data object for generateInvoiceHtml and Save
+    const getFormDataObject = () => {
+        const isDesign = projectNature === 'تصميم';
+        const isExecution = projectNature === 'تنفيذ';
+        const isGeneric = !isDesign && !isExecution;
+
+        return {
+            docType,
+            clientCity,
+            projectNature, otherProjectNature,
+            siteNature, otherSiteNature,
+            designReq, otherDesignReq,
+            style, otherStyle,
+            projectLocation, floors, area, electricMeter, notes,
+
+            // Computed Lists for Display/Print
+            designServices: isDesign ? [
+                ...designServicesList.map(item => ({ text: item, checked: !!checkedDesignServices[item] })).filter(i => i.checked),
+                ...customDesignServices.filter(i => i.checked)
+            ] : [],
+            executionServices: isExecution ? [
+                ...executionServicesList.map(item => ({ text: item, checked: !!checkedExecutionServices[item] })).filter(i => i.checked),
+                ...customExecutionServices.filter(i => i.checked)
+            ] : [],
+            genericServices: isGeneric ? customGenericServices.filter(i => i.checked) : [],
+
+            // Raw State for Editing Restoration
+            checkedDesignServices,
+            checkedExecutionServices,
+            customDesignServices,
+            customExecutionServices,
+            customGenericServices,
+
+            paymentMethods,
+            paymentTermType,
+            customPaymentSystem,
+
+            validityPeriod, isCustomValidity,
+            designDuration, isCustomDuration,
+            cancellationFee, isCustomFee,
+
+            customTerms,
+
+            terms: [
+                `نظام الدفعات: ${paymentTermType === 'custom' ? customPaymentSystem : paymentTermType === '50-50' ? '50%-50% (دفعتين)' : paymentTermType === '50-25-25' ? '50%-25%-25% (ثلاث دفعات)' : paymentTermType === '100' ? '100% (دفعة كاملة)' : paymentTermType}`,
+                `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
+                `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
+                `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
+                `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
+                `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
+                ...customTerms
+            ],
+            enableTax: taxEnabled
+        };
+    };
+
     const getInvoiceData = () => {
         return {
             invoiceNumber: serialNumber,
@@ -271,9 +328,7 @@ export default function Fatore() {
                 phone: clientPhone,
                 city: clientCity
             },
-            project: {
-                id: projectId
-            },
+            project: { id: projectId },
             items: items.map(i => ({
                 description: i.description,
                 unit: i.unit,
@@ -281,33 +336,7 @@ export default function Fatore() {
                 price: i.price,
                 discount: i.discount
             })),
-            formData: {
-                docType,
-                clientCity,
-                projectNature, otherProjectNature,
-                siteNature, otherSiteNature,
-                designReq, otherDesignReq,
-                style, otherStyle,
-                projectLocation, floors, area, electricMeter, notes,
-                designServices: [
-                    ...designServicesList.map(item => ({ text: item, checked: !!checkedDesignServices[item] })).filter(i => i.checked),
-                    ...customDesignServices.filter(i => i.checked)
-                ],
-                executionServices: [
-                    ...executionServicesList.map(item => ({ text: item, checked: !!checkedExecutionServices[item] })).filter(i => i.checked),
-                    ...customExecutionServices.filter(i => i.checked)
-                ],
-                genericServices: customGenericServices.filter(i => i.checked),
-                terms: [
-                    `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
-                    `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
-                    `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
-                    `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
-                    `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
-                    ...customTerms
-                ],
-                enableTax: taxEnabled
-            }
+            formData: getFormDataObject()
         };
     };
 
@@ -341,34 +370,8 @@ export default function Fatore() {
             "فاتورة سداد": 'invoice'
         };
 
-        const formData = JSON.stringify({
-            docType,
-            clientCity,
-            projectNature, otherProjectNature,
-            siteNature, otherSiteNature,
-            designReq, otherDesignReq,
-            style, otherStyle,
-            projectLocation, floors, area, electricMeter, notes,
-            // Use the same transformed format as getInvoiceData() for consistency
-            designServices: [
-                ...designServicesList.map(item => ({ text: item, checked: !!checkedDesignServices[item] })).filter(i => i.checked),
-                ...customDesignServices.filter(i => i.checked)
-            ],
-            executionServices: [
-                ...executionServicesList.map(item => ({ text: item, checked: !!checkedExecutionServices[item] })).filter(i => i.checked),
-                ...customExecutionServices.filter(i => i.checked)
-            ],
-            genericServices: customGenericServices.filter(i => i.checked),
-            terms: [
-                `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
-                `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
-                `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
-                `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
-                `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
-                ...customTerms
-            ],
-            enableTax: taxEnabled
-        });
+        const formDataObj = getFormDataObject();
+        const formData = JSON.stringify(formDataObj);
 
         const mutationPayload = {
             type: typeMap[docType] || 'invoice',
@@ -380,14 +383,7 @@ export default function Fatore() {
             discount: items.reduce((sum, i) => sum + (i.price * i.quantity * (i.discount / 100)), 0),
             total: grandTotal,
             notes,
-            terms: JSON.stringify([
-                `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
-                `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
-                `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
-                `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
-                `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
-                ...customTerms
-            ]),
+            terms: JSON.stringify(formDataObj.terms),
             invoiceNumber: serialNumber,
             formData,
             items: items.map(i => ({
@@ -430,9 +426,38 @@ export default function Fatore() {
         }
     };
 
-    // Calculate Visibility (Just for logic if needed, though mostly used in old render)
-    // const showDesign = projectNature === 'تصميم';
-    // const showExecution = projectNature === 'تنفيذ';
+    // ---- Service Handlers ----
+    const handleServiceChange = (type: 'design' | 'execution', service: string, checked: boolean) => {
+        if (type === 'design') {
+            setCheckedDesignServices(prev => ({ ...prev, [service]: checked }));
+        } else {
+            setCheckedExecutionServices(prev => ({ ...prev, [service]: checked }));
+        }
+    };
+
+    const handleAddCustomService = (type: 'design' | 'execution' | 'generic') => {
+        const text = prompt("أدخل اسم الخدمة:");
+        if (!text) return;
+        const newItem: CustomServiceItem = { id: Math.random().toString(36).substr(2, 9), text, checked: true };
+
+        if (type === 'design') setCustomDesignServices(prev => [...prev, newItem]);
+        else if (type === 'execution') setCustomExecutionServices(prev => [...prev, newItem]);
+        else setCustomGenericServices(prev => [...prev, newItem]);
+    };
+
+    const handleCustomServiceToggle = (type: 'design' | 'execution' | 'generic', id: string) => {
+        const toggle = (list: CustomServiceItem[]) => list.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+        if (type === 'design') setCustomDesignServices(toggle);
+        else if (type === 'execution') setCustomExecutionServices(toggle);
+        else setCustomGenericServices(toggle);
+    };
+
+    const handleDeleteCustomService = (type: 'design' | 'execution' | 'generic', id: string) => {
+        const remove = (list: CustomServiceItem[]) => list.filter(item => item.id !== id);
+        if (type === 'design') setCustomDesignServices(remove);
+        else if (type === 'execution') setCustomExecutionServices(remove);
+        else setCustomGenericServices(remove);
+    };
 
     return (
         <DashboardLayout>
@@ -660,6 +685,101 @@ export default function Fatore() {
                                     <label className="text-sm font-medium">ملاحظات</label>
                                     <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} />
                                 </div>
+
+                                {/* Dynamic Services Section */}
+                                {(projectNature) && (
+                                    <div className="space-y-4 md:col-span-2 border-t pt-4 mt-4">
+                                        {/* Design Services */}
+                                        {(projectNature === 'تصميم') && (
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-sm font-bold text-primary">خدمات التصميم المقدمة</label>
+                                                    <Button type="button" size="sm" variant="outline" onClick={() => handleAddCustomService('design')}>
+                                                        <Plus className="w-3 h-3 ml-1" /> إضافة خيار مخصص
+                                                    </Button>
+                                                </div>
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                    {designServicesList.map(s => (
+                                                        <label key={s} className="flex items-center gap-2 text-xs cursor-pointer bg-muted/20 p-2 rounded hover:bg-muted/50 transition-colors border border-transparent hover:border-gray-200">
+                                                            <input type="checkbox" className="w-4 h-4 rounded border-gray-400 accent-primary"
+                                                                checked={!!checkedDesignServices[s]}
+                                                                onChange={e => handleServiceChange('design', s, e.target.checked)} />
+                                                            <span>{s}</span>
+                                                        </label>
+                                                    ))}
+                                                    {customDesignServices.map(s => (
+                                                        <label key={s.id} className="flex items-center gap-2 text-xs cursor-pointer bg-blue-50/50 p-2 rounded border border-blue-100 hover:bg-blue-50 transition-colors">
+                                                            <input type="checkbox" className="w-4 h-4 rounded border-blue-400 accent-primary"
+                                                                checked={s.checked}
+                                                                onChange={() => handleCustomServiceToggle('design', s.id)} />
+                                                            <span>{s.text}</span>
+                                                            <Trash2 className="w-3 h-3 text-red-400 hover:text-red-600 mr-auto" onClick={(e) => { e.preventDefault(); handleDeleteCustomService('design', s.id) }} />
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Execution Services */}
+                                        {(projectNature === 'تنفيذ') && (
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-sm font-bold text-primary">خدمات التنفيذ المقدمة</label>
+                                                    <Button type="button" size="sm" variant="outline" onClick={() => handleAddCustomService('execution')}>
+                                                        <Plus className="w-3 h-3 ml-1" /> إضافة خيار مخصص
+                                                    </Button>
+                                                </div>
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                    {executionServicesList.map(s => (
+                                                        <label key={s} className="flex items-center gap-2 text-xs cursor-pointer bg-muted/20 p-2 rounded hover:bg-muted/50 transition-colors border border-transparent hover:border-gray-200">
+                                                            <input type="checkbox" className="w-4 h-4 rounded border-gray-400 accent-primary"
+                                                                checked={!!checkedExecutionServices[s]}
+                                                                onChange={e => handleServiceChange('execution', s, e.target.checked)} />
+                                                            <span>{s}</span>
+                                                        </label>
+                                                    ))}
+                                                    {customExecutionServices.map(s => (
+                                                        <label key={s.id} className="flex items-center gap-2 text-xs cursor-pointer bg-blue-50/50 p-2 rounded border border-blue-100 hover:bg-blue-50 transition-colors">
+                                                            <input type="checkbox" className="w-4 h-4 rounded border-blue-400 accent-primary"
+                                                                checked={s.checked}
+                                                                onChange={() => handleCustomServiceToggle('execution', s.id)} />
+                                                            <span>{s.text}</span>
+                                                            <Trash2 className="w-3 h-3 text-red-400 hover:text-red-600 mr-auto" onClick={(e) => { e.preventDefault(); handleDeleteCustomService('execution', s.id) }} />
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Generic Services (For Consultation/Other) */}
+                                        {!(projectNature === 'تصميم' || projectNature === 'تنفيذ') && (
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-sm font-bold text-primary">الخدمات المقدمة</label>
+                                                    <Button type="button" size="sm" variant="outline" onClick={() => handleAddCustomService('generic')}>
+                                                        <Plus className="w-3 h-3 ml-1" /> إضافة خيار مخصص
+                                                    </Button>
+                                                </div>
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                    {customGenericServices.map(s => (
+                                                        <label key={s.id} className="flex items-center gap-2 text-xs cursor-pointer bg-blue-50/50 p-2 rounded border border-blue-100 hover:bg-blue-50 transition-colors">
+                                                            <input type="checkbox" className="w-4 h-4 rounded border-blue-400 accent-primary"
+                                                                checked={s.checked}
+                                                                onChange={() => handleCustomServiceToggle('generic', s.id)} />
+                                                            <span>{s.text}</span>
+                                                            <Trash2 className="w-3 h-3 text-red-400 hover:text-red-600 mr-auto" onClick={(e) => { e.preventDefault(); handleDeleteCustomService('generic', s.id) }} />
+                                                        </label>
+                                                    ))}
+                                                    {customGenericServices.length === 0 && (
+                                                        <div className="col-span-full text-center text-muted-foreground py-2 text-sm bg-muted/10 rounded border border-dashed">
+                                                            لا توجد خدمات مضافة. اضغط على "إضافة خيار مخصص" لإضافة خدمات.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -815,11 +935,23 @@ export default function Fatore() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">نظام الدفعات (نقدي/تحويل)</label>
-                                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={paymentTermType} onChange={e => setPaymentTermType(e.target.value)}>
-                                    <option value="50-50">50%-50% (دفعتين)</option>
-                                    <option value="50-25-25">50%-25%-25% (ثلاث دفعات)</option>
-                                    <option value="100">100% (دفعة كاملة)</option>
-                                </select>
+                                <div className="flex gap-2">
+                                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={paymentTermType} onChange={e => setPaymentTermType(e.target.value)}>
+                                        <option value="50-50">50%-50% (دفعتين)</option>
+                                        <option value="50-25-25">50%-25%-25% (ثلاث دفعات)</option>
+                                        <option value="100">100% (دفعة كاملة)</option>
+                                        <option value="custom">مخصص</option>
+                                    </select>
+                                    {paymentTermType === 'custom' && (
+                                        <input
+                                            type="text"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            placeholder="أدخل نظام الدفعات المخصص"
+                                            value={customPaymentSystem}
+                                            onChange={e => setCustomPaymentSystem(e.target.value)}
+                                        />
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex items-center gap-2">

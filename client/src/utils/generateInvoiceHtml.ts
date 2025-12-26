@@ -30,6 +30,19 @@ export const generateInvoiceHtml = (invoice: any) => {
     const designServices = formData.designServices || [];
     const executionServices = formData.executionServices || [];
     const genericServices = formData.genericServices || [];
+    const paymentMethods = formData.paymentMethods || {};
+
+    const paymentMethodLabels: Record<string, string> = {
+        tamara: 'تمارا (تقسيط)',
+        mispay: 'MISpay (تقسيط)',
+        stcpay: 'STCpay',
+        visa: 'فيزا (تقسيط)',
+        mada: 'مدى',
+        bank: 'تحويل بنكي',
+        pos: 'شبكة',
+        cash: 'نقدي'
+    };
+    const paymentKeys = Object.keys(paymentMethodLabels);
 
     // Table Items
     const invoiceItems = invoice.items || [];
@@ -284,17 +297,17 @@ export const generateInvoiceHtml = (invoice: any) => {
                     </div>` : ''}
 
                     ${(projectNature === 'تصميم' || projectNature === 'تنفيذ' || projectNature === 'other') && designServices.length > 0 ? `
-                        <h3>خدمات التصميم:</h3>
+                        <h3>خدمات التصميم المقدمة:</h3>
                         ${renderServiceList(designServices)}
                     ` : ''}
 
                     ${(projectNature === 'تنفيذ' || projectNature === 'other') && executionServices.length > 0 ? `
-                        <h3>خدمات التنفيذ:</h3>
+                        <h3>خدمات التنفيذ المقدمة:</h3>
                         ${renderServiceList(executionServices)}
                     ` : ''}
                     
                     ${genericServices.length > 0 ? `
-                        <h3>خدمات عامة:</h3>
+                        <h3>الخدمات المقدمة:</h3>
                         ${renderServiceList(genericServices)}
                     ` : ''}
                 </section>
@@ -362,6 +375,21 @@ export const generateInvoiceHtml = (invoice: any) => {
                     <ul class="terms-ul">
                         ${terms.map((t: string) => `<li>${t}</li>`).join('')}
                     </ul>
+                </section>
+
+                <section style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                     <h3>وسائل الدفع المتاحة:</h3>
+                     <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                         ${paymentKeys.map(key => {
+        const isChecked = paymentMethods[key];
+        return `
+                                 <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; border: 1px solid #ddd; padding: 4px 10px; border-radius: 4px; background-color: ${isChecked ? '#f8f9fa' : 'transparent'}; opacity: ${isChecked ? '1' : '0.6'};">
+                                     <span style="font-family: 'Segoe UI Symbol', sans-serif; font-size: 14px; color: ${isChecked ? 'green' : '#999'};">${isChecked ? '☑' : '☐'}</span>
+                                     <span style="font-weight: ${isChecked ? 'bold' : 'normal'};">${paymentMethodLabels[key]}</span>
+                                 </div>
+                             `;
+    }).join('')}
+                     </div>
                 </section>
 
                 <footer>
