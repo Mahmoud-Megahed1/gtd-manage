@@ -702,13 +702,13 @@ export const appRouter = router({
         return { success: true, projectNumber };
       }),
 
-    update: managerProcedure
+    update: protectedProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().optional(),
         description: z.string().optional(),
         // status is lifecycle state (can be changed), projectType is immutable
-        status: z.enum(['design', 'execution', 'in_progress', 'delivery', 'completed', 'cancelled', 'delivered']).optional(),
+        status: z.string().optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         budget: z.number().optional(),
@@ -720,23 +720,8 @@ export const appRouter = router({
 
         // Get current project for comparison
         const currentProject = await db.getProjectById(id);
-
-        // Status transition guard - prevent invalid transitions
-        // Valid: in_progress → delivered, in_progress → cancelled
-        // Invalid: cancelled → *, delivered → * (except by admin)
-        if (input.status && currentProject) {
-          const currentStatus = currentProject.status;
-          const newStatus = input.status;
-
-          if (currentStatus !== newStatus) {
-            // Only allow transitions FROM in_progress
-            if (currentStatus !== 'in_progress' && ctx.user.role !== 'admin') {
-              throw new TRPCError({
-                code: 'FORBIDDEN',
-                message: `لا يمكن تغيير حالة المشروع من "${currentStatus}" - فقط المدير يمكنه ذلك`
-              });
-            }
-          }
+        if (!currentProject) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'المشروع غير موجود' });
         }
 
         await db.updateProject(id, data);
