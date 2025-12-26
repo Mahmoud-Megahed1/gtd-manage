@@ -341,18 +341,32 @@ export default function Fatore() {
         };
 
         const formData = JSON.stringify({
-            projectNature, otherProjectNature, siteNature, otherSiteNature,
-            designReq, otherDesignReq, style, otherStyle,
-            projectLocation, floors, area, electricMeter, notes,
-            checkedDesignServices, checkedExecutionServices,
-            customDesignServices, customExecutionServices, customGenericServices,
-            paymentMethods, paymentTermType,
-            validityPeriod, isCustomValidity,
-            designDuration, isCustomDuration,
-            cancellationFee, isCustomFee,
-            customTerms,
             docType,
-            taxEnabled
+            clientCity,
+            projectNature, otherProjectNature,
+            siteNature, otherSiteNature,
+            designReq, otherDesignReq,
+            style, otherStyle,
+            projectLocation, floors, area, electricMeter, notes,
+            // Use the same transformed format as getInvoiceData() for consistency
+            designServices: [
+                ...designServicesList.map(item => ({ text: item, checked: !!checkedDesignServices[item] })).filter(i => i.checked),
+                ...customDesignServices.filter(i => i.checked)
+            ],
+            executionServices: [
+                ...executionServicesList.map(item => ({ text: item, checked: !!checkedExecutionServices[item] })).filter(i => i.checked),
+                ...customExecutionServices.filter(i => i.checked)
+            ],
+            genericServices: customGenericServices.filter(i => i.checked),
+            terms: [
+                `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
+                `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
+                `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
+                `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
+                `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
+                ...customTerms
+            ],
+            enableTax: taxEnabled
         });
 
         const mutationPayload = {
