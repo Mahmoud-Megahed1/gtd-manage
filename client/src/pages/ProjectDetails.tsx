@@ -87,6 +87,7 @@ export default function ProjectDetails() {
   const boq = projectData?.boq || [];
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
+  const sales = projectData?.sales || [];
   const client = projectData?.client;
 
   // Permission check for financial data
@@ -344,8 +345,11 @@ export default function ProjectDetails() {
 
   const totalBOQ = boq.reduce((sum, item) => sum + (item.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalInstallments = installments.reduce((sum, inst) => sum + inst.amount, 0);
-  const paidInstallments = installments.filter(i => i.status === "paid").reduce((sum, inst) => sum + inst.amount, 0);
+  const totalBOQ = boq.reduce((sum, item) => sum + (item.total || 0), 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  // Revenue from Sales (Invoices)
+  const totalRevenue = (sales || []).reduce((sum, sale) => sum + (sale.status !== 'cancelled' ? sale.amount : 0), 0);
+  const paidRevenue = (sales || []).filter(s => s.status === 'completed').reduce((sum, sale) => sum + sale.amount, 0);
 
   if (isLoading) {
     return (
@@ -445,20 +449,6 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">إجمالي المقايسة (BOQ)</p>
-                    <p className="text-2xl font-bold">{totalBOQ.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">ريال</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-blue-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             <Card>
               <CardContent className="pt-6">
@@ -480,8 +470,8 @@ export default function ProjectDetails() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">المدفوع</p>
-                    <p className="text-2xl font-bold">{paidInstallments.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">من {totalInstallments.toLocaleString()} ريال</p>
+                    <p className="text-2xl font-bold">{paidRevenue.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">من {totalRevenue.toLocaleString()} ريال</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
                     <CheckCircle2 className="w-6 h-6 text-green-500" />
@@ -572,27 +562,23 @@ export default function ProjectDetails() {
                       <span className="font-bold">{(project.budget || 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">إجمالي المقايسة (BOQ):</span>
-                      <span className="font-bold">{totalBOQ.toLocaleString()} ريال</span>
-                    </div>
-                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">المصروفات:</span>
                       <span className="font-bold text-red-500">-{totalExpenses.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">الإيرادات المتوقعة:</span>
-                      <span className="font-bold">{totalInstallments.toLocaleString()} ريال</span>
+                      <span className="text-muted-foreground">الإيرادات المحققة (الفواتير):</span>
+                      <span className="font-bold">{totalRevenue.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">المدفوع:</span>
-                      <span className="font-bold text-green-500">{paidInstallments.toLocaleString()} ريال</span>
+                      <span className="font-bold text-green-500">{paidRevenue.toLocaleString()} ريال</span>
                     </div>
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">الربح المتوقع:</span>
-                        <span className={`font-bold text-lg ${(totalInstallments - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
+                        <span className={`font-bold text-lg ${(totalRevenue - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
                           }`}>
-                          {(totalInstallments - totalExpenses).toLocaleString()} ريال
+                          {(totalRevenue - totalExpenses).toLocaleString()} ريال
                         </span>
                       </div>
                     </div>
@@ -610,173 +596,45 @@ export default function ProjectDetails() {
                     </div>
 
                     <div className="p-6">
+                      {/* Sales/Invoices Logic Replaces Installments */}
                       <TabsContent value="installments" className="mt-0">
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="font-bold">جدول الأقساط</h3>
-                          <Dialog open={isAddInstallmentOpen} onOpenChange={setIsAddInstallmentOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة قسط</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>إضافة قسط جديد</DialogTitle>
-                              </DialogHeader>
-                              <form
-                                className="space-y-4"
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  const form = e.target as any;
-                                  createInstallment.mutate({
-                                    projectId,
-                                    installmentNumber: installments.length + 1,
-                                    amount: parseFloat(form.amount.value),
-                                    dueDate: new Date(form.dueDate.value).getTime(),
-                                    notes: form.notes.value
-                                  });
-                                }}
-                              >
-                                <div>
-                                  <Label>المبلغ</Label>
-                                  <Input name="amount" type="number" step="0.01" required />
-                                </div>
-                                <div>
-                                  <Label>تاريخ الاستحقاق</Label>
-                                  <Input name="dueDate" type="date" required />
-                                </div>
-                                <div>
-                                  <Label>ملاحظات</Label>
-                                  <Input name="notes" />
-                                </div>
-                                <Button type="submit" className="w-full" disabled={createInstallment.isPending}>
-                                  {createInstallment.isPending ? "جاري الحفظ..." : "حفظ القسط"}
-                                </Button>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-
-                        {installments && installments.length > 0 ? (
-                          <div className="space-y-3">
-                            {installments.map((inst) => (
-                              <div key={inst.id} className="flex items-center justify-between p-3 border rounded">
-                                <div>
-                                  <p className="font-medium">قسط #{inst.installmentNumber}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {new Date(inst.dueDate).toLocaleDateString("ar-SA")}
-                                  </p>
-                                  {inst.notes && <p className="text-xs text-muted-foreground mt-1">{inst.notes}</p>}
-                                </div>
-                                <div className="text-left">
-                                  <p className="font-bold">{inst.amount.toLocaleString()} ريال</p>
-                                  <Badge className={
-                                    inst.status === "paid" ? "bg-green-500/10 text-green-500" :
-                                      inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
-                                        "bg-yellow-500/10 text-yellow-500"
-                                  }>
-                                    {inst.status === "paid" ? "مدفوع" : inst.status === "overdue" ? "متأخر" : "معلق"}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p>لا توجد أقساط</p>
-                          </div>
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="boq" className="mt-0">
-                        <div className="flex justify-between items-center mb-4">
                           <div>
-                            <h3 className="font-bold">جداول الكميات / المقايسة (BOQ)</h3>
-                            <p className="text-sm text-muted-foreground">قائمة بنود الأعمال (مواد، عمالة) وتكاليفها التقديرية.</p>
+                            <h3 className="font-bold">سجل الفواتير والإيرادات</h3>
+                            <p className="text-sm text-muted-foreground">يتم جلب هذه البيانات تلقائياً من الفواتير المربوطة بالمشروع.</p>
                           </div>
-                          <Dialog open={isAddBoqOpen} onOpenChange={setIsAddBoqOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة بند</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>إضافة بند BOQ</DialogTitle>
-                              </DialogHeader>
-                              <form
-                                className="space-y-4"
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  const form = e.target as any;
-                                  createBoq.mutate({
-                                    projectId,
-                                    itemNumber: form.itemNumber.value,
-                                    description: form.description.value,
-                                    unit: form.unit.value,
-                                    quantity: parseFloat(form.quantity.value),
-                                    unitPrice: parseFloat(form.unitPrice.value),
-                                    category: form.category.value
-                                  });
-                                }}
-                              >
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <Label>رقم البند</Label>
-                                    <Input name="itemNumber" placeholder="مثال: 1.1" required />
-                                  </div>
-                                  <div>
-                                    <Label>الفئة</Label>
-                                    <Input name="category" placeholder="مثال: أعمال مدنية" />
-                                  </div>
-                                </div>
-                                <div>
-                                  <Label>الوصف</Label>
-                                  <Input name="description" required />
-                                </div>
-                                <div className="grid grid-cols-3 gap-4">
-                                  <div>
-                                    <Label>الوحدة</Label>
-                                    <Input name="unit" placeholder="متر/حبة..." required />
-                                  </div>
-                                  <div>
-                                    <Label>الكمية</Label>
-                                    <Input name="quantity" type="number" step="0.01" required />
-                                  </div>
-                                  <div>
-                                    <Label>سعر الوحدة</Label>
-                                    <Input name="unitPrice" type="number" step="0.01" required />
-                                  </div>
-                                </div>
-                                <Button type="submit" className="w-full" disabled={createBoq.isPending}>
-                                  {createBoq.isPending ? "جاري الحفظ..." : "حفظ البند"}
-                                </Button>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
                         </div>
-
-                        <div className="border rounded overflow-hidden">
+                        <div className="border rounded-lg overflow-hidden">
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="text-right">البند</TableHead>
-                                <TableHead className="text-right w-[40%]">الوصف</TableHead>
-                                <TableHead className="text-center">الوحدة</TableHead>
-                                <TableHead className="text-center">الكمية</TableHead>
-                                <TableHead className="text-center">السعر</TableHead>
-                                <TableHead className="text-left">الإجمالي</TableHead>
+                                <TableHead>رقم الفاتورة</TableHead>
+                                <TableHead>الوصف</TableHead>
+                                <TableHead>المبلغ</TableHead>
+                                <TableHead>التاريخ</TableHead>
+                                <TableHead>الحالة</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {boq && boq.length > 0 ? boq.map((item: any) => (
-                                <TableRow key={item.id}>
-                                  <TableCell className="font-medium">{item.itemName}</TableCell>
-                                  <TableCell>{item.description}</TableCell>
-                                  <TableCell className="text-center">{item.unit}</TableCell>
-                                  <TableCell className="text-center">{item.quantity}</TableCell>
-                                  <TableCell className="text-center">{item.unitPrice}</TableCell>
-                                  <TableCell className="text-left font-bold">{item.total?.toLocaleString()}</TableCell>
-                                </TableRow>
-                              )) : (
+                              {(sales || []).length > 0 ? (
+                                sales.map((sale) => (
+                                  <TableRow key={sale.id}>
+                                    <TableCell>{sale.saleNumber}</TableCell>
+                                    <TableCell>{sale.description}</TableCell>
+                                    <TableCell>{sale.amount.toLocaleString()} ريال</TableCell>
+                                    <TableCell>{new Date(sale.saleDate).toLocaleDateString('ar-SA')}</TableCell>
+                                    <TableCell>
+                                      <span className={`px-2 py-1 rounded text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                        {sale.status === 'completed' ? 'مدفوع' : sale.status === 'pending' ? 'معلق' : 'ملغي'}
+                                      </span>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
                                 <TableRow>
-                                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">لا توجد بنود</TableCell>
+                                  <TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد فواتير مربوطة بهذا المشروع</TableCell>
                                 </TableRow>
                               )}
                             </TableBody>

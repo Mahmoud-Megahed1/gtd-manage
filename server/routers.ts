@@ -667,14 +667,15 @@ export const appRouter = router({
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND' });
 
-        const [client, boqItems, expenses, installments] = await Promise.all([
+        const [client, boqItems, expenses, installments, sales] = await Promise.all([
           db.getClientById(project.clientId),
           db.getProjectBOQ(input.id),
           db.getProjectExpenses(input.id),
-          db.getProjectInstallments(input.id)
+          db.getProjectInstallments(input.id),
+          db.getProjectSales(input.id)
         ]);
 
-        return { project, client, boqItems, expenses, installments };
+        return { project, client, boqItems, expenses, installments, sales };
       }),
 
     create: managerProcedure
@@ -802,11 +803,12 @@ export const appRouter = router({
         const isDesigner = designerRoles.includes(ctx.user.role);
         const canViewFinancials = !isDesigner;
 
-        const [boq, expenses, installments, client] = await Promise.all([
+        const [boq, expenses, installments, client, sales] = await Promise.all([
           canViewFinancials ? db.getProjectBOQ(input.id) : Promise.resolve([]),
           canViewFinancials ? db.getProjectExpenses(input.id) : Promise.resolve([]),
           canViewFinancials ? db.getProjectInstallments(input.id) : Promise.resolve([]),
-          project.clientId ? db.getClientById(project.clientId) : null
+          project.clientId ? db.getClientById(project.clientId) : null,
+          canViewFinancials ? db.getProjectSales(input.id) : Promise.resolve([])
         ]);
 
         // Strip budget from project for designers
@@ -814,7 +816,7 @@ export const appRouter = router({
           ? { ...project, budget: undefined }
           : project;
 
-        return { project: safeProject, boq, expenses, installments, client };
+        return { project: safeProject, boq, expenses, installments, client, sales };
       }),
 
     createTask: protectedProcedure

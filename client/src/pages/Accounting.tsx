@@ -422,14 +422,14 @@ export default function Accounting() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle>
+              <CardTitle className="text-sm font-medium">سجل الإيرادات (الفواتير)</CardTitle>
               <TrendingUp className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-emerald-600">
                 {salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س
               </div>
-              <p className="text-xs text-muted-foreground">{salesList?.filter((s: any) => s.status === 'completed').length || 0} عملية بيع</p>
+              <p className="text-xs text-muted-foreground">{salesList?.filter((s: any) => s.status === 'completed').length || 0} عملية إيراد</p>
             </CardContent>
           </Card>
 
@@ -475,8 +475,8 @@ export default function Accounting() {
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
-            {canViewAccounting && <TabsTrigger value="expenses">التكاليف</TabsTrigger>}
-            {canViewAccounting && <TabsTrigger value="sales">المبيعات</TabsTrigger>}
+            {canViewAccounting && <TabsTrigger value="expenses">التكاليف التشغيلية</TabsTrigger>}
+            {canViewAccounting && <TabsTrigger value="sales">سجل الإيرادات</TabsTrigger>}
             {canViewAccounting && <TabsTrigger value="purchases">المشتريات</TabsTrigger>}
             {canViewReports && <TabsTrigger value="reports">التقارير</TabsTrigger>}
           </TabsList>
@@ -626,7 +626,7 @@ export default function Accounting() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle>المبيعات</CardTitle>
+                  <CardTitle>سجل الإيرادات (الفواتير)</CardTitle>
                   <AddSaleDialog />
                 </div>
               </CardHeader>

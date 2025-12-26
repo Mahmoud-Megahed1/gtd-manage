@@ -226,6 +226,20 @@ export async function createClient(client: InsertClient) {
   return result;
 }
 
+export async function getAllSales() {
+  const db = await getDb();
+  if (!db) return demo.list("sales");
+  return await db.select().from(sales).orderBy(desc(sales.saleDate));
+}
+
+export async function getProjectSales(projectId: number) {
+  const db = await getDb();
+  if (!db) return demo.filter("sales", (s) => s.projectId === projectId);
+  return await db.select().from(sales).where(eq(sales.projectId, projectId)).orderBy(desc(sales.saleDate));
+}
+
+
+
 export async function getAllClients() {
   const db = await getDb();
   if (!db) return demo.list("clients");
