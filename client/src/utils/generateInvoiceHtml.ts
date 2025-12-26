@@ -200,24 +200,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                             <label>طبيعة الموقع</label>
                             <span class="value-box">${siteNature}${siteNature === 'other' ? ' - ' + otherSiteNature : ''}</span>
                         </div>
-                        <div class="form-group">
-                            <label>الموقع</label>
-                            <span class="value-box">${formData.projectLocation || '-'}</span>
-                        </div>
-                        <div class="form-group">
-                            <label>عدد الطوابق</label>
-                            <span class="value-box">${formData.floors || '-'}</span>
-                        </div>
-                    </div>
-                     <div class="form-row">
-                         <div class="form-group">
-                            <label>رقم عداد الكهرباء</label>
-                            <span class="value-box">${formData.electricMeter || '-'}</span>
-                        </div>
-                         <div class="form-group">
-                            <label>المساحة</label>
-                            <span class="value-box">${formData.area || '-'}</span>
-                        </div>
+
                         <div class="form-group">
                             <label>متطلبات التصميم</label>
                             <span class="value-box">${designReq}${designReq === 'other' ? ' - ' + otherDesignReq : ''}</span>
