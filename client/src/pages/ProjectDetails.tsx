@@ -64,6 +64,15 @@ export default function ProjectDetails() {
       toast.error("تعذر حذف المهمة");
     }
   });
+  const updateTask = trpc.projects.updateTask.useMutation({
+    onSuccess: () => {
+      utils.projects.listTasks.invalidate({ projectId });
+      toast.success("تم تحديث المهمة بنجاح");
+    },
+    onError: () => {
+      toast.error("تعذر تحديث المهمة");
+    }
+  });
   const [newTask, setNewTask] = useState({
     name: "",
     description: "",
@@ -1022,8 +1031,7 @@ export default function ProjectDetails() {
                                         size="sm"
                                         className="text-green-600 hover:text-green-700"
                                         onClick={() => {
-                                          // Mark as completed (TODO: Add update mutation)
-                                          toast.info("TODO: إضافة تحديث حالة المرحلة");
+                                          updateTask.mutate({ id: task.id, status: 'completed', progress: 100 });
                                         }}
                                       >
                                         <CheckCircle2 className="w-4 h-4" />
@@ -1035,7 +1043,7 @@ export default function ProjectDetails() {
                                       className="text-red-500 hover:text-red-600"
                                       onClick={() => {
                                         if (confirm('هل تريد حذف هذه المرحلة؟')) {
-                                          deleteTask.mutate({ taskId: task.id });
+                                          deleteTask.mutate({ id: task.id });
                                         }
                                       }}
                                     >
@@ -1306,6 +1314,6 @@ export default function ProjectDetails() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }
