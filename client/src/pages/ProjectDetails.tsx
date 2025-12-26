@@ -516,9 +516,12 @@ export default function ProjectDetails() {
               <div className="space-y-2">
                 {(procurement || []).slice(0, 6).map((p: any, i: number) => (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <span>{p.itemName}</span>
-                    <span className={`${p.status === 'ordered' ? 'text-green-600' : p.status === 'partial' ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {p.status === 'ordered' ? 'مكتمل' : p.status === 'partial' ? 'جزئي' : 'غير مؤمن'}
+                    <span className="truncate max-w-[200px]" title={p.itemName}>
+                      {p.itemName}
+                      <span className="mr-2 text-xs text-muted-foreground">({(p.totalCost || 0).toLocaleString()} ريال)</span>
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      تم الفوترة
                     </span>
                   </div>
                 ))}

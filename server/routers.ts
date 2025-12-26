@@ -1271,15 +1271,41 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
         const conn = await db.getDb();
         if (!conn) return [];
-        const { boq, purchases } = await import("../drizzle/schema");
-        const items = await conn.select().from(boq).where(eq(boq.projectId, input.projectId));
-        const orders = await conn.select().from(purchases).where(eq(purchases.projectId, input.projectId));
+
+        // Dynamic import to avoid circular dep issues or just standard import
+        const { invoices, invoiceItems } = await import("../drizzle/schema");
+        const { eq, inArray, desc } = await import("drizzle-orm");
+
+        // Get all invoices for this project
+        const projectInvoices = await conn.select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber })
+          .from(invoices)
+          .where(eq(invoices.projectId, input.projectId));
+
+        if (projectInvoices.length === 0) return [];
+
+        const invoiceIds = projectInvoices.map(i => i.id);
+
+        // Get all items for these invoices
+        const items = await conn.select()
+          .from(invoiceItems)
+          .where(inArray(invoiceItems.invoiceId, invoiceIds))
+          .orderBy(desc(invoiceItems.id)) // Show recent first
+          .limit(20); // Limit to 20 items to avoid overflow
+
+        // Map to format expected by UI { itemName, totalCost, ordered, status }
+        // We repurpose fields: 
+        // itemName -> description
+        // status -> 'ordered' (to show as green/completed since it's invoiced)
+        // totalCost -> item total
         const rows = items.map((it: any) => {
-          const totalCost = Number(it.total || 0);
-          const ordered = orders.filter((o: any) => (o.description || "").toLowerCase().includes((it.itemName || "").toLowerCase())).reduce((sum: number, o: any) => sum + Number(o.amount || 0), 0);
-          const status = ordered <= 0 ? "not_ordered" : ordered < totalCost ? "partial" : "ordered";
-          return { itemName: it.itemName, totalCost, ordered, status };
+          return {
+            itemName: it.description,
+            totalCost: Number(it.total || 0),
+            ordered: Number(it.total || 0),
+            status: "ordered"
+          };
         });
+
         return rows;
       }),
   }),
