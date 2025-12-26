@@ -48,7 +48,11 @@ export default function InvoiceDetails() {
   const handlePrint = () => {
     if (!data?.invoice) return;
 
-    const printContent = generateInvoiceHtml(data.invoice);
+    const printContent = generateInvoiceHtml({
+      ...data.invoice,
+      client: data.client,
+      items: data.items,
+    });
 
     const printWindow = window.open('', 'printWindow', 'width=800,height=600');
     if (printWindow) {

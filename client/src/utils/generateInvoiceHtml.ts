@@ -38,59 +38,110 @@ export const generateInvoiceHtml = (invoice: any) => {
     const terms = formData.terms || []; // Array of strings
 
     // CSS (Copied from Fatore.CSS / fatore.HTML)
-    // CSS (Copied from Fatore.HTML)
     const css = `
-        :root { --primary-color: #bfa670; --secondary-color: #1a1a1a; --border-color: #ddd; --bg-color: #f9f9f9; --paper-bg: #ffffff; }
+        :root { --primary-color: #bfa670; --secondary-color: #1a1a1a; --border-color: #ddd; --bg-color: #f9f9f9; --paper-bg: #ffffff; --danger-color: #e74c3c; --success-color: #2ecc71; --grey-color: #7f8c8d; }
         * { box-sizing: border-box; outline: none; }
         body { font-family: 'Tajawal', sans-serif; background-color: white; margin: 0; padding: 0; color: #333; font-size: 13px; direction: rtl; }
-        .page-container { width: 100%; max-width: 210mm; margin: 0 auto; background: white; padding: 25px; min-height: 297mm; display: flex; flex-direction: column; }
+        .page-container { width: 100%; max-width: 210mm; margin: 0 auto; background: white; padding: 20px; }
         
+        /* Hidden elements in print */
+        .no-print { display: none !important; }
+
         /* Headings */
         h1, h2, h3, h4 { margin: 0 0 8px 0; color: var(--secondary-color); }
         h1 { font-size: 22px; }
         h3 { font-size: 14px; margin-bottom: 5px; }
         h2 { font-size: 15px; border-bottom: 2px solid var(--primary-color); padding-bottom: 2px; margin-top: 10px; }
 
-        /* Form Layout */
         .form-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-        .form-group { flex: 1; min-width: 150px; display: flex; flex-direction: column; }
+        .form-group { flex: 1; min-width: 150px; display: flex; flexDirection: column; }
         label { font-weight: 600; margin-bottom: 2px; font-size: 11px; color: #555; }
-        .value-box { width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px; min-height: 25px; font-size: 11px; background: #fff; display: flex; align-items: center; }
-
-        /* Table */
-        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 5px; }
-        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; vertical-align: middle; }
-        th { background-color: var(--secondary-color) !important; color: white !important; font-weight: 500; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-        /* Totals */
-        .totals-section { padding: 5px; border-top: 1px solid #000; display: flex; flex-direction: column; align-items: flex-end; margin-top: 5px; page-break-inside: avoid; }
-        .total-row { display: flex; gap: 15px; align-items: center; font-size: 12px; font-weight: bold; }
+        
+        /* Inputs as Text spans for read-only display */
+        .value-box { 
+            width: 100%; padding: 2px 0; border: none; border-bottom: 1px_SOLID transparent; 
+            font-family: inherit; font-size: 11px; color: #000; min-height: 18px;
+        }
 
         /* Checkboxes */
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
         .checkbox-item { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; width: 30%; margin-bottom: 2px; }
         .print-checkbox {
-            width: 12px; height: 12px; border: 1px solid #333; display: inline-block; border-radius: 2px;
+            width: 12px; height: 12px; border: 1px solid #333; display: inline-block; vertical-align: middle; border-radius: 2px;
         }
         .print-checkbox.checked {
             background-color: #bfa670 !important; border-color: #bfa670 !important;
-            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        /* Terms & Services */
-        .service-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 5px; }
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 5px; }
+        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; vertical-align: middle; }
+        th { background-color: #eee !important; color: #000 !important; font-weight: 500; font-size: 10px; -webkit-print-color-adjust: exact; }
+
+        /* Services Grid */
+        .service-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Force 3 columns for print layout */
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        /* Totals */
+        .totals-section { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start;
+            margin-top: 15px; 
+            padding-top: 10px; 
+            border-top: 2px solid #333;
+        }
+        .subtotals-box {
+            text-align: left;
+            font-size: 11px;
+        }
+        .subtotals-box .total-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 3px;
+        }
+        .grand-total-box {
+            background: linear-gradient(135deg, #bfa670 0%, #d4c4a0 100%);
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .grand-total-box .label {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #1a1a1a;
+        }
+        .grand-total-box .amount {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+        .total-row { display: flex; gap: 15px; alignItems: center; font-size: 12px; font-weight: bold; }
+
+        /* Terms */
         .terms-ul { padding-right: 18px; margin-bottom: 0; line-height: 1.6; margin-top: 3px; font-size: 11px; }
 
         /* Footer */
-        footer { margin-top: auto; font-size: 12px; page-break-inside: avoid; }
-        .logo-placeholder { height: 100px; margin-bottom: 10px; display: flex; align-items: center; justify-content: flex-start; }
-        .barcode-placeholder { height: 100px; width: 200px; float: left; }
+        footer { margin-top: 10px; font-size: 12px; }
+        .logo-placeholder { height: 80px; margin-bottom: 5px; display: flex; align-items: center; justify-content: flex-start; }
+        .logo-img { max-height: 100%; max-width: 100%; }
 
         @media print {
-            body { padding: 0; margin: 0; background: white; }
-            .page-container { width: 100%; max-width: 100%; border: none; padding: 10mm; margin: 0; box-shadow: none; min-height: auto; }
-            th { background-color: #eee !important; color: #000 !important; }
-            .no-print { display: none !important; }
+            body { padding: 0; margin: 0; }
+            .page-container { width: 100%; max-width: 100%; border: none; padding: 10mm; margin: 0; }
+            th { background-color: #eee !important; }
         }
     `;
 
@@ -111,29 +162,15 @@ export const generateInvoiceHtml = (invoice: any) => {
 
     // Helper calculate totals
     const calculateTotals = () => {
-        // First try to use stored totals from invoice object (old invoices)
-        if (invoice.subtotal !== undefined && invoice.total !== undefined) {
-            return {
-                subtotal: Number(invoice.subtotal) || 0,
-                tax: Number(invoice.tax) || 0,
-                total: Number(invoice.total) || 0,
-                enableTax: (invoice.tax || 0) > 0 || formData.enableTax === true || formData.enableTax === "true" || formData.taxEnabled === true
-            };
-        }
-
-        // Calculate from items if no stored totals
         const subtotal = invoiceItems.reduce((sum: number, item: any) => {
             const qty = Number(item.quantity) || 0;
-            const price = Number(item.price) || Number(item.unitPrice) || 0;
+            const price = Number(item.price) || 0;
             const discount = Number(item.discount) || 0;
-            // Discount is a percentage
-            const rawTotal = qty * price;
-            const discountAmount = rawTotal * (discount / 100);
-            return sum + rawTotal - discountAmount;
+            return sum + (qty * price) - discount;
         }, 0);
 
         // Check for VAT setting
-        const enableTax = formData.enableTax === true || formData.enableTax === "true" || formData.taxEnabled === true;
+        const enableTax = formData.enableTax === true || formData.enableTax === "true";
         const tax = enableTax ? subtotal * 0.15 : 0;
         const total = subtotal + tax;
 
@@ -154,14 +191,14 @@ export const generateInvoiceHtml = (invoice: any) => {
         </head>
         <body>
             <div class="page-container">
-                <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="width: 30%;">
                         <div class="logo-placeholder">
-                            <img src="/LOGO.png" alt="Logo" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                            <img src="/LOGO.png" alt="Logo" class="logo-img">
                         </div>
                     </div>
                     <div style="width: 65%; text-align: left;">
-                        <h1 style="color: var(--primary-color);">GOLDEN TOUCH <span style="color: var(--grey-color);">DESIGN</span></h1>
+                        <h1 style="color: #bfa670;">GOLDEN TOUCH <span style="color: #7f8c8d;">DESIGN</span></h1>
                         <h3>شركة اللمسة الذهبية للتصميم</h3>
                         <p style="margin: 0 0 5px 0; font-size: 12px; font-weight: bold; color: #555;">سجل تجاري C.R. 7017891396</p>
                         
@@ -280,10 +317,13 @@ export const generateInvoiceHtml = (invoice: any) => {
                     </table>
 
                     <div class="totals-section">
-                        <div class="total-row"><span>المجموع الفرعي:</span> <span>${totals.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-                        ${totals.enableTax ? `<div class="total-row"><span>ضريبة (15%):</span> <span>${totals.tax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>` : ''}
-                        <div class="total-row" style="font-size: 16px; margin-top: 5px; border-top: 2px solid #333; padding-top: 3px;">
-                            <span>الإجمالي النهائي:</span> <span>${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <div class="grand-total-box">
+                            <div class="label">الإجمالي النهائي</div>
+                            <div class="amount">${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                        <div class="subtotals-box">
+                            <div class="total-row"><span>${totals.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> <span>:المجموع الفرعي</span></div>
+                            ${totals.enableTax ? `<div class="total-row"><span>${totals.tax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> <span>:ضريبة (15%)</span></div>` : ''}
                         </div>
                     </div>
                 </section>
@@ -298,8 +338,8 @@ export const generateInvoiceHtml = (invoice: any) => {
                 <footer>
                      <div style="height: 4px; background: linear-gradient(90deg, #ccc, #bfa670); margin-bottom: 10px; width: 100%;"></div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                         <div class="barcode-placeholder">
-                             <img src="/barcode.jpg" alt="Barcode" style="height: 100%; width: auto;">
+                         <div class="barcode-placeholder" style="order: 2; height: 100px; width: 200px; display: flex; align-items: flex-end; justify-content: flex-end;">
+                             <img src="/barcode.jpg" alt="Barcode" style="height: 80px; width: auto;">
                         </div>
                         <div style="text-align: right; order: 1; width: 70%;">
                              <p style="font-size: 16px; margin-bottom: 5px; color: var(--secondary-color);"><strong>شركة اللمسة الذهبية للتصميم | GOLDEN TOUCH DESIGN</strong></p>
