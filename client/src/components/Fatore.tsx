@@ -405,7 +405,7 @@ export default function Fatore() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 p-1" dir="rtl">
+            <div className="space-y-6 p-1 max-w-7xl" dir="rtl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
