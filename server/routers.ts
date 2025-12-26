@@ -1393,6 +1393,7 @@ export const appRouter = router({
         const result = await db.createInvoice({
           ...invoiceData,
           invoiceNumber,
+          status: 'draft',
           createdBy: ctx.user.id
         });
 
