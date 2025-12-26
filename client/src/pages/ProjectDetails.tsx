@@ -86,13 +86,30 @@ export default function ProjectDetails() {
   const { data: drawings } = trpc.drawings.list.useQuery({ projectId });
   const { data: baseline } = trpc.projectReports.baselineVsActual.useQuery({ projectId });
   const { data: procurement } = trpc.projectReports.procurementTracker.useQuery({ projectId });
-  const createRfi = trpc.rfi.create.useMutation();
-  const answerRfi = trpc.rfi.answer.useMutation();
-  const createSubmittal = trpc.submittals.create.useMutation();
-  const approveSubmittal = trpc.submittals.approve.useMutation();
-  const rejectSubmittal = trpc.submittals.reject.useMutation();
-  const createDrawing = trpc.drawings.create.useMutation();
-  const addDrawingVersion = trpc.drawings.addVersion.useMutation();
+  const createRfi = trpc.rfi.create.useMutation({
+    onSuccess: () => utils.rfi.list.invalidate({ projectId })
+  });
+  const answerRfi = trpc.rfi.answer.useMutation({
+    onSuccess: () => utils.rfi.list.invalidate({ projectId })
+  });
+  const createSubmittal = trpc.submittals.create.useMutation({
+    onSuccess: () => utils.submittals.list.invalidate({ projectId })
+  });
+  const approveSubmittal = trpc.submittals.approve.useMutation({
+    onSuccess: () => utils.submittals.list.invalidate({ projectId })
+  });
+  const rejectSubmittal = trpc.submittals.reject.useMutation({
+    onSuccess: () => utils.submittals.list.invalidate({ projectId })
+  });
+  const createDrawing = trpc.drawings.create.useMutation({
+    onSuccess: () => utils.drawings.list.invalidate({ projectId })
+  });
+  const addDrawingVersion = trpc.drawings.addVersion.useMutation({
+    onSuccess: () => {
+      utils.drawings.list.invalidate({ projectId });
+      if (openVersionsId) utils.drawings.versions.invalidate({ drawingId: openVersionsId });
+    }
+  });
   const uploadFile = trpc.files.upload.useMutation();
   const [openVersionsId, setOpenVersionsId] = useState<number | null>(null);
   const { data: openVersions } = trpc.drawings.versions.useQuery(
