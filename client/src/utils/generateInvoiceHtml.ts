@@ -162,11 +162,25 @@ export const generateInvoiceHtml = (invoice: any) => {
 
     // Helper calculate totals
     const calculateTotals = () => {
+        // First try to use stored totals from invoice object (for consistency)
+        if (invoice.subtotal !== undefined && invoice.total !== undefined && Number(invoice.total) > 0) {
+            return {
+                subtotal: Number(invoice.subtotal) || 0,
+                tax: Number(invoice.tax) || 0,
+                total: Number(invoice.total) || 0,
+                enableTax: (invoice.tax || 0) > 0 || formData.enableTax === true || formData.enableTax === "true"
+            };
+        }
+
+        // Calculate from items if no stored totals
         const subtotal = invoiceItems.reduce((sum: number, item: any) => {
             const qty = Number(item.quantity) || 0;
-            const price = Number(item.price) || 0;
+            const price = Number(item.price) || Number(item.unitPrice) || 0;
             const discount = Number(item.discount) || 0;
-            return sum + (qty * price) - discount;
+            // Discount is percentage
+            const rawTotal = qty * price;
+            const discountAmount = rawTotal * (discount / 100);
+            return sum + rawTotal - discountAmount;
         }, 0);
 
         // Check for VAT setting
