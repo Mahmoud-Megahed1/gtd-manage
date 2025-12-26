@@ -23,7 +23,6 @@ export default function Projects() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
-  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
   const { data: clients } = trpc.clients.clientNames.useQuery();
   const { data: users } = trpc.users.list.useQuery();
 
