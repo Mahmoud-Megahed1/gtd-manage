@@ -405,7 +405,7 @@ export default function Fatore() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 p-2 md:p-4" dir="rtl">
+            <div className="space-y-6 p-1" dir="rtl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -438,7 +438,8 @@ export default function Fatore() {
 
                             <hr className="border-muted" />
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Row 1 in Print: Nature, Site */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">طبيعة المشروع</label>
                                     <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectNature} onChange={e => setProjectNature(e.target.value)}>
@@ -500,6 +501,29 @@ export default function Fatore() {
                                     )}
                                 </div>
 
+                                {/* Row 2 in Print: Location, Floors */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">موقع المشروع</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">عدد الطوابق</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={floors} onChange={e => setFloors(e.target.value)} />
+                                </div>
+
+                                {/* Row 3 in Print: Area, Electric Meter */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">المساحة</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">رقم عداد الكهرباء</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} />
+                                </div>
+
+                                {/* Row 4 in Print: Design Req, Style */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">التصميم المطلوب</label>
                                     <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={designReq} onChange={e => setDesignReq(e.target.value)}>
@@ -540,27 +564,7 @@ export default function Fatore() {
                                         <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2" placeholder="حدد..." value={otherStyle} onChange={e => setOtherStyle(e.target.value)} />
                                     )}
                                 </div>
-                            </div>
 
-                            <hr className="border-muted" />
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">موقع المشروع</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">عدد الطوابق</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={floors} onChange={e => setFloors(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">المساحة</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">رقم عداد الكهرباء</label>
-                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} />
-                                </div>
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-sm font-medium">ملاحظات</label>
                                     <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} />
