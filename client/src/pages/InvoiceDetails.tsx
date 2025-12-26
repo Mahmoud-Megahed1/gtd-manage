@@ -100,6 +100,14 @@ export default function InvoiceDetails() {
 
   const { invoice, client, items } = data;
 
+  const formData = useMemo(() => {
+    try {
+      return typeof invoice.formData === 'string' ? JSON.parse(invoice.formData) : invoice.formData;
+    } catch { return {}; }
+  }, [invoice.formData]);
+
+  const inlineImages = formData?.images || [];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -208,27 +216,40 @@ export default function InvoiceDetails() {
             <CardTitle>المرفقات</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(attachments || []).length > 0 ? (
-              attachments!.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between border rounded p-3">
-                  <div className="flex items-center gap-2">
-                    <Paperclip className="w-4 h-4" />
-                    <a href={a.fileUrl} target="_blank" rel="noreferrer" className="text-sm underline">
-                      {a.fileName}
-                    </a>
-                    <span className="text-xs text-muted-foreground">{a.mimeType}</span>
+            {/* Inline Images from Form Data */}
+            {inlineImages.length > 0 && inlineImages.map((img: string, idx: number) => (
+              <div key={`inline-${idx}`} className="flex items-center justify-between border rounded p-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-md overflow-hidden border bg-muted">
+                    <img src={img} alt={`Attachment`} className="w-full h-full object-cover" />
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteAttachment.mutate({ id: a.id })}
-                  >
-                    <Trash2 className="w-4 h-4 ml-2" />
-                    حذف
-                  </Button>
+                  <span className="text-sm font-medium">مرفق {idx + 1}</span>
                 </div>
-              ))
-            ) : (
+              </div>
+            ))}
+
+            {/* Server Files */}
+            {(attachments || []).length > 0 && attachments!.map((a: any) => (
+              <div key={a.id} className="flex items-center justify-between border rounded p-3">
+                <div className="flex items-center gap-2">
+                  <Paperclip className="w-4 h-4" />
+                  <a href={a.fileUrl} target="_blank" rel="noreferrer" className="text-sm underline">
+                    {a.fileName}
+                  </a>
+                  <span className="text-xs text-muted-foreground">{a.mimeType}</span>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => deleteAttachment.mutate({ id: a.id })}
+                >
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف
+                </Button>
+              </div>
+            ))}
+
+            {inlineImages.length === 0 && (attachments || []).length === 0 && (
               <div className="text-sm text-muted-foreground">لا توجد مرفقات</div>
             )}
           </CardContent>

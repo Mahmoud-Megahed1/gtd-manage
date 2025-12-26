@@ -206,6 +206,7 @@ export default function Fatore() {
 
                     if (data.customTerms) setCustomTerms(data.customTerms);
                     if (data.taxEnabled !== undefined) setTaxEnabled(data.taxEnabled);
+                    if (data.images) setImages(data.images);
                 } catch (e) {
                     console.error("Failed to parse formData", e);
                 }
@@ -313,7 +314,8 @@ export default function Fatore() {
                 `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
                 ...customTerms
             ],
-            enableTax: taxEnabled
+            enableTax: taxEnabled,
+            images: images
         };
     };
 

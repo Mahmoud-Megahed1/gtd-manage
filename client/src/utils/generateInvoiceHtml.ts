@@ -31,6 +31,7 @@ export const generateInvoiceHtml = (invoice: any) => {
     const executionServices = formData.executionServices || [];
     const genericServices = formData.genericServices || [];
     const paymentMethods = formData.paymentMethods || {};
+    const images = formData.images || [];
 
     const paymentMethodLabels: Record<string, string> = {
         tamara: 'تمارا (تقسيط)',
@@ -391,6 +392,19 @@ export const generateInvoiceHtml = (invoice: any) => {
     }).join('')}
                      </div>
                 </section>
+
+                ${images && images.length > 0 ? `
+                <section style="margin-top: 10px; border-top: 2px solid #ccc; padding-top: 10px;">
+                     <h3>المرفقات:</h3>
+                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                         ${images.map((img: string) => `
+                             <div style="border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                                 <img src="${img}" style="width: 100%; height: auto; display: block;" alt="Attachment" />
+                             </div>
+                         `).join('')}
+                     </div>
+                </section>
+                ` : ''}
 
                 <footer>
                      <div style="height: 4px; background: linear-gradient(90deg, #ccc, #bfa670); margin-bottom: 10px; width: 100%;"></div>
