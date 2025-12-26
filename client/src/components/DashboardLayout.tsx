@@ -75,15 +75,6 @@ const navItems: NavItem[] = [
     ]
   },
 
-  // المهام - Tasks (Matrix: admin✅, hr_manager👁️, department_manager✅, project_manager✅, project_coordinator✏️+, architect✏️, interior_designer✏️, site_engineer✏️, planning_engineer✏️+, designer✏️, technician✏️, admin_assistant👁️, qa_qc✏️)
-  {
-    title: "المهام", href: "/tasks", icon: <FileDiff className="w-5 h-5" />, roles: [
-      "admin", "hr_manager", "department_manager", "project_manager", "project_coordinator",
-      "architect", "interior_designer", "site_engineer", "planning_engineer",
-      "designer", "technician", "admin_assistant", "qa_qc"
-    ]
-  },
-
   // الفواتير - Invoices (Matrix: admin✅, finance_manager✅, accountant👁️+, department_manager👁️, sales_manager✅)
   {
     title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: [
