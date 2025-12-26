@@ -405,7 +405,7 @@ export default function Fatore() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 p-1 md:p-6" dir="rtl">
+            <div className="space-y-6 p-2 md:p-4" dir="rtl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -544,7 +544,28 @@ export default function Fatore() {
 
                             <hr className="border-muted" />
 
-                            {/* Legacy inputs hidden based on specific user request to match screenshot */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">موقع المشروع</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={projectLocation} onChange={e => setProjectLocation(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">عدد الطوابق</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={floors} onChange={e => setFloors(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">المساحة</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={area} onChange={e => setArea(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">رقم عداد الكهرباء</label>
+                                    <input type="text" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={electricMeter} onChange={e => setElectricMeter(e.target.value)} />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-medium">ملاحظات</label>
+                                    <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={notes} onChange={e => setNotes(e.target.value)} />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
