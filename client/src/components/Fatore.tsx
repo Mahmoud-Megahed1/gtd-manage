@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Printer, Download, Plus, Trash2 } from "lucide-react";
@@ -460,7 +459,7 @@ export default function Fatore() {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6 p-1" dir="rtl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1105,6 +1104,6 @@ export default function Fatore() {
 
             {/* Hidden Print Container */}
             <div id="print-container" style={{ display: 'none' }}></div>
-        </DashboardLayout>
+        </>
     );
 }
