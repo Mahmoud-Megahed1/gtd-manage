@@ -41,6 +41,9 @@ import {
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ProjectTasksContent from "@/components/ProjectTasksContent";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
 
 export default function ProjectDetails() {
   const params = useParams();
@@ -158,6 +161,36 @@ export default function ProjectDetails() {
     },
     onError: () => toast.error("تعذر حذف الملف")
   });
+
+  // Financial Mutations
+  const createInstallment = trpc.accounting.installments.create.useMutation({
+    onSuccess: () => {
+      utils.projects.getDetails.invalidate({ id: projectId });
+      toast.success("تم إضافة القسط بنجاح");
+      setIsAddInstallmentOpen(false);
+    },
+    onError: () => toast.error("تعذر إضافة القسط")
+  });
+  const createExpense = trpc.accounting.expenses.create.useMutation({
+    onSuccess: () => {
+      utils.projects.getDetails.invalidate({ id: projectId });
+      toast.success("تم إضافة المصروف بنجاح");
+      setIsAddExpenseOpen(false);
+    },
+    onError: () => toast.error("تعذر إضافة المصروف")
+  });
+  const createBoq = trpc.accounting.boq.create.useMutation({
+    onSuccess: () => {
+      utils.projects.getDetails.invalidate({ id: projectId });
+      toast.success("تم إضافة بند BOQ بنجاح");
+      setIsAddBoqOpen(false);
+    },
+    onError: () => toast.error("تعذر إضافة البند")
+  });
+
+  const [isAddInstallmentOpen, setIsAddInstallmentOpen] = useState(false);
+  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
+  const [isAddBoqOpen, setIsAddBoqOpen] = useState(false);
 
   // Upload progress state
   const [uploadProgress, setUploadProgress] = useState<{ progress: number; speed: string; fileName: string } | null>(null);
@@ -566,40 +599,268 @@ export default function ProjectDetails() {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>الأقساط</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {installments && installments.length > 0 ? (
-                      <div className="space-y-3">
-                        {installments.map((inst) => (
-                          <div key={inst.id} className="flex items-center justify-between p-3 border rounded">
-                            <div>
-                              <p className="font-medium">قسط #{inst.installmentNumber}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(inst.dueDate).toLocaleDateString("ar-SA")}
-                              </p>
-                            </div>
-                            <div className="text-left">
-                              <p className="font-bold">{inst.amount.toLocaleString()} ريال</p>
-                              <Badge className={
-                                inst.status === "paid" ? "bg-green-500/10 text-green-500" :
-                                  inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
-                                    "bg-yellow-500/10 text-yellow-500"
-                              }>
-                                {inst.status === "paid" ? "مدفوع" : inst.status === "overdue" ? "متأخر" : "معلق"}
-                              </Badge>
-                            </div>
+                <Card className="md:col-span-2">
+                  <Tabs defaultValue="installments" className="w-full">
+                    <div className="px-6 pt-6 flex justify-between items-center">
+                      <TabsList>
+                        <TabsTrigger value="installments">الأقساط ({installments.length})</TabsTrigger>
+                        <TabsTrigger value="boq">جداول الكميات ({boq.length})</TabsTrigger>
+                        <TabsTrigger value="expenses">المصروفات ({expenses.length})</TabsTrigger>
+                      </TabsList>
+                    </div>
+
+                    <div className="p-6">
+                      <TabsContent value="installments" className="mt-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-bold">جدول الأقساط</h3>
+                          <Dialog open={isAddInstallmentOpen} onOpenChange={setIsAddInstallmentOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة قسط</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>إضافة قسط جديد</DialogTitle>
+                              </DialogHeader>
+                              <form
+                                className="space-y-4"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const form = e.target as any;
+                                  createInstallment.mutate({
+                                    projectId,
+                                    installmentNumber: installments.length + 1,
+                                    amount: parseFloat(form.amount.value),
+                                    dueDate: new Date(form.dueDate.value).getTime(),
+                                    notes: form.notes.value
+                                  });
+                                }}
+                              >
+                                <div>
+                                  <Label>المبلغ</Label>
+                                  <Input name="amount" type="number" step="0.01" required />
+                                </div>
+                                <div>
+                                  <Label>تاريخ الاستحقاق</Label>
+                                  <Input name="dueDate" type="date" required />
+                                </div>
+                                <div>
+                                  <Label>ملاحظات</Label>
+                                  <Input name="notes" />
+                                </div>
+                                <Button type="submit" className="w-full" disabled={createInstallment.isPending}>
+                                  {createInstallment.isPending ? "جاري الحفظ..." : "حفظ القسط"}
+                                </Button>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+
+                        {installments && installments.length > 0 ? (
+                          <div className="space-y-3">
+                            {installments.map((inst) => (
+                              <div key={inst.id} className="flex items-center justify-between p-3 border rounded">
+                                <div>
+                                  <p className="font-medium">قسط #{inst.installmentNumber}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {new Date(inst.dueDate).toLocaleDateString("ar-SA")}
+                                  </p>
+                                  {inst.notes && <p className="text-xs text-muted-foreground mt-1">{inst.notes}</p>}
+                                </div>
+                                <div className="text-left">
+                                  <p className="font-bold">{inst.amount.toLocaleString()} ريال</p>
+                                  <Badge className={
+                                    inst.status === "paid" ? "bg-green-500/10 text-green-500" :
+                                      inst.status === "overdue" ? "bg-red-500/10 text-red-500" :
+                                        "bg-yellow-500/10 text-yellow-500"
+                                  }>
+                                    {inst.status === "paid" ? "مدفوع" : inst.status === "overdue" ? "متأخر" : "معلق"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p>لا توجد أقساط</p>
-                      </div>
-                    )}
-                  </CardContent>
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>لا توجد أقساط</p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value="boq" className="mt-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-bold">جداول الكميات (BOQ)</h3>
+                          <Dialog open={isAddBoqOpen} onOpenChange={setIsAddBoqOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة بند</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>إضافة بند BOQ</DialogTitle>
+                              </DialogHeader>
+                              <form
+                                className="space-y-4"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const form = e.target as any;
+                                  createBoq.mutate({
+                                    projectId,
+                                    itemNumber: form.itemNumber.value,
+                                    description: form.description.value,
+                                    unit: form.unit.value,
+                                    quantity: parseFloat(form.quantity.value),
+                                    unitPrice: parseFloat(form.unitPrice.value),
+                                    category: form.category.value
+                                  });
+                                }}
+                              >
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label>رقم البند</Label>
+                                    <Input name="itemNumber" placeholder="مثال: 1.1" required />
+                                  </div>
+                                  <div>
+                                    <Label>الفئة</Label>
+                                    <Input name="category" placeholder="مثال: أعمال مدنية" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label>الوصف</Label>
+                                  <Input name="description" required />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                  <div>
+                                    <Label>الوحدة</Label>
+                                    <Input name="unit" placeholder="متر/حبة..." required />
+                                  </div>
+                                  <div>
+                                    <Label>الكمية</Label>
+                                    <Input name="quantity" type="number" step="0.01" required />
+                                  </div>
+                                  <div>
+                                    <Label>سعر الوحدة</Label>
+                                    <Input name="unitPrice" type="number" step="0.01" required />
+                                  </div>
+                                </div>
+                                <Button type="submit" className="w-full" disabled={createBoq.isPending}>
+                                  {createBoq.isPending ? "جاري الحفظ..." : "حفظ البند"}
+                                </Button>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+
+                        <div className="border rounded overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-right">البند</TableHead>
+                                <TableHead className="text-right w-[40%]">الوصف</TableHead>
+                                <TableHead className="text-center">الوحدة</TableHead>
+                                <TableHead className="text-center">الكمية</TableHead>
+                                <TableHead className="text-center">السعر</TableHead>
+                                <TableHead className="text-left">الإجمالي</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {boq && boq.length > 0 ? boq.map((item: any) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-medium">{item.itemName}</TableCell>
+                                  <TableCell>{item.description}</TableCell>
+                                  <TableCell className="text-center">{item.unit}</TableCell>
+                                  <TableCell className="text-center">{item.quantity}</TableCell>
+                                  <TableCell className="text-center">{item.unitPrice}</TableCell>
+                                  <TableCell className="text-left font-bold">{item.total?.toLocaleString()}</TableCell>
+                                </TableRow>
+                              )) : (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">لا توجد بنود</TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="expenses" className="mt-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="font-bold">سجل المصروفات</h3>
+                          <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة مصروف</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>إضافة مصروف جديد</DialogTitle>
+                              </DialogHeader>
+                              <form
+                                className="space-y-4"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const form = e.target as any;
+                                  createExpense.mutate({
+                                    projectId,
+                                    category: form.category.value,
+                                    description: form.description.value,
+                                    amount: parseFloat(form.amount.value),
+                                    expenseDate: form.expenseDate.value
+                                  });
+                                }}
+                              >
+                                <div>
+                                  <Label>التصنيف</Label>
+                                  <Input name="category" placeholder="مواد/عمالة/نقل..." required />
+                                </div>
+                                <div>
+                                  <Label>الوصف</Label>
+                                  <Input name="description" required />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label>المبلغ</Label>
+                                    <Input name="amount" type="number" step="0.01" required />
+                                  </div>
+                                  <div>
+                                    <Label>التاريخ</Label>
+                                    <Input name="expenseDate" type="date" required />
+                                  </div>
+                                </div>
+                                <Button type="submit" className="w-full" disabled={createExpense.isPending}>
+                                  {createExpense.isPending ? "جاري الحفظ..." : "حفظ المصروف"}
+                                </Button>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+
+                        <div className="border rounded overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-right">التاريخ</TableHead>
+                                <TableHead className="text-right">الوصف</TableHead>
+                                <TableHead className="text-right">التصنيف</TableHead>
+                                <TableHead className="text-left">المبلغ</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {expenses && expenses.length > 0 ? expenses.map((exp: any) => (
+                                <TableRow key={exp.id}>
+                                  <TableCell>{new Date(exp.expenseDate).toLocaleDateString("ar-SA")}</TableCell>
+                                  <TableCell>{exp.description}</TableCell>
+                                  <TableCell><Badge variant="outline">{exp.category}</Badge></TableCell>
+                                  <TableCell className="text-left font-bold">{exp.amount.toLocaleString()}</TableCell>
+                                </TableRow>
+                              )) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد مصروفات</TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
                 </Card>
               </div>
             </TabsContent>

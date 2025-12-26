@@ -23,7 +23,9 @@ export default function Projects() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
   const { data: clients } = trpc.clients.clientNames.useQuery();
+  const { data: users } = trpc.users.list.useQuery();
 
   // Create a map for quick client lookup
   const clientMap = (clients || []).reduce((acc: Record<number, string>, c: any) => {
@@ -175,7 +177,11 @@ export default function Projects() {
                       name: project.name,
                       status: project.status,
                       budget: project.budget || 0,
-                      description: project.description || ""
+                      description: project.description || "",
+                      startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
+                      endDate: project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
+                      assignedTo: project.assignedTo ? String(project.assignedTo) : "",
+                      projectType: project.projectType
                     })}
                   >
                     <Edit2 className="w-4 h-4 ml-2" />
@@ -223,7 +229,10 @@ export default function Projects() {
                   name: editProject.name,
                   status: editProject.status,
                   budget: editProject.budget,
-                  description: editProject.description
+                  description: editProject.description,
+                  startDate: editProject.startDate ? new Date(editProject.startDate) : undefined,
+                  endDate: editProject.endDate ? new Date(editProject.endDate) : undefined,
+                  assignedTo: editProject.assignedTo ? parseInt(editProject.assignedTo) : undefined
                 });
               }}
               className="space-y-4"
@@ -235,6 +244,36 @@ export default function Projects() {
                   onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>نوع المشروع</Label>
+                  <Input
+                    value={
+                      editProject.projectType === 'design' ? 'تصميم' :
+                        editProject.projectType === 'execution' ? 'تنفيذ' :
+                          editProject.projectType === 'design_execution' ? 'تصميم وتنفيذ' :
+                            editProject.projectType === 'supervision' ? 'إشراف' : editProject.projectType
+                    }
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div>
+                  <Label>مدير المشروع</Label>
+                  <select
+                    className="w-full border rounded px-3 py-2"
+                    value={editProject.assignedTo}
+                    onChange={(e) => setEditProject({ ...editProject, assignedTo: e.target.value })}
+                  >
+                    <option value="">-- اختر مدير المشروع --</option>
+                    {users?.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name || u.email}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <Label>الحالة</Label>
                 <select
@@ -258,6 +297,26 @@ export default function Projects() {
                   onChange={(e) => setEditProject({ ...editProject, budget: parseInt(e.target.value) || 0 })}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>تاريخ البدء</Label>
+                  <Input
+                    type="date"
+                    value={editProject.startDate}
+                    onChange={(e) => setEditProject({ ...editProject, startDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>تاريخ الانتهاء</Label>
+                  <Input
+                    type="date"
+                    value={editProject.endDate}
+                    onChange={(e) => setEditProject({ ...editProject, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label>الوصف</Label>
                 <Input
@@ -273,6 +332,6 @@ export default function Projects() {
           )}
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }
