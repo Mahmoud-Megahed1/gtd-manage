@@ -934,7 +934,7 @@ export default function Fatore() {
                             <hr className="border-muted" />
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">نظام الدفعات (نقدي/تحويل)</label>
+                                <label className="text-sm font-medium">نظام الدفعات</label>
                                 <div className="flex gap-2">
                                     <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={paymentTermType} onChange={e => setPaymentTermType(e.target.value)}>
                                         <option value="50-50">50%-50% (دفعتين)</option>
