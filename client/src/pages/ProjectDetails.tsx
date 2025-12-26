@@ -343,9 +343,6 @@ export default function ProjectDetails() {
   };
 
 
-  const totalBOQ = boq.reduce((sum, item) => sum + (item.total || 0), 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalBOQ = boq.reduce((sum, item) => sum + (item.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   // Revenue from Sales (Invoices)
   const totalRevenue = (sales || []).reduce((sum, sale) => sum + (sale.status !== 'cancelled' ? sale.amount : 0), 0);
