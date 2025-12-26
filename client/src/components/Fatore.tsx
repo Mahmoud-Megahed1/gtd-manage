@@ -121,6 +121,7 @@ export default function Fatore() {
     // ---- Data Fetching ----
     const createInvoice = trpc.invoices.create.useMutation();
     const updateInvoice = trpc.invoices.update.useMutation();
+    const createClient = trpc.clients.create.useMutation();
 
     const { data: clients } = trpc.clients.list.useQuery();
     // Fetch projects - always enabled, filtered by clientId if one is selected
@@ -359,9 +360,10 @@ export default function Fatore() {
         }
     };
 
-    const handleSaveToDB = () => {
-        if (!clientId) {
-            alert('الرجاء اختيار العميل');
+    const handleSaveToDB = async () => {
+        // Allow save if: existing client selected OR new client with name entered
+        if (!clientId && !clientName.trim()) {
+            alert('الرجاء اختيار عميل أو إدخال اسم العميل الجديد');
             return;
         }
 
@@ -374,9 +376,33 @@ export default function Fatore() {
         const formDataObj = getFormDataObject();
         const formData = JSON.stringify(formDataObj);
 
+        // Determine final client ID
+        let finalClientId = clientId;
+
+        // If "New Client" selected (clientId === 0), create client first
+        if (!clientId && clientName.trim()) {
+            try {
+                const result = await createClient.mutateAsync({
+                    name: clientName.trim(),
+                    phone: clientPhone.trim() || undefined,
+                    city: clientCity.trim() || undefined
+                });
+                // Use the returned clientId directly
+                if (result.clientId) {
+                    finalClientId = result.clientId;
+                } else {
+                    alert('تم إنشاء العميل ولكن لم يتم العثور على معرفه. يرجى المحاولة مرة أخرى.');
+                    return;
+                }
+            } catch (err: any) {
+                alert('خطأ في إنشاء العميل: ' + err.message);
+                return;
+            }
+        }
+
         const mutationPayload = {
             type: typeMap[docType] || 'invoice',
-            clientId,
+            clientId: finalClientId,
             projectId: projectId || undefined,
             issueDate: new Date(issueDate),
             subtotal,

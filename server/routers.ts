@@ -579,14 +579,18 @@ export const appRouter = router({
         }
 
         const clientNumber = generateUniqueNumber('CLT');
-        await db.createClient({
+        const result = await db.createClient({
           ...input,
           clientNumber,
           createdBy: ctx.user.id
         });
 
-        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', undefined, `Created client: ${input.name}`, ctx);
-        return { success: true, clientNumber };
+        // Extract client ID from result
+        const resultData = Array.isArray(result) ? result[0] : result;
+        const clientId = Number((resultData as any)?.insertId || 0);
+
+        await logAudit(ctx.user.id, 'CREATE_CLIENT', 'client', clientId || undefined, `Created client: ${input.name}`, ctx);
+        return { success: true, clientNumber, clientId };
       }),
 
     update: protectedProcedure
