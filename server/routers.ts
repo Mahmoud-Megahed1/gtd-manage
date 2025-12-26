@@ -957,12 +957,13 @@ export const appRouter = router({
         return await conn.select().from(rfis).where(eq(rfis.projectId, input.projectId)).orderBy(desc(rfis.submittedAt));
       }),
     create: protectedProcedure
-      .input(z.object({ projectId: z.number(), title: z.string(), question: z.string() }))
+      .input(z.object({ projectId: z.number(), title: z.string(), question: z.string(), assignedTo: z.number().optional() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
+        const { createNotification } = await import("./routers/notifications");
         const rfiNumber = generateUniqueNumber("RFI");
         await conn.insert(rfis).values({
           projectId: input.projectId,
@@ -970,8 +971,23 @@ export const appRouter = router({
           title: input.title,
           question: input.question,
           status: "open",
+          assignedTo: input.assignedTo,
+          assignedBy: input.assignedTo ? ctx.user.id : undefined,
           submittedBy: ctx.user.id
         } as any);
+        // Send notification to assigned user
+        if (input.assignedTo) {
+          await createNotification({
+            userId: input.assignedTo,
+            fromUserId: ctx.user.id,
+            type: 'action',
+            title: 'طلب استفسار جديد (RFI)',
+            message: `تم تعيينك للرد على: ${input.title}`,
+            link: `/projects/${input.projectId}`,
+            entityType: 'rfi',
+            entityId: undefined
+          });
+        }
         await logAudit(ctx.user.id, 'CREATE_RFI', 'project', input.projectId, rfiNumber, ctx);
         return { success: true, rfiNumber };
       }),
@@ -982,7 +998,28 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
+        const { createNotification } = await import("./routers/notifications");
+        // Get RFI to check authorization and get submitter
+        const [rfi] = await conn.select().from(rfis).where(eq(rfis.id, input.id));
+        if (!rfi) throw new TRPCError({ code: 'NOT_FOUND', message: 'RFI not found' });
+        // Authorization: only assignedTo or admin can answer
+        if (rfi.assignedTo && rfi.assignedTo !== ctx.user.id && ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'أنت غير مُعيَّن للرد على هذا الاستفسار' });
+        }
         await conn.update(rfis).set({ answer: input.answer, answeredBy: ctx.user.id, answeredAt: new Date(), status: "answered" }).where(eq(rfis.id, input.id));
+        // Notify the submitter
+        if (rfi.submittedBy && rfi.submittedBy !== ctx.user.id) {
+          await createNotification({
+            userId: rfi.submittedBy,
+            fromUserId: ctx.user.id,
+            type: 'success',
+            title: 'تم الرد على استفسارك',
+            message: `تم الرد على: ${rfi.title}`,
+            link: `/projects/${rfi.projectId}`,
+            entityType: 'rfi',
+            entityId: input.id
+          });
+        }
         await logAudit(ctx.user.id, 'ANSWER_RFI', 'rfi', input.id, undefined, ctx);
         return { success: true };
       }),
@@ -1020,20 +1057,36 @@ export const appRouter = router({
         return await conn.select().from(submittals).where(eq(submittals.projectId, input.projectId)).orderBy(desc(submittals.submittedAt));
       }),
     create: protectedProcedure
-      .input(z.object({ projectId: z.number(), title: z.string() }))
+      .input(z.object({ projectId: z.number(), title: z.string(), assignedTo: z.number().optional() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
+        const { createNotification } = await import("./routers/notifications");
         const code = generateUniqueNumber("SUB");
         await conn.insert(submittals).values({
           projectId: input.projectId,
           submittalCode: code,
           title: input.title,
           status: "submitted",
+          assignedTo: input.assignedTo,
+          assignedBy: input.assignedTo ? ctx.user.id : undefined,
           submittedBy: ctx.user.id
         } as any);
+        // Send notification to assigned reviewer
+        if (input.assignedTo) {
+          await createNotification({
+            userId: input.assignedTo,
+            fromUserId: ctx.user.id,
+            type: 'action',
+            title: 'طلب اعتماد جديد',
+            message: `تم تعيينك لمراجعة: ${input.title}`,
+            link: `/projects/${input.projectId}`,
+            entityType: 'submittal',
+            entityId: undefined
+          });
+        }
         await logAudit(ctx.user.id, 'CREATE_SUBMITTAL', 'project', input.projectId, code, ctx);
         return { success: true, code };
       }),
@@ -1044,7 +1097,28 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
+        const { createNotification } = await import("./routers/notifications");
+        // Get submittal to check authorization and get submitter
+        const [sub] = await conn.select().from(submittals).where(eq(submittals.id, input.id));
+        if (!sub) throw new TRPCError({ code: 'NOT_FOUND', message: 'Submittal not found' });
+        // Authorization: only assignedTo or admin can approve
+        if (sub.assignedTo && sub.assignedTo !== ctx.user.id && ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'أنت غير مُعيَّن لاعتماد هذا الطلب' });
+        }
         await conn.update(submittals).set({ status: "approved", approvedBy: ctx.user.id, approvedAt: new Date(), notes: input.notes }).where(eq(submittals.id, input.id));
+        // Notify the submitter
+        if (sub.submittedBy && sub.submittedBy !== ctx.user.id) {
+          await createNotification({
+            userId: sub.submittedBy,
+            fromUserId: ctx.user.id,
+            type: 'success',
+            title: 'تم اعتماد طلبك',
+            message: `تم اعتماد: ${sub.title}`,
+            link: `/projects/${sub.projectId}`,
+            entityType: 'submittal',
+            entityId: input.id
+          });
+        }
         await logAudit(ctx.user.id, 'APPROVE_SUBMITTAL', 'submittal', input.id, undefined, ctx);
         return { success: true };
       }),
@@ -1055,7 +1129,28 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
+        const { createNotification } = await import("./routers/notifications");
+        // Get submittal to check authorization and get submitter
+        const [sub] = await conn.select().from(submittals).where(eq(submittals.id, input.id));
+        if (!sub) throw new TRPCError({ code: 'NOT_FOUND', message: 'Submittal not found' });
+        // Authorization: only assignedTo or admin can reject
+        if (sub.assignedTo && sub.assignedTo !== ctx.user.id && ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'أنت غير مُعيَّن لرفض هذا الطلب' });
+        }
         await conn.update(submittals).set({ status: "rejected", approvedBy: ctx.user.id, approvedAt: new Date(), notes: input.notes }).where(eq(submittals.id, input.id));
+        // Notify the submitter
+        if (sub.submittedBy && sub.submittedBy !== ctx.user.id) {
+          await createNotification({
+            userId: sub.submittedBy,
+            fromUserId: ctx.user.id,
+            type: 'warning',
+            title: 'تم رفض طلبك',
+            message: `تم رفض: ${sub.title}${input.notes ? ` - ${input.notes}` : ''}`,
+            link: `/projects/${sub.projectId}`,
+            entityType: 'submittal',
+            entityId: input.id
+          });
+        }
         await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id, undefined, ctx);
         return { success: true };
       }),

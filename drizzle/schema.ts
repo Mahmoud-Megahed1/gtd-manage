@@ -393,6 +393,8 @@ export const rfis = mysqlTable("rfis", {
 	title: varchar({ length: 255 }).notNull(),
 	question: text().notNull(),
 	status: mysqlEnum(['open', 'answered', 'closed']).default('open').notNull(),
+	assignedTo: int(),
+	assignedBy: int(),
 	submittedBy: int().notNull(),
 	submittedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 	answeredBy: int(),
@@ -402,6 +404,7 @@ export const rfis = mysqlTable("rfis", {
 },
 	(table) => [
 		unique("rfis_rfiNumber_unique").on(table.rfiNumber),
+		index("idx_rfis_assignedTo").on(table.assignedTo),
 	]);
 
 export const sales = mysqlTable("sales", {
@@ -429,7 +432,9 @@ export const submittals = mysqlTable("submittals", {
 	projectId: int().notNull(),
 	submittalCode: varchar({ length: 64 }).notNull(),
 	title: varchar({ length: 255 }).notNull(),
-	status: mysqlEnum(['submitted', 'approved', 'rejected']).default('submitted').notNull(),
+	status: mysqlEnum(['submitted', 'under_review', 'approved', 'rejected']).default('submitted').notNull(),
+	assignedTo: int(),
+	assignedBy: int(),
 	submittedBy: int().notNull(),
 	submittedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 	approvedBy: int(),
@@ -439,6 +444,7 @@ export const submittals = mysqlTable("submittals", {
 },
 	(table) => [
 		unique("submittals_submittalCode_unique").on(table.submittalCode),
+		index("idx_submittals_assignedTo").on(table.assignedTo),
 	]);
 
 export const taskComments = mysqlTable("taskComments", {

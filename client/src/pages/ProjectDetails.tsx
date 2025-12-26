@@ -1092,19 +1092,26 @@ export default function ProjectDetails() {
           <CardContent>
             <div className="space-y-3">
               <form
-                className="grid md:grid-cols-3 gap-2 p-3 border rounded"
+                className="grid md:grid-cols-4 gap-2 p-3 border rounded"
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const form = e.currentTarget as any;
                   const title = form.title.value;
                   const question = form.question.value;
+                  const assignedTo = form.assignedTo.value ? parseInt(form.assignedTo.value) : undefined;
                   if (!title || !question) return;
-                  await createRfi.mutateAsync({ projectId, title, question });
+                  await createRfi.mutateAsync({ projectId, title, question, assignedTo });
                   form.reset();
                 }}
               >
                 <Input name="title" placeholder="العنوان" />
-                <Input name="question" placeholder="السؤال" className="md:col-span-2" />
+                <Input name="question" placeholder="السؤال" />
+                <select name="assignedTo" className="border rounded px-2 py-2 text-sm">
+                  <option value="">موجه إلى (اختياري)</option>
+                  {(teamMembers || []).map((m: any) => (
+                    <option key={m.userId} value={m.userId}>{m.userName}</option>
+                  ))}
+                </select>
                 <Button type="submit" variant="outline">إضافة</Button>
               </form>
               <Table>
@@ -1152,17 +1159,24 @@ export default function ProjectDetails() {
           <CardContent>
             <div className="space-y-3">
               <form
-                className="grid md:grid-cols-3 gap-2 p-3 border rounded"
+                className="grid md:grid-cols-4 gap-2 p-3 border rounded"
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const form = e.currentTarget as any;
                   const title = form.title.value;
+                  const assignedTo = form.assignedTo.value ? parseInt(form.assignedTo.value) : undefined;
                   if (!title) return;
-                  await createSubmittal.mutateAsync({ projectId, title });
+                  await createSubmittal.mutateAsync({ projectId, title, assignedTo });
                   form.reset();
                 }}
               >
-                <Input name="title" placeholder="العنوان" className="md:col-span-2" />
+                <Input name="title" placeholder="العنوان" />
+                <select name="assignedTo" className="border rounded px-2 py-2 text-sm">
+                  <option value="">موجه إلى (اختياري)</option>
+                  {(teamMembers || []).map((m: any) => (
+                    <option key={m.userId} value={m.userId}>{m.userName}</option>
+                  ))}
+                </select>
                 <Button type="submit" variant="outline">إضافة</Button>
               </form>
               <Table>
