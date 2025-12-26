@@ -97,7 +97,11 @@ export default function ProjectReport() {
         {/* Financial Summary */}
         <div>
           <h3 className="font-bold mb-3">الملخص المالي</h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 print:grid-cols-5">
+            <div className="p-4 border rounded">
+              <div className="text-sm text-muted-foreground">الميزانية</div>
+              <div className="text-2xl font-bold">{(project.budget || 0).toLocaleString()} ريال</div>
+            </div>
             <div className="p-4 border rounded">
               <div className="text-sm text-muted-foreground">إجمالي BOQ</div>
               <div className="text-2xl font-bold">{totalBOQ.toLocaleString()} ريال</div>
