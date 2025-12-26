@@ -379,7 +379,14 @@ export default function Fatore() {
             discount: items.reduce((sum, i) => sum + (i.price * i.quantity * (i.discount / 100)), 0),
             total: grandTotal,
             notes,
-            terms: 'Terms stored in form data',
+            terms: JSON.stringify([
+                `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
+                `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
+                `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
+                `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
+                `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
+                ...customTerms
+            ]),
             invoiceNumber: serialNumber,
             formData,
             items: items.map(i => ({

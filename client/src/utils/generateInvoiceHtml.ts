@@ -221,7 +221,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                 <header style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="width: 30%;">
                         <div class="logo-placeholder">
-                            <img src="${window.location.origin}/LOGO.png" alt="Logo" class="logo-img">
+                            <img src="${window.location.origin}/logo.png" alt="Logo" class="logo-img">
                         </div>
                     </div>
                     <div style="width: 65%; text-align: left;">
