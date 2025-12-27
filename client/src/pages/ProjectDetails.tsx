@@ -588,20 +588,24 @@ export default function ProjectDetails() {
                       <span className="font-bold">{(project.budget || 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">المصروفات:</span>
-                      <span className="font-bold text-red-500">-{totalExpenses.toLocaleString()} ريال</span>
+                      <span className="text-muted-foreground">إجمالي BOQ (جدول الكميات):</span>
+                      <span className="font-bold text-blue-600">{boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">الإيرادات المحققة (الفواتير):</span>
-                      <span className="font-bold">{totalRevenue.toLocaleString()} ريال</span>
+                      <span className="font-bold text-green-600">{totalRevenue.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">المدفوع:</span>
+                      <span className="text-muted-foreground">المدفوع من العميل:</span>
                       <span className="font-bold text-green-500">{paidRevenue.toLocaleString()} ريال</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">المصروفات:</span>
+                      <span className="font-bold text-red-500">-{totalExpenses.toLocaleString()} ريال</span>
                     </div>
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium">الربح المتوقع:</span>
+                        <span className="font-medium">صافي الربح:</span>
                         <span className={`font-bold text-lg ${(totalRevenue - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
                           }`}>
                           {(totalRevenue - totalExpenses).toLocaleString()} ريال
@@ -615,7 +619,7 @@ export default function ProjectDetails() {
                   <Tabs defaultValue="installments" className="w-full">
                     <div className="px-6 pt-6 flex justify-between items-center">
                       <TabsList>
-                        <TabsTrigger value="installments">سجل الفواتير ({sales.length})</TabsTrigger>
+                        <TabsTrigger value="installments">سجل الفواتير - الإيرادات ({sales.length})</TabsTrigger>
                         <TabsTrigger value="purchases">المشتريات ({projectPurchases.length})</TabsTrigger>
                         <TabsTrigger value="operatingCosts">التكاليف التشغيلية ({projectOperatingCosts.length})</TabsTrigger>
                         <TabsTrigger value="expenses">المصروفات ({expenses.length})</TabsTrigger>
@@ -781,7 +785,7 @@ export default function ProjectDetails() {
                                   <TableCell className="text-left font-bold text-orange-600">{purchase.amount?.toLocaleString()} ريال</TableCell>
                                   <TableCell className="text-center">
                                     <span className={`px-2 py-1 rounded text-xs ${purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                      purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                                       }`}>
                                       {purchase.status === 'completed' ? 'مكتمل' : purchase.status === 'pending' ? 'معلق' : 'ملغي'}
                                     </span>
