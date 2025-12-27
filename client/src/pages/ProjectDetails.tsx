@@ -1059,6 +1059,7 @@ export default function ProjectDetails() {
                     const description = form.phaseDesc.value;
                     const startDate = form.phaseStart.value;
                     const endDate = form.phaseEnd.value;
+                    const assignedTo = form.phaseAssignedTo?.value;
                     if (!name) return;
 
                     try {
@@ -1067,7 +1068,8 @@ export default function ProjectDetails() {
                         name,
                         description: description || undefined,
                         startDate: startDate ? new Date(startDate) : undefined,
-                        endDate: endDate ? new Date(endDate) : undefined
+                        endDate: endDate ? new Date(endDate) : undefined,
+                        assignedTo: assignedTo ? parseInt(assignedTo) : undefined
                       });
                       form.reset();
                       toast.success("تم إضافة المرحلة");
@@ -1123,6 +1125,12 @@ export default function ProjectDetails() {
                     <Input name="phaseDesc" placeholder="الوصف (اختياري)" />
                     <Input name="phaseStart" type="date" placeholder="تاريخ البداية" />
                     <Input name="phaseEnd" type="date" placeholder="تاريخ النهاية" />
+                    <select name="phaseAssignedTo" className="w-full p-2 border rounded bg-background text-sm">
+                      <option value="">-- تعيين لعضو فريق (اختياري) --</option>
+                      {(teamMembers || []).map((m: any) => (
+                        <option key={m.userId} value={m.userId}>{m.userName || m.userEmail || `User #${m.userId}`}</option>
+                      ))}
+                    </select>
                   </div>
                   <Button type="submit" className="mt-3" disabled={createTask.isPending}>
                     <Layers className="w-4 h-4 ml-2" />

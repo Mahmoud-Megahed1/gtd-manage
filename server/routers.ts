@@ -876,7 +876,8 @@ export const appRouter = router({
         name: z.string(),
         description: z.string().optional(),
         startDate: z.date().optional(),
-        endDate: z.date().optional()
+        endDate: z.date().optional(),
+        assignedTo: z.number().optional()  // Who is responsible for this task
       }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
@@ -886,6 +887,7 @@ export const appRouter = router({
           description: input.description,
           startDate: input.startDate,
           endDate: input.endDate,
+          assignedTo: input.assignedTo,
           status: 'planned'
         } as any);
         await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, ctx);
