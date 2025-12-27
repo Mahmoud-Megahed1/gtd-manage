@@ -406,32 +406,20 @@ export default function Accounting() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
+              <CardTitle className="text-sm font-medium">إجمالي الإيرادات (الفواتير)</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
                 {summary?.totalRevenue?.toLocaleString() || 0} ر.س
               </div>
-              <p className="text-xs text-muted-foreground">من الفواتير المدفوعة</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">سجل الإيرادات (الفواتير)</CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">
-                {salesList?.filter((s: any) => s.status === 'completed').reduce((a: number, s: any) => a + (s.amount || 0), 0).toLocaleString() || 0} ر.س
-              </div>
               <p className="text-xs text-muted-foreground">{salesList?.filter((s: any) => s.status === 'completed').length || 0} عملية إيراد</p>
             </CardContent>
           </Card>
+
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -712,8 +700,8 @@ export default function Accounting() {
                               defaultValue={sale.status}
                               onChange={(e) => updateSale.mutate({ id: sale.id, status: e.target.value as any })}
                               className={`border rounded p-1 text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                  sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
+                                sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
                                 }`}
                             >
                               <option value="pending">قيد المعالجة</option>
