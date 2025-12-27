@@ -1167,21 +1167,32 @@ export const hrRouter = router({
 
             if (targetUserId) {
               // Link the userId to employee record
-              await db.update(employees).set({ userId: targetUserId }).where(eq(employees.id, emp[0].id));
-              console.log("[LEAVE APPROVE] Linked userId to employee record");
+              try {
+                await db.update(employees).set({ userId: targetUserId }).where(eq(employees.id, emp[0].id));
+                console.log("[LEAVE APPROVE] Linked userId to employee record");
+              } catch (e) {
+                console.error("[LEAVE APPROVE] Failed to link user:", e);
+              }
 
-              const { createNotification } = await import('./notifications');
-              await createNotification({
-                userId: targetUserId,
-                fromUserId: ctx.user.id,
-                type: 'success',
-                title: 'تمت الموافقة على طلب الإجازة ✅',
-                message: input.notes ? `ملاحظات: ${input.notes}` : 'تم قبول طلب إجازتك',
-                entityType: 'leave',
-                entityId: input.id,
-                link: '/hr'
-              });
-              console.log("[LEAVE APPROVE] Notification sent via fallback");
+              try {
+                const { createNotification } = await import('./notifications');
+                await createNotification({
+                  userId: targetUserId,
+                  fromUserId: ctx.user.id,
+                  type: 'success',
+                  title: 'تمت الموافقة على طلب الإجازة ✅',
+                  message: input.notes ? `ملاحظات: ${input.notes}` : 'تم قبول طلب إجازتك',
+                  entityType: 'leave',
+                  entityId: input.id,
+                  link: '/hr'
+                });
+                console.log("[LEAVE APPROVE] Notification sent via fallback");
+              } catch (e) {
+                console.error("[LEAVE APPROVE] Failed to send notification:", e);
+              }
+            } else {
+              // Even if no target user found, we don't throw error. The leave is APPROVED.
+              console.warn("[LEAVE APPROVE] Could not find target user for notification, but leave approved.");
             }
           }
         } else {
@@ -1220,18 +1231,40 @@ export const hrRouter = router({
         // Notify employee about rejection
         if (leaveRecord[0]) {
           const emp = await db.select().from(employees).where(eq(employees.id, leaveRecord[0].employeeId)).limit(1);
-          if (emp[0]?.userId) {
-            const { createNotification } = await import('./notifications');
-            await createNotification({
-              userId: emp[0].userId,
-              fromUserId: ctx.user.id,
-              type: 'warning',
-              title: 'تم رفض طلب الإجازة ❌',
-              message: input.notes || input.reason || 'تم رفض طلب إجازتك',
-              entityType: 'leave',
-              entityId: input.id,
-              link: '/hr'
-            });
+
+          let targetUserId = emp[0]?.userId;
+
+          // Fallback logic for linking
+          if (!targetUserId && emp[0]?.employeeNumber) {
+            const match = emp[0].employeeNumber.match(/EMP-(\d+)-/);
+            if (match) {
+              targetUserId = parseInt(match[1]);
+            }
+          }
+
+          if (targetUserId) {
+            // Link if not linked
+            if (!emp[0].userId) {
+              try {
+                await db.update(employees).set({ userId: targetUserId }).where(eq(employees.id, emp[0].id));
+              } catch (e) { }
+            }
+
+            try {
+              const { createNotification } = await import('./notifications');
+              await createNotification({
+                userId: targetUserId,
+                fromUserId: ctx.user.id,
+                type: 'warning',
+                title: 'تم رفض طلب الإجازة ❌',
+                message: input.notes || input.reason || 'تم رفض طلب إجازتك',
+                entityType: 'leave',
+                entityId: input.id,
+                link: '/hr'
+              });
+            } catch (e) {
+              console.error("[LEAVE REJECT] Failed notification:", e);
+            }
           }
         }
 
