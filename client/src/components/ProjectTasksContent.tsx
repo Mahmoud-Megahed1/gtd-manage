@@ -108,6 +108,10 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
 
     const handleCreateTask = () => {
         if (!form.name.trim()) { toast.error("أدخل اسم المهمة"); return; }
+
+        // Debug log
+        console.log("Creating task with assignedTo:", form.assignedTo, "parsed:", form.assignedTo ? Number(form.assignedTo) : undefined);
+
         createTask.mutate({
             projectId,
             name: form.name,

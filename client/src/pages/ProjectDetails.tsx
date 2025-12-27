@@ -1060,17 +1060,29 @@ export default function ProjectDetails() {
                     const startDate = form.phaseStart.value;
                     const endDate = form.phaseEnd.value;
                     const assignedTo = form.phaseAssignedTo?.value;
+
+                    // Debug logging
+                    console.log("=== Phase Form Submission Debug ===");
+                    console.log("Form element:", form);
+                    console.log("phaseAssignedTo element:", form.phaseAssignedTo);
+                    console.log("assignedTo raw value:", assignedTo);
+                    console.log("assignedTo parsed:", assignedTo ? parseInt(assignedTo) : undefined);
+                    console.log("teamMembers available:", teamMembers);
+
                     if (!name) return;
 
                     try {
-                      await createTask.mutateAsync({
+                      const mutationData = {
                         projectId,
                         name,
                         description: description || undefined,
                         startDate: startDate ? new Date(startDate) : undefined,
                         endDate: endDate ? new Date(endDate) : undefined,
                         assignedTo: assignedTo ? parseInt(assignedTo) : undefined
-                      });
+                      };
+                      console.log("Mutation data being sent:", mutationData);
+
+                      await createTask.mutateAsync(mutationData);
                       form.reset();
                       toast.success("تم إضافة المرحلة");
                     } catch (err: any) {
