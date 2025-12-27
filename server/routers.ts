@@ -916,7 +916,23 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
         await ensureProjectAccess(ctx, input.projectId);  // Verify user has access to this project
-        return await db.getProjectTasks(input.projectId);
+
+        const role = ctx.user.role;
+        const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
+        const isDesigner = designerRoles.includes(role);
+        const isAdminOrManager = ['admin', 'project_manager', 'department_manager'].includes(role);
+
+        const allTasks = await db.getProjectTasks(input.projectId);
+
+        // For designers: show tasks assigned to them OR unassigned tasks
+        // Admins/managers see all tasks
+        if (isDesigner && !isAdminOrManager) {
+          return (allTasks as any[]).filter((t: any) =>
+            t.assignedTo === ctx.user.id || t.assignedTo === null || t.assignedTo === undefined
+          );
+        }
+
+        return allTasks;
       }),
 
     deleteTask: protectedProcedure

@@ -54,9 +54,7 @@ export const tasksRouter = router({
       const role = ctx.user.role;
       const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
       const isDesigner = designerRoles.includes(role);
-
-      // For designers, force filter to their own tasks only
-      const effectiveAssignedTo = isDesigner ? ctx.user.id : input?.assignedTo;
+      const isAdminOrManager = ['admin', 'project_manager', 'department_manager'].includes(role);
 
       const conn = await db.getDb();
       if (!conn) {
@@ -64,15 +62,34 @@ export const tasksRouter = router({
         let tasks = demo.list("projectTasks") as any[];
         if (input?.projectId) tasks = tasks.filter((t: any) => t.projectId === input.projectId);
         if (input?.status) tasks = tasks.filter((t: any) => t.status === input.status);
-        if (effectiveAssignedTo) tasks = tasks.filter((t: any) => t.assignedTo === effectiveAssignedTo);
+
+        // For designers: show tasks assigned to them OR unassigned tasks
+        if (isDesigner && !isAdminOrManager) {
+          tasks = tasks.filter((t: any) =>
+            t.assignedTo === ctx.user.id || t.assignedTo === null || t.assignedTo === undefined
+          );
+        }
         return tasks;
       }
+
       const whereClauses: any[] = [];
       if (input?.projectId) whereClauses.push(eq(projectTasks.projectId, input.projectId));
       if (input?.from) whereClauses.push(gte(projectTasks.createdAt, input.from));
       if (input?.to) whereClauses.push(lte(projectTasks.createdAt, input.to));
       if (input?.status) whereClauses.push(eq(projectTasks.status, input.status));
-      if (effectiveAssignedTo) whereClauses.push(eq(projectTasks.assignedTo, effectiveAssignedTo));
+
+      // For designers: show tasks assigned to them OR unassigned tasks
+      // Admins/managers see all tasks regardless of assignment
+      if (isDesigner && !isAdminOrManager) {
+        const { or, isNull } = await import("drizzle-orm");
+        whereClauses.push(
+          or(
+            eq(projectTasks.assignedTo, ctx.user.id),
+            isNull(projectTasks.assignedTo)
+          )
+        );
+      }
+
       const where = whereClauses.length ? and(...whereClauses) : undefined as any;
       const rows = where ? await conn.select().from(projectTasks).where(where) : await conn.select().from(projectTasks);
       return rows;
