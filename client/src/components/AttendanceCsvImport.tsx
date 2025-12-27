@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export default function AttendanceCsvImport() {
   const [csvState, setCsvState] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const utils = trpc.useUtils();
 
   const imp = trpc.hr.attendance.importCsv.useMutation({
     onSuccess: (res) => {
@@ -19,6 +20,8 @@ export default function AttendanceCsvImport() {
       if (textareaRef.current) {
         textareaRef.current.value = "";
       }
+      // Invalidate attendance list to refresh the UI
+      utils.hr.attendance.list.invalidate();
     },
     onError: (err) => {
       console.error("Import error:", err);
