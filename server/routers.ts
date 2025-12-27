@@ -401,6 +401,52 @@ async function ensurePerm(ctx: any, sectionKey: string) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
   }
 }
+
+// Helper to check if user can access a specific project (assigned to it or a team member)
+async function canAccessProject(userId: number, projectId: number): Promise<boolean> {
+  // Check if user is assigned to the project
+  const project = await db.getProjectById(projectId);
+  if (project?.assignedTo === userId) {
+    return true;
+  }
+
+  // Check if user is a team member of the project
+  const conn = await db.getDb();
+  if (conn) {
+    const { projectTeam } = await import("../drizzle/schema");
+    const membership = await conn.select()
+      .from(projectTeam)
+      .where(eq(projectTeam.projectId, projectId))
+      .limit(100);
+
+    if (membership.some((m: any) => m.userId === userId)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Helper to ensure user has access to a specific project for 'own' permission level
+async function ensureProjectAccess(ctx: any, projectId: number) {
+  const permLevel = getPermissionLevel(ctx.user.role, 'projects');
+
+  // Admin and full access can access any project
+  if (ctx.user.role === 'admin' || permLevel === 'full') {
+    return;
+  }
+
+  // For 'own' permission level, check if user is assigned or team member
+  if (permLevel === 'own') {
+    const hasAccess = await canAccessProject(ctx.user.id, projectId);
+    if (!hasAccess) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'ليس لديك صلاحية الوصول لهذا المشروع'
+      });
+    }
+  }
+}
 // Role-based access control
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== 'admin') {
@@ -799,6 +845,7 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        await ensureProjectAccess(ctx, input.id);  // Verify user has access to this specific project
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
 
@@ -866,6 +913,7 @@ export const appRouter = router({
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        await ensureProjectAccess(ctx, input.projectId);  // Verify user has access to this project
         return await db.getProjectTasks(input.projectId);
       }),
 
