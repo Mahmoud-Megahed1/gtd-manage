@@ -708,14 +708,18 @@ export default function Accounting() {
                             />
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                              {sale.status === 'completed' && 'مكتمل'}
-                              {sale.status === 'pending' && 'قيد المعالجة'}
-                              {sale.status === 'cancelled' && 'ملغي'}
-                            </span>
+                            <select
+                              defaultValue={sale.status}
+                              onChange={(e) => updateSale.mutate({ id: sale.id, status: e.target.value as any })}
+                              className={`border rounded p-1 text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                  sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                }`}
+                            >
+                              <option value="pending">قيد المعالجة</option>
+                              <option value="completed">مكتمل</option>
+                              <option value="cancelled">ملغي</option>
+                            </select>
                           </TableCell>
                           <TableCell className="text-left">
                             <div className="flex gap-2 justify-end">
