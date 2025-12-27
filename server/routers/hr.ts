@@ -886,15 +886,40 @@ export const hrRouter = router({
     update: adminProcedure
       .input(z.object({
         id: z.number(),
+        employeeId: z.number().optional(),
+        month: z.number().optional(),
+        year: z.number().optional(),
+        baseSalary: z.number().optional(),
+        bonuses: z.number().optional(),
+        deductions: z.number().optional(),
+        notes: z.string().optional(),
         status: z.enum(['pending', 'paid']).optional(),
         paymentDate: z.date().optional(),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
-        if (!db) return { success: true };
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.update("payroll", input.id, input);
+          return { success: true };
+        }
+
+        // Get existing record to calculate net salary if needed
+        const [existing] = await db.select().from(payroll).where(eq(payroll.id, input.id));
+        if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
+
+        const baseSalary = input.baseSalary ?? existing.baseSalary;
+        const bonuses = input.bonuses ?? existing.bonuses ?? 0;
+        const deductions = input.deductions ?? existing.deductions ?? 0;
+        const netSalary = baseSalary + bonuses - deductions;
+
         const { id, ...data } = input;
+
         await db.update(payroll)
-          .set(data)
+          .set({
+            ...data,
+            netSalary
+          })
           .where(eq(payroll.id, id));
         return { success: true };
       }),

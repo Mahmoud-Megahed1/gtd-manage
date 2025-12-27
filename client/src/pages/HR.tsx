@@ -22,6 +22,7 @@ import { CheckOutDialog } from "@/components/CheckOutDialog";
 import { AddLeaveDialog } from "@/components/AddLeaveDialog";
 import { AddPerformanceReviewDialog } from "@/components/AddPerformanceReviewDialog";
 import { AddPayrollDialog } from "@/components/AddPayrollDialog";
+import { EditPayrollDialog } from "@/components/EditPayrollDialog";
 import { LeaveApprovalDialog } from "@/components/LeaveApprovalDialog";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AttendanceCsvImport from "@/components/AttendanceCsvImport";
@@ -287,7 +288,14 @@ export default function HR() {
                         {myPayroll.map((p: any) => (
                           <div key={p.id} className="flex justify-between p-3 border rounded">
                             <span>{p.month}/{p.year}</span>
-                            <span className="font-bold">{p.netSalary?.toLocaleString()} ريال</span>
+                            <div className="text-left">
+                              <span className="block font-bold text-lg">{p.netSalary?.toLocaleString()} ريال</span>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                <span>أساسي: {p.baseSalary?.toLocaleString()}</span>
+                                {p.bonuses > 0 && <span className="text-green-600 mx-2">+{p.bonuses.toLocaleString()}</span>}
+                                {p.deductions > 0 && <span className="text-red-600">-{p.deductions.toLocaleString()}</span>}
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -594,7 +602,8 @@ export default function HR() {
                               {pay.status === 'paid' ? 'مدفوع' : 'معلق'}
                             </Badge>
                             {user?.role === 'admin' && (
-                              <div className="mt-2">
+                              <div className="flex gap-2 justify-end mt-2">
+                                <EditPayrollDialog payroll={pay} />
                                 <Button
                                   variant="destructive"
                                   size="sm"
@@ -607,6 +616,7 @@ export default function HR() {
                           </div>
                         </div>
                       ))}
+
                     </div>
                   ) : (
                     <div className="text-center py-12">
@@ -838,24 +848,27 @@ export default function HR() {
               </Card>
             </TabsContent>
           </Tabs>
-        )}
-      </div>
+        )
+        }
+      </div >
 
       {/* Leave Approval Dialog */}
-      {approvalDialog && (
-        <LeaveApprovalDialog
-          leaveId={approvalDialog.leaveId}
-          employeeId={approvalDialog.employeeId}
-          leaveType={approvalDialog.leaveType}
-          days={approvalDialog.days}
-          reason={approvalDialog.reason}
-          open={approvalDialog.open}
-          onOpenChange={(open) => {
-            if (!open) setApprovalDialog(null);
-          }}
-          action={approvalDialog.action}
-        />
-      )}
-    </DashboardLayout>
+      {
+        approvalDialog && (
+          <LeaveApprovalDialog
+            leaveId={approvalDialog.leaveId}
+            employeeId={approvalDialog.employeeId}
+            leaveType={approvalDialog.leaveType}
+            days={approvalDialog.days}
+            reason={approvalDialog.reason}
+            open={approvalDialog.open}
+            onOpenChange={(open) => {
+              if (!open) setApprovalDialog(null);
+            }}
+            action={approvalDialog.action}
+          />
+        )
+      }
+    </DashboardLayout >
   );
 }
