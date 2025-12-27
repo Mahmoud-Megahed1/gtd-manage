@@ -154,32 +154,17 @@ export const hrRouter = router({
         return demo.list("leaves").filter((r: any) => r.employeeId === emp.id);
       }
 
-      // Find ALL employee records that could belong to this user
-      const allMyEmployees = await db.select().from(employees).where(eq(employees.userId, ctx.user.id));
+      // Find ALL employee records linked to this user
+      const userEmployees = await db.select().from(employees).where(eq(employees.userId, ctx.user.id));
 
-      // Also look for employees with matching userId pattern in employeeNumber
-      const patternEmployees = await db.select().from(employees).where(eq(employees.userId, null as any));
-      const matchingByPattern = patternEmployees.filter(e =>
-        e.employeeNumber && e.employeeNumber.includes(`-${ctx.user.id}-`)
-      );
+      const employeeIds = userEmployees.map(e => e.id);
 
-      // Combine all possible employee IDs
-      const allEmployeeIds = [
-        ...allMyEmployees.map(e => e.id),
-        ...matchingByPattern.map(e => e.id)
-      ];
+      if (employeeIds.length === 0) return [];
 
-      console.log(`[MY_LEAVES] User ${ctx.user.id} has employee IDs: ${JSON.stringify(allEmployeeIds)}`);
-
-      if (allEmployeeIds.length === 0) return [];
-
-      // Query leaves for ALL possible employee IDs
-      const allLeaves = await db.select().from(leaves).orderBy(desc(leaves.createdAt));
-      const myLeaves = allLeaves.filter(l => allEmployeeIds.includes(l.employeeId));
-
-      console.log(`[MY_LEAVES] Found ${myLeaves.length} leaves for user ${ctx.user.id}`);
-
-      return myLeaves;
+      return await db.select()
+        .from(leaves)
+        .where(inArray(leaves.employeeId, employeeIds))
+        .orderBy(desc(leaves.createdAt));
     }),
 
     // Get current user's performance reviews
