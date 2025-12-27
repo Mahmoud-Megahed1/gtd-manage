@@ -463,7 +463,7 @@ export default function ProjectDetails() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">إجمالي BOQ</p>
-                    <p className="text-2xl font-bold">{boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{(boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0) + (procurement || []).reduce((sum: number, item: any) => sum + (item.totalCost || 0), 0)).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">التكلفة المقدرة</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -605,7 +605,7 @@ export default function ProjectDetails() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">إجمالي BOQ (التكلفة المقدرة):</span>
-                      <span className="font-bold text-blue-600">{boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toLocaleString()} ريال</span>
+                      <span className="font-bold text-blue-600">{(boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0) + (procurement || []).reduce((sum: number, item: any) => sum + (item.totalCost || 0), 0)).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">المدفوع من العميل (الفواتير):</span>
