@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 export default function AttendanceCsvImport() {
-  const [csv, setCsv] = useState<string>("");
+  const [csvState, setCsvState] = useState<string>("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const imp = trpc.hr.attendance.importCsv.useMutation({
     onSuccess: (res) => {
       const msgs = [];
@@ -13,7 +15,10 @@ export default function AttendanceCsvImport() {
       if (res.late > 0) msgs.push(`متأخر: ${res.late}`);
       if (res.absent > 0) msgs.push(`غياب: ${res.absent}`);
       toast.success(`تم الاستيراد: ${msgs.join(', ') || 'بدون تغييرات'}`);
-      setCsv(""); // Clear textarea after successful import
+      setCsvState("");
+      if (textareaRef.current) {
+        textareaRef.current.value = "";
+      }
     },
     onError: (err) => {
       console.error("Import error:", err);
@@ -22,8 +27,14 @@ export default function AttendanceCsvImport() {
   });
 
   const handleImport = () => {
-    const value = csv.trim();
-    console.log("CSV value:", value);
+    // Get value directly from ref as a fallback
+    const valueFromRef = textareaRef.current?.value || "";
+    const valueFromState = csvState;
+    const value = (valueFromRef || valueFromState).trim();
+
+    console.log("CSV from state:", csvState);
+    console.log("CSV from ref:", valueFromRef);
+    console.log("CSV final value:", value);
     console.log("CSV length:", value.length);
 
     if (!value) {
@@ -41,29 +52,41 @@ export default function AttendanceCsvImport() {
     imp.mutate({ csvData: value });
   };
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    console.log("Text changed, new length:", newValue.length);
+    setCsvState(newValue);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      console.log("File loaded, length:", result.length);
+      setCsvState(result);
+      if (textareaRef.current) {
+        textareaRef.current.value = result;
+      }
+    };
+    reader.readAsText(f);
+  };
+
   return (
     <div className="space-y-2">
       <textarea
-        placeholder="employeeNumber,date,checkIn,checkOut&#10;EMP-001,2025-01-10,09:18,17:02"
+        ref={textareaRef}
+        placeholder={"employeeNumber,date,checkIn,checkOut\nEMP-001,2025-01-10,09:18,17:02"}
         className="w-full h-28 p-2 border rounded"
-        value={csv}
-        onChange={(e) => setCsv(e.target.value)}
+        value={csvState}
+        onChange={handleTextChange}
       />
       <div className="flex gap-2">
         <input
           type="file"
           accept=".csv,text/csv"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = String(reader.result || "");
-              console.log("File loaded:", result.substring(0, 100));
-              setCsv(result);
-            };
-            reader.readAsText(f);
-          }}
+          onChange={handleFileChange}
         />
         <Button
           variant="outline"
@@ -76,4 +99,3 @@ export default function AttendanceCsvImport() {
     </div>
   );
 }
-
