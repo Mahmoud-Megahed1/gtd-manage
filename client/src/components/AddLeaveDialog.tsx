@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,9 +22,17 @@ import {
 import { Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AddLeaveDialog() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Get employee profile to auto-fill employeeId
+  const { data: myProfile } = trpc.hr.myProfile.get.useQuery(undefined, {
+    enabled: open, // Only fetch when dialog is open
+  });
+
   const [formData, setFormData] = useState({
     employeeId: "",
     leaveType: "annual" as "annual" | "sick" | "emergency" | "unpaid",
@@ -33,14 +41,24 @@ export function AddLeaveDialog() {
     reason: "",
   });
 
+  // Auto-fill employeeId when profile is loaded
+  useEffect(() => {
+    if (myProfile?.id) {
+      setFormData(prev => ({ ...prev, employeeId: myProfile.id.toString() }));
+    }
+  }, [myProfile]);
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'hr_manager';
+
   const utils = trpc.useUtils();
   const createLeave = trpc.hr.leaves.create.useMutation({
     onSuccess: () => {
       toast.success("تم إرسال طلب الإجازة بنجاح");
       utils.hr.leaves.list.invalidate();
+      utils.hr.myProfile.myLeaves.invalidate();
       setOpen(false);
       setFormData({
-        employeeId: "",
+        employeeId: myProfile?.id?.toString() || "",
         leaveType: "annual",
         startDate: "",
         endDate: "",
@@ -63,8 +81,10 @@ export function AddLeaveDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.employeeId || !formData.startDate || !formData.endDate) {
+
+    const employeeIdToUse = formData.employeeId || myProfile?.id?.toString();
+
+    if (!employeeIdToUse || !formData.startDate || !formData.endDate) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
     }
@@ -76,7 +96,7 @@ export function AddLeaveDialog() {
     }
 
     createLeave.mutate({
-      employeeId: parseInt(formData.employeeId),
+      employeeId: parseInt(employeeIdToUse),
       leaveType: formData.leaveType,
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
@@ -102,16 +122,23 @@ export function AddLeaveDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="employeeId">رقم الموظف *</Label>
-              <Input
-                id="employeeId"
-                type="number"
-                value={formData.employeeId}
-                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                required
-              />
-            </div>
+            {/* Show employee ID field only for admins */}
+            {isAdmin ? (
+              <div className="space-y-2">
+                <Label htmlFor="employeeId">رقم الموظف *</Label>
+                <Input
+                  id="employeeId"
+                  type="number"
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                  required
+                />
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                سيتم تسجيل الإجازة على حسابك تلقائياً (موظف #{myProfile?.id || '...'})
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="leaveType">نوع الإجازة *</Label>
@@ -184,3 +211,4 @@ export function AddLeaveDialog() {
     </Dialog>
   );
 }
+
