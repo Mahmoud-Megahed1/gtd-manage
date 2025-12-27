@@ -1041,7 +1041,24 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) return [];
         const { rfis } = await import("../drizzle/schema");
-        return await conn.select().from(rfis).where(eq(rfis.projectId, input.projectId)).orderBy(desc(rfis.submittedAt));
+        const { or, and, eq, isNull, desc } = await import("drizzle-orm");
+
+        const isAdmin = ['admin', 'project_manager', 'department_manager'].includes(ctx.user.role);
+
+        let whereClause = eq(rfis.projectId, input.projectId);
+
+        if (!isAdmin) {
+          whereClause = and(
+            whereClause,
+            or(
+              isNull(rfis.assignedTo),
+              eq(rfis.assignedTo, ctx.user.id),
+              eq(rfis.submittedBy, ctx.user.id)
+            )
+          ) as any;
+        }
+
+        return await conn.select().from(rfis).where(whereClause).orderBy(desc(rfis.submittedAt));
       }),
     create: protectedProcedure
       .input(z.object({ projectId: z.number(), title: z.string(), question: z.string(), assignedTo: z.number().optional() }))
@@ -1141,7 +1158,24 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) return [];
         const { submittals } = await import("../drizzle/schema");
-        return await conn.select().from(submittals).where(eq(submittals.projectId, input.projectId)).orderBy(desc(submittals.submittedAt));
+        const { or, and, eq, isNull, desc } = await import("drizzle-orm");
+
+        const isAdmin = ['admin', 'project_manager', 'department_manager'].includes(ctx.user.role);
+
+        let whereClause = eq(submittals.projectId, input.projectId);
+
+        if (!isAdmin) {
+          whereClause = and(
+            whereClause,
+            or(
+              isNull(submittals.assignedTo),
+              eq(submittals.assignedTo, ctx.user.id),
+              eq(submittals.submittedBy, ctx.user.id)
+            )
+          ) as any;
+        }
+
+        return await conn.select().from(submittals).where(whereClause).orderBy(desc(submittals.submittedAt));
       }),
     create: protectedProcedure
       .input(z.object({ projectId: z.number(), title: z.string(), assignedTo: z.number().optional() }))
