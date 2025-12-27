@@ -22,7 +22,7 @@ import {
 import { Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export function AddLeaveDialog() {
   const [open, setOpen] = useState(false);
