@@ -85,7 +85,7 @@ export default function ProjectDetails() {
   });
 
   const project = projectData?.project;
-  const boq = projectData?.boq || [];
+  const boq = projectData?.boqItems || [];
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
   const sales = projectData?.sales || [];
@@ -588,7 +588,7 @@ export default function ProjectDetails() {
                       <span className="font-bold">{(project.budget || 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">إجمالي BOQ (جدول الكميات):</span>
+                      <span className="text-muted-foreground">إجمالي BOQ (التكلفة المقدرة):</span>
                       <span className="font-bold text-blue-600">{boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -596,7 +596,7 @@ export default function ProjectDetails() {
                       <span className="font-bold text-green-500">{paidRevenue.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">المصروفات:</span>
+                      <span className="text-muted-foreground">المصروفات الفعلية:</span>
                       <span className="font-bold text-red-500">-{totalExpenses.toLocaleString()} ريال</span>
                     </div>
                     <div className="pt-4 border-t">
