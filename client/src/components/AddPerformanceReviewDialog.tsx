@@ -12,6 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Award, Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -27,6 +34,11 @@ export function AddPerformanceReviewDialog() {
     weaknesses: "",
     goals: "",
     comments: "",
+  });
+
+  // Fetch employees list
+  const { data: employees } = trpc.hr.employees.list.useQuery(undefined, {
+    enabled: open,
   });
 
   const utils = trpc.useUtils();
@@ -53,9 +65,9 @@ export function AddPerformanceReviewDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.employeeId) {
-      toast.error("يرجى إدخال رقم الموظف");
+      toast.error("يرجى اختيار الموظف");
       return;
     }
 
@@ -93,14 +105,22 @@ export function AddPerformanceReviewDialog() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="employeeId">رقم الموظف *</Label>
-                <Input
-                  id="employeeId"
-                  type="number"
+                <Label htmlFor="employeeId">اختر الموظف *</Label>
+                <Select
                   value={formData.employeeId}
-                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                  required
-                />
+                  onValueChange={(value) => setFormData({ ...formData, employeeId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الموظف..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(employees || []).map((emp: any) => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.userName || emp.employeeNumber} - {emp.employeeNumber}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reviewDate">تاريخ التقييم</Label>

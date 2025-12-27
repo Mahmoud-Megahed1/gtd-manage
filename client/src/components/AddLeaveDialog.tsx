@@ -48,8 +48,6 @@ export function AddLeaveDialog() {
     }
   }, [myProfile]);
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'hr_manager';
-
   const utils = trpc.useUtils();
   const createLeave = trpc.hr.leaves.create.useMutation({
     onSuccess: () => {
@@ -122,23 +120,11 @@ export function AddLeaveDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {/* Show employee ID field only for admins */}
-            {isAdmin ? (
-              <div className="space-y-2">
-                <Label htmlFor="employeeId">رقم الموظف *</Label>
-                <Input
-                  id="employeeId"
-                  type="number"
-                  value={formData.employeeId}
-                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                  required
-                />
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-                سيتم تسجيل الإجازة على حسابك تلقائياً (موظف #{myProfile?.id || '...'})
-              </div>
-            )}
+            {/* Auto-filled employee info */}
+            <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+              سيتم تسجيل الإجازة على حسابك تلقائياً {myProfile?.id ? `(موظف #${myProfile.id})` : ''}
+            </div>
+
 
             <div className="space-y-2">
               <Label htmlFor="leaveType">نوع الإجازة *</Label>
