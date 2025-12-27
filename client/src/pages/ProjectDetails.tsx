@@ -602,9 +602,9 @@ export default function ProjectDetails() {
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">صافي الربح:</span>
-                        <span className={`font-bold text-lg ${(totalRevenue - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
+                        <span className={`font-bold text-lg ${(paidRevenue - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
                           }`}>
-                          {(totalRevenue - totalExpenses).toLocaleString()} ريال
+                          {(paidRevenue - totalExpenses).toLocaleString()} ريال
                         </span>
                       </div>
                     </div>
