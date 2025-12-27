@@ -100,6 +100,14 @@ export default function ProjectDetails() {
   const { data: drawings } = trpc.drawings.list.useQuery({ projectId });
   const { data: baseline } = trpc.projectReports.baselineVsActual.useQuery({ projectId });
   const { data: procurement } = trpc.projectReports.procurementTracker.useQuery({ projectId });
+
+  // Fetch purchases and operating costs from accounting linked to this project
+  const { data: allPurchases } = trpc.accounting.purchases.list.useQuery();
+  const { data: allOperatingCosts } = trpc.accounting.expenses.list.useQuery({ projectId });
+
+  // Filter purchases for this project (client-side filtering since API doesn't support projectId filter)
+  const projectPurchases = (allPurchases || []).filter((p: any) => p.projectId === projectId);
+  const projectOperatingCosts = allOperatingCosts || [];
   const createRfi = trpc.rfi.create.useMutation({
     onSuccess: () => utils.rfi.list.invalidate({ projectId })
   });
@@ -608,6 +616,8 @@ export default function ProjectDetails() {
                     <div className="px-6 pt-6 flex justify-between items-center">
                       <TabsList>
                         <TabsTrigger value="installments">سجل الفواتير ({sales.length})</TabsTrigger>
+                        <TabsTrigger value="purchases">المشتريات ({projectPurchases.length})</TabsTrigger>
+                        <TabsTrigger value="operatingCosts">التكاليف التشغيلية ({projectOperatingCosts.length})</TabsTrigger>
                         <TabsTrigger value="expenses">المصروفات ({expenses.length})</TabsTrigger>
                       </TabsList>
                     </div>
@@ -734,6 +744,88 @@ export default function ProjectDetails() {
                               )) : (
                                 <TableRow>
                                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد مصروفات</TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TabsContent>
+
+                      {/* Purchases Tab */}
+                      <TabsContent value="purchases" className="mt-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <h3 className="font-bold">المشتريات المرتبطة بالمشروع</h3>
+                            <p className="text-sm text-muted-foreground">المشتريات المسجلة في المحاسبة والمربوطة بهذا المشروع.</p>
+                          </div>
+                        </div>
+                        <div className="border rounded overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-right">رقم العملية</TableHead>
+                                <TableHead className="text-right">المورد</TableHead>
+                                <TableHead className="text-right">الوصف</TableHead>
+                                <TableHead className="text-right">التاريخ</TableHead>
+                                <TableHead className="text-left">المبلغ</TableHead>
+                                <TableHead className="text-center">الحالة</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {projectPurchases.length > 0 ? projectPurchases.map((purchase: any) => (
+                                <TableRow key={purchase.id}>
+                                  <TableCell>{purchase.purchaseNumber}</TableCell>
+                                  <TableCell>{purchase.supplierName}</TableCell>
+                                  <TableCell>{purchase.description}</TableCell>
+                                  <TableCell>{new Date(purchase.purchaseDate).toLocaleDateString("ar-SA")}</TableCell>
+                                  <TableCell className="text-left font-bold text-orange-600">{purchase.amount?.toLocaleString()} ريال</TableCell>
+                                  <TableCell className="text-center">
+                                    <span className={`px-2 py-1 rounded text-xs ${purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                      }`}>
+                                      {purchase.status === 'completed' ? 'مكتمل' : purchase.status === 'pending' ? 'معلق' : 'ملغي'}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              )) : (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">لا توجد مشتريات مربوطة بهذا المشروع</TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TabsContent>
+
+                      {/* Operating Costs Tab */}
+                      <TabsContent value="operatingCosts" className="mt-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <h3 className="font-bold">التكاليف التشغيلية</h3>
+                            <p className="text-sm text-muted-foreground">التكاليف التشغيلية المسجلة في المحاسبة والمربوطة بهذا المشروع.</p>
+                          </div>
+                        </div>
+                        <div className="border rounded overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-right">التاريخ</TableHead>
+                                <TableHead className="text-right">التصنيف</TableHead>
+                                <TableHead className="text-right">الوصف</TableHead>
+                                <TableHead className="text-left">المبلغ</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {projectOperatingCosts.length > 0 ? projectOperatingCosts.map((cost: any) => (
+                                <TableRow key={cost.id}>
+                                  <TableCell>{new Date(cost.expenseDate).toLocaleDateString("ar-SA")}</TableCell>
+                                  <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
+                                  <TableCell>{cost.description}</TableCell>
+                                  <TableCell className="text-left font-bold text-red-600">{cost.amount?.toLocaleString()} ريال</TableCell>
+                                </TableRow>
+                              )) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد تكاليف تشغيلية مربوطة بهذا المشروع</TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
