@@ -842,6 +842,23 @@ export const appRouter = router({
           status: 'planned'
         } as any);
         await logAudit(ctx.user.id, 'CREATE_TASK', 'project', input.projectId, `Task: ${input.name}`, ctx);
+
+        // Notify team members about new task
+        const project = await db.getProjectById(input.projectId);
+        if (project) {
+          const { notifyProjectTeam } = await import('./routers/notifications');
+          await notifyProjectTeam({
+            projectId: input.projectId,
+            excludeUserId: ctx.user.id,  // Don't notify the creator
+            fromUserId: ctx.user.id,
+            type: 'info',
+            title: `📋 مهمة جديدة: ${input.name}`,
+            message: `تمت إضافة مهمة جديدة للمشروع: ${project.name}`,
+            link: `/projects/${input.projectId}`,
+            entityType: 'task'
+          });
+        }
+
         return { success: true };
       }),
 

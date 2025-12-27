@@ -75,6 +75,47 @@ export async function createNotificationForRoles(params: {
     }
 }
 
+// Notify all team members of a project (excluding a specific user, e.g. the action performer)
+export async function notifyProjectTeam(params: {
+    projectId: number;
+    excludeUserId?: number;  // Don't notify this user (usually the one who did the action)
+    fromUserId?: number;
+    type?: 'info' | 'warning' | 'success' | 'action';
+    title: string;
+    message?: string;
+    link?: string;
+    entityType?: string;
+    entityId?: number;
+}) {
+    const db = await getDb();
+    if (!db) return;
+
+    const { projectTeam } = await import("../../drizzle/schema");
+
+    // Get all team members for this project
+    const teamMembers = await db.select({ userId: projectTeam.userId })
+        .from(projectTeam)
+        .where(eq(projectTeam.projectId, params.projectId));
+
+    // Create notification for each team member (except excluded user)
+    for (const member of teamMembers) {
+        if (params.excludeUserId && member.userId === params.excludeUserId) {
+            continue;  // Skip the user who performed the action
+        }
+
+        await createNotification({
+            userId: member.userId,
+            fromUserId: params.fromUserId,
+            type: params.type || 'info',
+            title: params.title,
+            message: params.message,
+            link: params.link || `/projects/${params.projectId}`,
+            entityType: params.entityType || 'project',
+            entityId: params.entityId || params.projectId
+        });
+    }
+}
+
 export const notificationsRouter = router({
     // List notifications for current user
     list: protectedProcedure
