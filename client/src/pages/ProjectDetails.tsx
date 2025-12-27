@@ -23,7 +23,8 @@ import {
   Layers,
   Trash2,
   Download,
-  Upload
+  Upload,
+  Database
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
@@ -441,7 +442,7 @@ export default function ProjectDetails() {
 
         {/* Stats Cards - Only visible to users with financial access */}
         {canViewFinancials && (
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-5">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -452,6 +453,21 @@ export default function ProjectDetails() {
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                     <DollarSign className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">إجمالي BOQ</p>
+                    <p className="text-2xl font-bold">{boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">التكلفة المقدرة</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Database className="w-6 h-6 text-blue-600" />
                   </div>
                 </div>
               </CardContent>
