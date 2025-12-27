@@ -592,11 +592,7 @@ export default function ProjectDetails() {
                       <span className="font-bold text-blue-600">{boq.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">الإيرادات المحققة (الفواتير):</span>
-                      <span className="font-bold text-green-600">{totalRevenue.toLocaleString()} ريال</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">المدفوع من العميل:</span>
+                      <span className="text-muted-foreground">المدفوع من العميل (الفواتير):</span>
                       <span className="font-bold text-green-500">{paidRevenue.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
