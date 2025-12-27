@@ -877,10 +877,41 @@ export async function getProjectsForAssignee(userId: number) {
   const db = await getDb();
   if (!db) {
     const all = demo.list("projects");
-    return all.filter((p: any) => p.assignedTo === userId);
+    const teamProjects = demo.list("projectTeam");
+    const myTeamProjectIds = teamProjects
+      .filter((t: any) => t.userId === userId)
+      .map((t: any) => t.projectId);
+    return all.filter((p: any) =>
+      p.assignedTo === userId || myTeamProjectIds.includes(p.id)
+    );
   }
-  const result = await db.select().from(projects).where(eq(projects.assignedTo, userId));
-  return result;
+
+  // Get projects assigned to user OR where user is a team member
+  const { projectTeam } = await import("../drizzle/schema");
+
+  // 1. Get projects where user is assigned
+  const assignedProjects = await db.select().from(projects).where(eq(projects.assignedTo, userId));
+
+  // 2. Get projects where user is a team member
+  const teamMemberships = await db.select({ projectId: projectTeam.projectId })
+    .from(projectTeam)
+    .where(eq(projectTeam.userId, userId));
+
+  const teamProjectIds = teamMemberships.map(t => t.projectId);
+
+  let teamProjects: any[] = [];
+  if (teamProjectIds.length > 0) {
+    const { inArray } = await import("drizzle-orm");
+    teamProjects = await db.select().from(projects).where(inArray(projects.id, teamProjectIds));
+  }
+
+  // Combine and deduplicate
+  const allProjects = [...assignedProjects, ...teamProjects];
+  const uniqueProjects = allProjects.filter((p, index, self) =>
+    index === self.findIndex(t => t.id === p.id)
+  );
+
+  return uniqueProjects;
 }
 
 // ============= AI GEMINI PAGES =============
