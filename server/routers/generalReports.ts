@@ -633,8 +633,25 @@ export const generalReportsRouter = router({
                 expensesByCategory['مشتريات'] = totalPurchases;
             }
 
-            // Sales (Revenue)
-            const salesConditions = [gte(sales.saleDate, from), lte(sales.saleDate, to)];
+            // 1. Invoices (Primary Revenue Source)
+            const invConditions = [gte(invoices.issueDate, from), lte(invoices.issueDate, to)];
+            if (input.projectId) invConditions.push(eq(invoices.projectId, input.projectId));
+
+            const invoicesResult = await conn.select({
+                total: sum(invoices.total),
+                paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`,
+            }).from(invoices)
+                .where(and(...invConditions));
+
+            const invoicesTotal = Number(invoicesResult[0]?.total || 0);
+            const invoicesPaid = Number(invoicesResult[0]?.paid || 0);
+
+            // 2. Standalone Sales (Sales not linked to invoices)
+            const salesConditions = [
+                gte(sales.saleDate, from),
+                lte(sales.saleDate, to),
+                sql`${sales.invoiceId} IS NULL`
+            ];
             if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
 
             const salesResult = await conn.select({
@@ -643,8 +660,12 @@ export const generalReportsRouter = router({
             }).from(sales)
                 .where(and(...salesConditions));
 
-            const totalSales = Number(salesResult[0]?.total || 0);
-            const paidSales = Number(salesResult[0]?.paid || 0);
+            const standaloneSalesTotal = Number(salesResult[0]?.total || 0);
+            const standaloneSalesPaid = Number(salesResult[0]?.paid || 0);
+
+            // Total Revenue = Invoices + Standalone Sales
+            const totalSales = invoicesTotal + standaloneSalesTotal;
+            const paidSales = invoicesPaid + standaloneSalesPaid;
 
             return {
                 totalExpenses, // Now includes purchases
@@ -825,10 +846,7 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                // Build date conditions - if no date range, get all data
-                const hasDateRange = from && to;
-
-                const [expResult, salesResult, purchResult] = await Promise.all([
+                const [expResult, salesResult, invoicesResult, purchResult] = await Promise.all([
                     // Expenses - filter by expenseDate
                     hasDateRange
                         ? conn.select({ total: sum(expenses.amount) })
@@ -836,17 +854,34 @@ export const generalReportsRouter = router({
                             .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)))
                         : conn.select({ total: sum(expenses.amount) }).from(expenses),
 
-                    // Sales - use saleDate for filtering, completed status for paid
+                    // Sales (Standalone only) - use saleDate
                     hasDateRange
                         ? conn.select({
                             total: sum(sales.amount),
                             paid: sql<number>`SUM(CASE WHEN ${sales.status} = 'completed' THEN ${sales.amount} ELSE 0 END)`,
                         }).from(sales)
-                            .where(and(gte(sales.saleDate, from), lte(sales.saleDate, to)))
+                            .where(and(
+                                gte(sales.saleDate, from),
+                                lte(sales.saleDate, to),
+                                sql`${sales.invoiceId} IS NULL`
+                            ))
                         : conn.select({
                             total: sum(sales.amount),
                             paid: sql<number>`SUM(CASE WHEN ${sales.status} = 'completed' THEN ${sales.amount} ELSE 0 END)`,
-                        }).from(sales),
+                        }).from(sales)
+                            .where(sql`${sales.invoiceId} IS NULL`),
+
+                    // Invoices - use issueDate for filtering
+                    hasDateRange
+                        ? conn.select({
+                            total: sum(invoices.total),
+                            paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`,
+                        }).from(invoices)
+                            .where(and(gte(invoices.issueDate, from), lte(invoices.issueDate, to)))
+                        : conn.select({
+                            total: sum(invoices.total),
+                            paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`,
+                        }).from(invoices),
 
                     // Purchases - filter by purchaseDate
                     hasDateRange
@@ -860,8 +895,14 @@ export const generalReportsRouter = router({
                 const totalPurchases = Number(purchResult[0]?.total || 0);
                 const totalExpenses = totalOperatingExpenses + totalPurchases;
 
-                const totalRevenue = Number(salesResult[0]?.total || 0);
-                const paidRevenue = Number(salesResult[0]?.paid || 0);
+                const standaloneSalesTotal = Number(salesResult[0]?.total || 0);
+                const standaloneSalesPaid = Number(salesResult[0]?.paid || 0);
+
+                const invoicesTotal = Number(invoicesResult[0]?.total || 0);
+                const invoicesPaid = Number(invoicesResult[0]?.paid || 0);
+
+                const totalRevenue = standaloneSalesTotal + invoicesTotal;
+                const paidRevenue = standaloneSalesPaid + invoicesPaid;
 
                 financials = {
                     totalRevenue,
