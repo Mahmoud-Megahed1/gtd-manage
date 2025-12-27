@@ -606,6 +606,8 @@ export const hrRouter = router({
         });
 
         let created = 0, updated = 0, late = 0, absent = 0;
+        const skipped: string[] = [];
+        const availableEmployees = Array.from(empByNumber.keys()).slice(0, 10);
 
         const toTime = (dateStr: string, hm: string) => {
           const [h, m] = hm.split(":").map(x => parseInt(x));
@@ -628,7 +630,9 @@ export const hrRouter = router({
           }
 
           if (!emp) {
-            console.log(`[CSV Import] Employee not found: ${parts[idxEmpNumber] || parts[idxEmpName]}`);
+            const identifier = parts[idxEmpNumber] || parts[idxEmpName] || 'unknown';
+            console.log(`[CSV Import] Employee not found: ${identifier}`);
+            skipped.push(identifier);
             continue;
           }
 
@@ -740,7 +744,16 @@ export const hrRouter = router({
           }
         }
 
-        return { success: true, created, updated, late, absent };
+        return {
+          success: true,
+          created,
+          updated,
+          late,
+          absent,
+          skipped: skipped.slice(0, 5),  // Return first 5 skipped for brevity
+          skippedCount: skipped.length,
+          availableEmployees
+        };
       }),
 
     delete: adminProcedure

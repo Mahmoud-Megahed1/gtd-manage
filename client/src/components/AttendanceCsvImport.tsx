@@ -9,13 +9,25 @@ export default function AttendanceCsvImport() {
   const utils = trpc.useUtils();
 
   const imp = trpc.hr.attendance.importCsv.useMutation({
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
       const msgs = [];
       if (res.created > 0) msgs.push(`جديد: ${res.created}`);
       if (res.updated > 0) msgs.push(`تحديث: ${res.updated}`);
       if (res.late > 0) msgs.push(`متأخر: ${res.late}`);
       if (res.absent > 0) msgs.push(`غياب: ${res.absent}`);
-      toast.success(`تم الاستيراد: ${msgs.join(', ') || 'بدون تغييرات'}`);
+
+      if (res.skippedCount > 0) {
+        toast.warning(`⚠️ لم يتم العثور على ${res.skippedCount} موظف: ${res.skipped?.join(', ')}`);
+        console.log("Skipped employees:", res.skipped);
+        console.log("Available employee numbers:", res.availableEmployees);
+      }
+
+      if (msgs.length > 0) {
+        toast.success(`تم الاستيراد: ${msgs.join(', ')}`);
+      } else if (res.skippedCount === 0) {
+        toast.info('بدون تغييرات');
+      }
+
       setCsvState("");
       if (textareaRef.current) {
         textareaRef.current.value = "";
