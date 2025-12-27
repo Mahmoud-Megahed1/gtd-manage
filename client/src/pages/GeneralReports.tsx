@@ -962,12 +962,12 @@ export default function GeneralReports() {
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                                <span>الأقساط المحصلة</span>
-                                                <span className="text-xl font-bold text-green-600">{accountingData.paidInstallments.toLocaleString()} ر.س</span>
+                                                <span>الإيرادات المحصلة</span>
+                                                <span className="text-xl font-bold text-green-600">{accountingData.paidSales?.toLocaleString() || 0} ر.س</span>
                                             </div>
                                             <div className="flex justify-between items-center p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                                                <span>الأقساط المعلقة</span>
-                                                <span className="text-xl font-bold text-amber-600">{accountingData.pendingInstallments.toLocaleString()} ر.س</span>
+                                                <span>الإيرادات المعلقة</span>
+                                                <span className="text-xl font-bold text-amber-600">{accountingData.pendingSales?.toLocaleString() || 0} ر.س</span>
                                             </div>
                                             <div className="flex justify-between items-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                                                 <span>المصروفات</span>

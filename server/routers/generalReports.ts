@@ -9,7 +9,7 @@ import * as db from "../db";
 import { and, gte, lte, eq, sql, count, sum } from "drizzle-orm";
 import {
     clients, projects, invoices, expenses, installments, purchases, savedReports,
-    forms, employees, users
+    forms, employees, users, sales
 } from "../../drizzle/schema";
 import * as demo from "../_core/demoStore";
 
@@ -633,27 +633,27 @@ export const generalReportsRouter = router({
                 expensesByCategory['مشتريات'] = totalPurchases;
             }
 
-            // Installments
-            const instConditions = [gte(installments.createdAt, from), lte(installments.createdAt, to)];
-            if (input.projectId) instConditions.push(eq(installments.projectId, input.projectId));
+            // Sales (Revenue)
+            const salesConditions = [gte(sales.saleDate, from), lte(sales.saleDate, to)];
+            if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
 
-            const installmentsResult = await conn.select({
-                total: sum(installments.amount),
-                paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
-            }).from(installments)
-                .where(and(...instConditions));
+            const salesResult = await conn.select({
+                total: sum(sales.amount),
+                paid: sql<number>`SUM(CASE WHEN ${sales.status} = 'completed' THEN ${sales.amount} ELSE 0 END)`,
+            }).from(sales)
+                .where(and(...salesConditions));
 
-            const totalInstallments = Number(installmentsResult[0]?.total || 0);
-            const paidInstallments = Number(installmentsResult[0]?.paid || 0);
+            const totalSales = Number(salesResult[0]?.total || 0);
+            const paidSales = Number(salesResult[0]?.paid || 0);
 
             return {
                 totalExpenses, // Now includes purchases
-                totalInstallments,
-                paidInstallments,
-                pendingInstallments: totalInstallments - paidInstallments,
+                totalSales,
+                paidSales,
+                pendingSales: totalSales - paidSales,
                 expensesByCategory,
-                netProfit: paidInstallments - totalExpenses,
-                profitMargin: paidInstallments > 0 ? ((paidInstallments - totalExpenses) / paidInstallments) * 100 : 0,
+                netProfit: paidSales - totalExpenses,
+                profitMargin: paidSales > 0 ? ((paidSales - totalExpenses) / paidSales) * 100 : 0,
             };
         }),
 
@@ -825,26 +825,43 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                const [expResult, instResult, purchResult] = await Promise.all([
-                    conn.select({ total: sum(expenses.amount) })
-                        .from(expenses)
-                        .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
-                    conn.select({
-                        total: sum(installments.amount),
-                        paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
-                    }).from(installments)
-                        .where(and(gte(installments.createdAt, from), lte(installments.createdAt, to))),
-                    conn.select({ total: sum(purchases.amount) })
-                        .from(purchases)
-                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
+                // Build date conditions - if no date range, get all data
+                const hasDateRange = from && to;
+
+                const [expResult, salesResult, purchResult] = await Promise.all([
+                    // Expenses - filter by expenseDate
+                    hasDateRange
+                        ? conn.select({ total: sum(expenses.amount) })
+                            .from(expenses)
+                            .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)))
+                        : conn.select({ total: sum(expenses.amount) }).from(expenses),
+
+                    // Sales - use saleDate for filtering, completed status for paid
+                    hasDateRange
+                        ? conn.select({
+                            total: sum(sales.amount),
+                            paid: sql<number>`SUM(CASE WHEN ${sales.status} = 'completed' THEN ${sales.amount} ELSE 0 END)`,
+                        }).from(sales)
+                            .where(and(gte(sales.saleDate, from), lte(sales.saleDate, to)))
+                        : conn.select({
+                            total: sum(sales.amount),
+                            paid: sql<number>`SUM(CASE WHEN ${sales.status} = 'completed' THEN ${sales.amount} ELSE 0 END)`,
+                        }).from(sales),
+
+                    // Purchases - filter by purchaseDate
+                    hasDateRange
+                        ? conn.select({ total: sum(purchases.amount) })
+                            .from(purchases)
+                            .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)))
+                        : conn.select({ total: sum(purchases.amount) }).from(purchases),
                 ]);
 
                 const totalOperatingExpenses = Number(expResult[0]?.total || 0);
                 const totalPurchases = Number(purchResult[0]?.total || 0);
                 const totalExpenses = totalOperatingExpenses + totalPurchases;
 
-                const totalRevenue = Number(instResult[0]?.total || 0);
-                const paidRevenue = Number(instResult[0]?.paid || 0);
+                const totalRevenue = Number(salesResult[0]?.total || 0);
+                const paidRevenue = Number(salesResult[0]?.paid || 0);
 
                 financials = {
                     totalRevenue,
