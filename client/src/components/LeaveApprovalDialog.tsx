@@ -23,6 +23,7 @@ interface LeaveApprovalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   action: "approve" | "reject";
+  onSuccess?: () => void;
 }
 
 export function LeaveApprovalDialog({
@@ -34,15 +35,17 @@ export function LeaveApprovalDialog({
   open,
   onOpenChange,
   action,
+  onSuccess,
 }: LeaveApprovalDialogProps) {
   const [notes, setNotes] = useState("");
 
   const utils = trpc.useUtils();
-  
+
   const approve = trpc.hr.leaves.approve.useMutation({
     onSuccess: () => {
       toast.success("تمت الموافقة على الإجازة");
       utils.hr.leaves.list.invalidate();
+      onSuccess?.();
       onOpenChange(false);
       setNotes("");
     },
@@ -55,6 +58,7 @@ export function LeaveApprovalDialog({
     onSuccess: () => {
       toast.success("تم رفض الإجازة");
       utils.hr.leaves.list.invalidate();
+      onSuccess?.();
       onOpenChange(false);
       setNotes("");
     },
@@ -109,7 +113,7 @@ export function LeaveApprovalDialog({
             )}
           </DialogTitle>
           <DialogDescription>
-            {action === "approve" 
+            {action === "approve"
               ? "هل أنت متأكد من الموافقة على هذا الطلب؟"
               : "يرجى إدخال سبب الرفض"}
           </DialogDescription>
@@ -145,7 +149,7 @@ export function LeaveApprovalDialog({
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder={action === "approve" 
+              placeholder={action === "approve"
                 ? "أضف ملاحظات إن وجدت..."
                 : "اذكر سبب رفض الطلب..."}
               rows={3}
@@ -166,8 +170,8 @@ export function LeaveApprovalDialog({
             {approve.isPending || reject.isPending
               ? "جاري المعالجة..."
               : action === "approve"
-              ? "موافقة"
-              : "رفض"}
+                ? "موافقة"
+                : "رفض"}
           </Button>
         </DialogFooter>
       </DialogContent>

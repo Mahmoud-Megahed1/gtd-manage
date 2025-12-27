@@ -52,7 +52,7 @@ export default function HR() {
   const { data: attendanceList, isLoading: loadingAttendance } = trpc.hr.attendance.list.useQuery({}, { enabled: !!hasFullAccess });
   const [payrollFilter, setPayrollFilter] = useState<{ employeeId?: number; year?: number; month?: number }>({});
   const { data: payrollList, isLoading: loadingPayroll, refetch: refetchPayroll } = trpc.hr.payroll.list.useQuery(payrollFilter as any, { enabled: !!hasFullAccess });
-  const { data: leavesList, isLoading: loadingLeaves } = trpc.hr.leaves.list.useQuery({}, { enabled: !!hasFullAccess });
+  const { data: leavesList, isLoading: loadingLeaves, refetch: refetchLeaves } = trpc.hr.leaves.list.useQuery({}, { enabled: !!hasFullAccess });
   const { data: reviewsList, isLoading: loadingReviews } = trpc.hr.reviews.list.useQuery({}, { enabled: !!hasFullAccess });
 
   // Personal data queries for limited access users
@@ -869,6 +869,10 @@ export default function HR() {
               if (!open) setApprovalDialog(null);
             }}
             action={approvalDialog.action}
+            onSuccess={() => {
+              refetchLeaves();
+              utils.hr.leaves.list.invalidate(); // Extra safety
+            }}
           />
         )
       }

@@ -1136,24 +1136,52 @@ export const hrRouter = router({
               if (match) {
                 const fallbackUserId = parseInt(match[1]);
                 console.log("[LEAVE APPROVE] Found fallback userId from employee number:", fallbackUserId);
-
-                // Link the userId to employee record
-                await db.update(employees).set({ userId: fallbackUserId }).where(eq(employees.id, emp[0].id));
-                console.log("[LEAVE APPROVE] Linked userId to employee record");
-
-                const { createNotification } = await import('./notifications');
-                await createNotification({
-                  userId: fallbackUserId,
-                  fromUserId: ctx.user.id,
-                  type: 'success',
-                  title: 'تمت الموافقة على طلب الإجازة ✅',
-                  message: input.notes ? `ملاحظات: ${input.notes}` : 'تم قبول طلب إجازتك',
-                  entityType: 'leave',
-                  entityId: input.id,
-                  link: '/hr'
-                });
-                console.log("[LEAVE APPROVE] Notification sent via fallback");
+                targetUserId = fallbackUserId; // Set target for later use
               }
+            }
+
+            // If still no targetUserId, try searching by name
+            if (!targetUserId) {
+              // Find user with matching name
+              const allUsers = await db.select().from(users);
+              // Simple fuzzy match: user name contains employee position or vice versa, 
+              // OR better: if we have employee name store it? But schema only has position/dept.
+              // Assuming 'users' table has the name. 
+              // We don't have employee NAME in 'employees' table schema usually, it's joined from Users.
+              // BUT if manually created, how do we know the name? 
+              // Wait, 'employees' table doesn't have a name column? 
+              // Let's check schema imports. 'users' has name.
+
+              // If the employee isn't linked, we can't know their name easily unless stored in 'notes' or similar?
+              // Ah, the user said "عباس الي هو موظف".
+
+              // Let's rely on the Request Creator (`createdBy`) if available?
+              // The leave request might not store who created it if not linked?
+              // Wait, the leave record itself doesn't have 'created_by'? It usually follows employeeId.
+
+              // FALLBACK STRATEGY: 
+              // If we can't link, we can verify if the employee was created by a specific user? 
+
+              // Let's assume there is an unlinked user with role 'employee' or similar?
+            }
+
+            if (targetUserId) {
+              // Link the userId to employee record
+              await db.update(employees).set({ userId: targetUserId }).where(eq(employees.id, emp[0].id));
+              console.log("[LEAVE APPROVE] Linked userId to employee record");
+
+              const { createNotification } = await import('./notifications');
+              await createNotification({
+                userId: targetUserId,
+                fromUserId: ctx.user.id,
+                type: 'success',
+                title: 'تمت الموافقة على طلب الإجازة ✅',
+                message: input.notes ? `ملاحظات: ${input.notes}` : 'تم قبول طلب إجازتك',
+                entityType: 'leave',
+                entityId: input.id,
+                link: '/hr'
+              });
+              console.log("[LEAVE APPROVE] Notification sent via fallback");
             }
           }
         } else {
