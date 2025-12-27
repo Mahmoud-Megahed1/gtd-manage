@@ -355,7 +355,8 @@ export default function ProjectDetails() {
   };
 
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0) +
+    (projectPurchases || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
   // Revenue from Sales (Invoices)
   const totalRevenue = (sales || []).reduce((sum, sale) => sum + (sale.status !== 'cancelled' ? sale.amount : 0), 0);
   const paidRevenue = (sales || []).filter(s => s.status === 'completed').reduce((sum, sale) => sum + sale.amount, 0);
