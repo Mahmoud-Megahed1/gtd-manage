@@ -292,7 +292,7 @@ export const hrRouter = router({
     create: adminProcedure
       .input(z.object({
         userId: z.number(),
-        employeeNumber: z.string(),
+        employeeNumber: z.string().optional(), // Made optional - will auto-generate
         department: z.string().optional(),
         position: z.string().optional(),
         hireDate: z.date(),
@@ -308,12 +308,30 @@ export const hrRouter = router({
           return { success: true };
         }
 
+        // Insert employee first (without employeeNumber)
         const values: InsertEmployee = {
-          ...input,
+          userId: input.userId,
+          employeeNumber: 'TEMP', // Temporary, will update after getting ID
+          department: input.department,
+          position: input.position,
+          hireDate: input.hireDate,
+          salary: input.salary,
+          bankAccount: input.bankAccount,
+          emergencyContact: input.emergencyContact,
           status: 'active'
         };
 
-        await db.insert(employees).values(values);
+        const result = await db.insert(employees).values(values);
+
+        // Get the inserted ID and update employeeNumber to match
+        const insertedId = (result as any)[0]?.insertId || (result as any).insertId;
+
+        if (insertedId) {
+          const generatedNumber = `EMP-${String(insertedId).padStart(3, '0')}`;
+          await db.update(employees)
+            .set({ employeeNumber: generatedNumber })
+            .where(eq(employees.id, insertedId));
+        }
 
         // Notify new employee about their account setup
         const { createNotification } = await import('./notifications');
@@ -322,7 +340,7 @@ export const hrRouter = router({
           fromUserId: (ctx as any).user?.id,
           type: 'success',
           title: 'مرحباً بك في فريق العمل! 🎉',
-          message: `تم إنشاء ملفك كموظف برقم ${input.employeeNumber}`,
+          message: `تم إنشاء ملفك كموظف برقم EMP-${String(insertedId).padStart(3, '0')}`,
           entityType: 'employee',
           link: '/hr'
         });

@@ -28,7 +28,6 @@ export function AddEmployeeDialog() {
   const [customPosition, setCustomPosition] = useState(false);
   const [formData, setFormData] = useState({
     userName: "",
-    employeeNumber: "",
     department: "",
     position: "",
     hireDate: new Date().toISOString().split('T')[0],
@@ -48,7 +47,6 @@ export function AddEmployeeDialog() {
       setCustomPosition(false);
       setFormData({
         userName: "",
-        employeeNumber: "",
         department: "",
         position: "",
         hireDate: new Date().toISOString().split('T')[0],
@@ -69,8 +67,8 @@ export function AddEmployeeDialog() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.userName || !formData.employeeNumber) {
-      toast.error("يرجى ملء جميع الحقول المطلوبة");
+    if (!formData.userName) {
+      toast.error("يرجى إدخال اسم المستخدم");
       return;
     }
 
@@ -78,7 +76,7 @@ export function AddEmployeeDialog() {
     const proceed = async (userId: number) => {
       createEmployee.mutate({
         userId,
-        employeeNumber: formData.employeeNumber,
+        // employeeNumber will be auto-generated on backend
         department: formData.department || undefined,
         position: formData.position || undefined,
         hireDate: new Date(formData.hireDate),
@@ -143,26 +141,15 @@ export function AddEmployeeDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="userName">اسم المستخدم *</Label>
-                <Input
-                  id="userName"
-                  value={formData.userName}
-                  onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="employeeNumber">رقم الموظف *</Label>
-                <Input
-                  id="employeeNumber"
-                  value={formData.employeeNumber}
-                  onChange={(e) => setFormData({ ...formData, employeeNumber: e.target.value })}
-                  placeholder="EMP-001"
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="userName">اسم المستخدم *</Label>
+              <Input
+                id="userName"
+                value={formData.userName}
+                onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+                required
+              />
+              <p className="text-xs text-muted-foreground">سيتم توليد رقم الموظف تلقائياً</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
