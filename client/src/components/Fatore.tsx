@@ -1145,7 +1145,7 @@ export default function Fatore() {
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex flex-wrap gap-4 justify-start mt-8 border-t pt-6 bg-background sticky bottom-0 p-4 shadow-lg z-10">
+                <div className="flex flex-wrap gap-4 justify-start border-t pt-6 bg-background fixed bottom-0 left-0 right-0 p-4 shadow-lg z-50">
                     <Button onClick={handleSaveToDB} className="bg-[#bfa670] hover:bg-[#a68e59] text-white min-w-[150px]">
                         <Save className="w-5 h-5 ml-2" />
                         حفظ في النظام
