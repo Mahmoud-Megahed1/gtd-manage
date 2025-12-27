@@ -407,7 +407,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                 ` : ''}
 
                 <footer>
-                     <div style="height: 4px; background: linear-gradient(90deg, #ccc, #bfa670); margin-bottom: 10px; width: 100%;"></div>
+
                     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                          <div class="barcode-placeholder" style="order: 2; height: 100px; width: 200px; display: flex; align-items: flex-end; justify-content: flex-end;">
                              <img src="https://pro.gtd-sys.com/barcode.jpg" alt="Barcode" style="height: 80px; width: auto;">
