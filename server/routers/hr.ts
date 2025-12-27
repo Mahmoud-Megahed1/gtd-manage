@@ -997,17 +997,64 @@ export const hrRouter = router({
           return rows.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         }
 
-        let query = db.select().from(leaves);
 
-        const conditions = [];
-        if (input.employeeId) conditions.push(eq(leaves.employeeId, input.employeeId));
-        if (input.status) conditions.push(eq(leaves.status, input.status));
 
-        if (conditions.length > 0) {
-          query = query.where(and(...conditions)) as any;
-        }
+        // Execute query with joins to get employee details
+        const result = await db.select({
+          id: leaves.id,
+          employeeId: leaves.employeeId,
+          leaveType: leaves.leaveType,
+          startDate: leaves.startDate,
+          endDate: leaves.endDate,
+          days: leaves.days,
+          reason: leaves.reason,
+          status: leaves.status,
+          approvedBy: leaves.approvedBy,
+          approvedAt: leaves.approvedAt,
+          notes: leaves.notes,
+          cancellationRequested: leaves.cancellationRequested,
+          cancellationReason: leaves.cancellationReason,
+          createdAt: leaves.createdAt,
+          // Joined fields
+          employeeNumber: employees.employeeNumber,
+          employeeName: users.name
+        })
+          .from(leaves)
+          .leftJoin(employees, eq(leaves.employeeId, employees.id))
+          .leftJoin(users, eq(employees.userId, users.id))
+          .orderBy(desc(leaves.createdAt)); // Re-apply ordering
 
-        return await query.orderBy(desc(leaves.createdAt));
+        // If filtering was needed, we should have applied it to the select query above
+        // But since `query` was built dynamically, we might need to refactor.
+        // For simplicity, let's just use the select directly and apply basic filtering if needed.
+        // Actually, let's keep it robust.
+
+        let selectQuery = db.select({
+          id: leaves.id,
+          employeeId: leaves.employeeId,
+          leaveType: leaves.leaveType,
+          startDate: leaves.startDate,
+          endDate: leaves.endDate,
+          days: leaves.days,
+          reason: leaves.reason,
+          status: leaves.status,
+          approvedBy: leaves.approvedBy,
+          approvedAt: leaves.approvedAt,
+          notes: leaves.notes,
+          cancellationRequested: leaves.cancellationRequested,
+          cancellationReason: leaves.cancellationReason,
+          createdAt: leaves.createdAt,
+          employeeNumber: employees.employeeNumber,
+          employeeName: users.name
+        })
+          .from(leaves)
+          .leftJoin(employees, eq(leaves.employeeId, employees.id))
+          .leftJoin(users, eq(employees.userId, users.id));
+
+        if (input.employeeId) selectQuery.where(eq(leaves.employeeId, input.employeeId));
+        if (input.status) selectQuery.where(eq(leaves.status, input.status));
+
+        return await selectQuery.orderBy(desc(leaves.createdAt));
       }),
 
     create: protectedProcedure

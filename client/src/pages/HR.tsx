@@ -810,7 +810,7 @@ export default function HR() {
                       {reviewsList.map((review) => (
                         <div key={review.id} className="p-4 border rounded-lg space-y-2">
                           <div className="flex items-center justify-between">
-                            <p className="font-medium">موظف #{review.employeeId}</p>
+                            <p className="font-medium">{(review as any).employeeName || review.employee?.name || `موظف #${review.employeeId}`}</p>
                             <div className="flex items-center gap-2">
                               {review.rating && (
                                 <Badge variant="outline">
