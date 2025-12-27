@@ -103,6 +103,7 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
         endDate: "",
         priority: "medium",
         estimateHours: "",
+        assignedTo: "",  // Added for task assignment
     });
 
     const handleCreateTask = () => {
@@ -116,8 +117,9 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
             status: "planned",
             priority: form.priority as any,
             estimateHours: form.estimateHours ? Number(form.estimateHours) : undefined,
+            assignedTo: form.assignedTo ? Number(form.assignedTo) : undefined,
         });
-        setForm({ name: "", description: "", startDate: "", endDate: "", priority: "medium", estimateHours: "" });
+        setForm({ name: "", description: "", startDate: "", endDate: "", priority: "medium", estimateHours: "", assignedTo: "" });
         setShowForm(false);
     };
 
@@ -173,6 +175,17 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
                             <div>
                                 <label className="text-sm">تقدير الساعات</label>
                                 <Input type="number" min={0} value={form.estimateHours} onChange={(e) => setForm({ ...form, estimateHours: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="text-sm">تعيين لـ (المسؤول)</label>
+                                <Select value={form.assignedTo} onValueChange={(v) => setForm({ ...form, assignedTo: v })}>
+                                    <SelectTrigger><SelectValue placeholder="-- اختر المسؤول --" /></SelectTrigger>
+                                    <SelectContent>
+                                        {(usersList || []).map((u: any) => (
+                                            <SelectItem key={u.id} value={String(u.id)}>{u.name || u.email}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                         <div>
