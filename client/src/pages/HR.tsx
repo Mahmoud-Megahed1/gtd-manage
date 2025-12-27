@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "@/components/AddEmployeeDialog";
 import { CheckInDialog } from "@/components/CheckInDialog";
+import { CheckOutDialog } from "@/components/CheckOutDialog";
 import { AddLeaveDialog } from "@/components/AddLeaveDialog";
 import { AddPerformanceReviewDialog } from "@/components/AddPerformanceReviewDialog";
 import { AddPayrollDialog } from "@/components/AddPayrollDialog";
@@ -465,7 +466,10 @@ export default function HR() {
                       <CardTitle>سجلات الحضور والانصراف</CardTitle>
                       <CardDescription>تتبع حضور الموظفين وساعات العمل</CardDescription>
                     </div>
-                    <CheckInDialog />
+                    <div className="flex gap-2">
+                      <CheckInDialog />
+                      <CheckOutDialog />
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
