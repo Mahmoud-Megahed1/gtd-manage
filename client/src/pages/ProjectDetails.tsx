@@ -622,7 +622,6 @@ export default function ProjectDetails() {
                         <TabsTrigger value="installments">سجل الفواتير - الإيرادات ({sales.length})</TabsTrigger>
                         <TabsTrigger value="purchases">المشتريات ({projectPurchases.length})</TabsTrigger>
                         <TabsTrigger value="operatingCosts">التكاليف التشغيلية ({projectOperatingCosts.length})</TabsTrigger>
-                        <TabsTrigger value="expenses">المصروفات ({expenses.length})</TabsTrigger>
                       </TabsList>
                     </div>
 
@@ -666,88 +665,6 @@ export default function ProjectDetails() {
                               ) : (
                                 <TableRow>
                                   <TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد فواتير مربوطة بهذا المشروع</TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="expenses" className="mt-0">
-                        <div className="flex justify-between items-center mb-4">
-                          <div>
-                            <h3 className="font-bold">سجل المصروفات الفعلي</h3>
-                            <p className="text-sm text-muted-foreground">أي مصروفات يضيفها المحاسب أو مدير المشروع هنا ستظهر في إجمالي المصروفات.</p>
-                          </div>
-                          <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm"><Plus className="w-4 h-4 ml-2" /> إضافة مصروف</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>إضافة مصروف جديد</DialogTitle>
-                              </DialogHeader>
-                              <form
-                                className="space-y-4"
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  const form = e.target as any;
-                                  createExpense.mutate({
-                                    projectId,
-                                    category: form.category.value,
-                                    description: form.description.value,
-                                    amount: parseFloat(form.amount.value),
-                                    expenseDate: form.expenseDate.value
-                                  });
-                                }}
-                              >
-                                <div>
-                                  <Label>التصنيف</Label>
-                                  <Input name="category" placeholder="مواد/عمالة/نقل..." required />
-                                </div>
-                                <div>
-                                  <Label>الوصف</Label>
-                                  <Input name="description" required />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <Label>المبلغ</Label>
-                                    <Input name="amount" type="number" step="0.01" required />
-                                  </div>
-                                  <div>
-                                    <Label>التاريخ</Label>
-                                    <Input name="expenseDate" type="date" required />
-                                  </div>
-                                </div>
-                                <Button type="submit" className="w-full" disabled={createExpense.isPending}>
-                                  {createExpense.isPending ? "جاري الحفظ..." : "حفظ المصروف"}
-                                </Button>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-
-                        <div className="border rounded overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="text-right">التاريخ</TableHead>
-                                <TableHead className="text-right">الوصف</TableHead>
-                                <TableHead className="text-right">التصنيف</TableHead>
-                                <TableHead className="text-left">المبلغ</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {expenses && expenses.length > 0 ? expenses.map((exp: any) => (
-                                <TableRow key={exp.id}>
-                                  <TableCell>{new Date(exp.expenseDate).toLocaleDateString("ar-SA")}</TableCell>
-                                  <TableCell>{exp.description}</TableCell>
-                                  <TableCell><Badge variant="outline">{exp.category}</Badge></TableCell>
-                                  <TableCell className="text-left font-bold">{exp.amount.toLocaleString()}</TableCell>
-                                </TableRow>
-                              )) : (
-                                <TableRow>
-                                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد مصروفات</TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
