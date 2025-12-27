@@ -97,6 +97,7 @@ export default function Fatore() {
     // New editable terms
     const [modificationTerms, setModificationTerms] = useState("مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.");
     const [additionalWorkTerms, setAdditionalWorkTerms] = useState("أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.");
+    const [cancellationTerms, setCancellationTerms] = useState("يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم زيارة واستشارة.");
 
     const [customTerms, setCustomTerms] = useState<string[]>([]);
 
@@ -211,6 +212,7 @@ export default function Fatore() {
 
                     if (data.modificationTerms) setModificationTerms(data.modificationTerms);
                     if (data.additionalWorkTerms) setAdditionalWorkTerms(data.additionalWorkTerms);
+                    if (data.cancellationTerms) setCancellationTerms(data.cancellationTerms);
 
                     if (data.customTerms) setCustomTerms(data.customTerms);
                     if (data.taxEnabled !== undefined) setTaxEnabled(data.taxEnabled);
@@ -310,7 +312,7 @@ export default function Fatore() {
             validityPeriod, isCustomValidity,
             designDuration, isCustomDuration,
             cancellationFee, isCustomFee,
-            modificationTerms, additionalWorkTerms,
+            modificationTerms, additionalWorkTerms, cancellationTerms,
 
             customTerms,
 
@@ -320,9 +322,9 @@ export default function Fatore() {
                 `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
                 modificationTerms,
                 additionalWorkTerms,
-                `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
+                cancellationTerms,
                 ...customTerms
-            ],
+            ].filter(t => t && t.trim() !== ''),
             enableTax: taxEnabled,
             images: images
         };
@@ -1048,6 +1050,13 @@ export default function Fatore() {
                                     value={additionalWorkTerms}
                                     onChange={e => setAdditionalWorkTerms(e.target.value)}
                                     placeholder="أي أعمال إضافية..."
+                                />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                                    value={cancellationTerms}
+                                    onChange={e => setCancellationTerms(e.target.value)}
+                                    placeholder="شرط الإلغاء..."
                                 />
                             </div>
 
