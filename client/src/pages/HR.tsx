@@ -25,6 +25,7 @@ import { AddPayrollDialog } from "@/components/AddPayrollDialog";
 import { LeaveApprovalDialog } from "@/components/LeaveApprovalDialog";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AttendanceCsvImport from "@/components/AttendanceCsvImport";
+import AttendanceExport from "@/components/AttendanceExport";
 import TeamCalendar from "@/components/TeamCalendar";
 import PayrollExport from "@/components/PayrollExport";
 
@@ -83,6 +84,14 @@ export default function HR() {
       utils.hr.leaves.list.invalidate();
     },
     onError: () => toast.error("تعذر حذف طلب الإجازة"),
+  });
+
+  const deleteAttendance = trpc.hr.attendance.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف سجل الحضور");
+      utils.hr.attendance.list.invalidate();
+    },
+    onError: (err) => toast.error(err.message || "تعذر حذف سجل الحضور"),
   });
 
   // Cancellation mutations
@@ -474,7 +483,10 @@ export default function HR() {
                 </CardHeader>
                 <CardContent>
                   <div className="p-3 border rounded mb-4">
-                    <p className="text-sm mb-2">استيراد CSV للحضور (employeeNumber,date,checkIn,checkOut)</p>
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-sm">استيراد CSV للحضور (employeeNumber,date,checkIn,checkOut)</p>
+                      <AttendanceExport attendanceList={attendanceList || []} />
+                    </div>
                     <AttendanceCsvImport />
                   </div>
                   {loadingAttendance ? (
@@ -500,6 +512,20 @@ export default function HR() {
                           <Badge variant={att.status === 'present' ? 'default' : 'secondary'}>
                             {att.status === 'present' ? 'حاضر' : att.status === 'late' ? 'متأخر' : att.status === 'absent' ? 'غائب' : 'نصف يوم'}
                           </Badge>
+                          {user?.role === 'admin' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("هل أنت متأكد من حذف سجل الحضور هذا؟")) {
+                                  deleteAttendance.mutate({ id: att.id });
+                                }
+                              }}
+                              disabled={deleteAttendance.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>

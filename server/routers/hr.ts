@@ -742,6 +742,25 @@ export const hrRouter = router({
 
         return { success: true, created, updated, late, absent };
       }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        // Only admin can delete attendance records (not hr_manager)
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admin can delete attendance records' });
+        }
+
+        const db = await getDb();
+        if (!db) {
+          const demo = await import("../_core/demoStore");
+          demo.remove("attendance", input.id);
+          return { success: true };
+        }
+
+        await db.delete(attendance).where(eq(attendance.id, input.id));
+        return { success: true };
+      }),
   }),
 
   // ============= PAYROLL =============
