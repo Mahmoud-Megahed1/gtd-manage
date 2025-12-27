@@ -6,7 +6,7 @@ import {
   employees, attendance, payroll, leaves, performanceReviews, users,
   InsertEmployee, InsertAttendance, InsertPayroll, InsertLeave, InsertPerformanceReview
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure
