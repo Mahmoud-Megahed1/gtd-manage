@@ -250,7 +250,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
             </section>
 
             <footer className="invoice-footer">
-                <div style={{ height: '4px', background: 'linear-gradient(90deg, #ccc, #bfa670)', marginBottom: '10px', width: '100%' }}></div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="barcode-placeholder" style={{ height: '80px', width: '150px' }}>
                         <img src="/barcode.jpg" alt="Barcode" className="print-image" style={{ height: '60px', width: 'auto', display: 'block' }} />

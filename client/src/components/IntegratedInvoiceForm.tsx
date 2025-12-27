@@ -639,7 +639,7 @@ export default function IntegratedInvoiceForm() {
                 </section>
 
                 <footer className="invoice-footer print-only-section">
-                    <div style={{ height: '4px', background: 'linear-gradient(90deg, #ccc, #bfa670)', marginBottom: '10px', width: '100%' }}></div>
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <div className="barcode-placeholder" style={{ order: 2, height: '100px', width: '200px', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                             <img src="/barcode.jpg" alt="Barcode" style={{ height: '80px', width: 'auto' }} />
