@@ -80,7 +80,8 @@ export default function ProjectDetails() {
     name: "",
     description: "",
     startDate: "",
-    endDate: ""
+    endDate: "",
+    assignedTo: ""  // Added for controlled form
   });
 
   const project = projectData?.project;
@@ -1054,38 +1055,34 @@ export default function ProjectDetails() {
                   className="mb-6 p-4 border rounded-lg bg-muted/30"
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    const form = e.currentTarget as any;
-                    const name = form.phaseName.value;
-                    const description = form.phaseDesc.value;
-                    const startDate = form.phaseStart.value;
-                    const endDate = form.phaseEnd.value;
-                    const assignedTo = form.phaseAssignedTo?.value;
 
-                    // Debug logging
+                    // Debug logging - using newTask state
                     console.log("=== Phase Form Submission Debug ===");
-                    console.log("Form element:", form);
-                    console.log("phaseAssignedTo element:", form.phaseAssignedTo);
-                    console.log("assignedTo raw value:", assignedTo);
-                    console.log("assignedTo parsed:", assignedTo ? parseInt(assignedTo) : undefined);
+                    console.log("newTask state:", newTask);
+                    console.log("assignedTo value:", newTask.assignedTo);
                     console.log("teamMembers available:", teamMembers);
 
-                    if (!name) return;
+                    if (!newTask.name) {
+                      toast.error("أدخل اسم المرحلة");
+                      return;
+                    }
 
                     try {
                       const mutationData = {
                         projectId,
-                        name,
-                        description: description || undefined,
-                        startDate: startDate ? new Date(startDate) : undefined,
-                        endDate: endDate ? new Date(endDate) : undefined,
-                        assignedTo: assignedTo ? parseInt(assignedTo) : undefined
+                        name: newTask.name,
+                        description: newTask.description || undefined,
+                        startDate: newTask.startDate ? new Date(newTask.startDate) : undefined,
+                        endDate: newTask.endDate ? new Date(newTask.endDate) : undefined,
+                        assignedTo: newTask.assignedTo ? parseInt(newTask.assignedTo) : undefined
                       };
                       console.log("Mutation data being sent:", mutationData);
 
                       await createTask.mutateAsync(mutationData);
-                      form.reset();
+                      setNewTask({ name: "", description: "", startDate: "", endDate: "", assignedTo: "" });
                       toast.success("تم إضافة المرحلة");
                     } catch (err: any) {
+                      console.error("Error creating phase:", err);
                       toast.error("تعذر إضافة المرحلة");
                     }
                   }}
@@ -1133,11 +1130,34 @@ export default function ProjectDetails() {
                   )}
 
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Input name="phaseName" placeholder="اسم المرحلة *" required />
-                    <Input name="phaseDesc" placeholder="الوصف (اختياري)" />
-                    <Input name="phaseStart" type="date" placeholder="تاريخ البداية" />
-                    <Input name="phaseEnd" type="date" placeholder="تاريخ النهاية" />
-                    <select name="phaseAssignedTo" className="w-full p-2 border rounded bg-background text-sm">
+                    <Input
+                      placeholder="اسم المرحلة *"
+                      value={newTask.name}
+                      onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
+                      required
+                    />
+                    <Input
+                      placeholder="الوصف (اختياري)"
+                      value={newTask.description}
+                      onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    />
+                    <Input
+                      type="date"
+                      placeholder="تاريخ البداية"
+                      value={newTask.startDate}
+                      onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
+                    />
+                    <Input
+                      type="date"
+                      placeholder="تاريخ النهاية"
+                      value={newTask.endDate}
+                      onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
+                    />
+                    <select
+                      className="w-full p-2 border rounded bg-background text-sm"
+                      value={newTask.assignedTo}
+                      onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
+                    >
                       <option value="">-- تعيين لعضو فريق (اختياري) --</option>
                       {(teamMembers || []).map((m: any) => (
                         <option key={m.userId} value={m.userId}>{m.userName || m.userEmail || `User #${m.userId}`}</option>
