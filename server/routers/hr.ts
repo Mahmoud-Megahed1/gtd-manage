@@ -557,7 +557,9 @@ export const hrRouter = router({
       .mutation(async ({ input }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        const settingsRows = await db.select().from((await import("../../drizzle/schema")).companySettings);
+
+        const schema = await import("../../drizzle/schema");
+        const settingsRows = await db.select().from(schema.companySettings);
         const getSetting = (k: string, d: string) => {
           const f = settingsRows.find((it: any) => it.settingKey === k);
           const v = f?.settingValue;
@@ -565,75 +567,180 @@ export const hrRouter = router({
         };
         const shiftStart = getSetting("hrShiftStart", "09:00");
         const graceMinutes = parseInt(getSetting("hrShiftGraceMinutes", "15"));
+
         const lines = input.csvData.trim().split(/\r?\n/);
-        if (lines.length < 2) return { success: true, created: 0, late: 0, absent: 0 };
+        if (lines.length < 2) return { success: true, created: 0, updated: 0, late: 0, absent: 0 };
+
         const [header, ...rows] = lines;
         const cols = header.split(",").map(s => s.trim().toLowerCase());
-        const idxEmp = cols.indexOf("employeenumber");
+
+        // Support both employeenumber and employeename
+        const idxEmpNumber = cols.indexOf("employeenumber");
+        const idxEmpName = cols.indexOf("employeename");
         const idxDate = cols.indexOf("date");
         const idxIn = cols.indexOf("checkin");
         const idxOut = cols.indexOf("checkout");
-        if (idxEmp < 0 || idxDate < 0) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'CSV must include employeeNumber,date[,checkIn,checkOut]' });
+
+        // Must have at least date and either employee number or name
+        if (idxDate < 0 || (idxEmpNumber < 0 && idxEmpName < 0)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'CSV must include date and either employeeNumber or employeeName columns'
+          });
         }
-        const employeesRows = await db.select().from((await import("../../drizzle/schema")).employees);
+
+        // Get all employees and users for matching
+        const employeesRows = await db.select().from(schema.employees);
+        const usersRows = await db.select().from(schema.users);
+
+        // Build lookup maps
         const empByNumber = new Map<string, any>();
-        employeesRows.forEach(e => empByNumber.set((e as any).employeeNumber, e));
-        let created = 0, late = 0, absent = 0;
+        const empByName = new Map<string, any>();
+        employeesRows.forEach(e => {
+          empByNumber.set((e as any).employeeNumber?.toLowerCase(), e);
+          // Also map by user name
+          const user = usersRows.find(u => u.id === (e as any).userId);
+          if (user?.name) {
+            empByName.set(user.name.toLowerCase(), e);
+          }
+        });
+
+        let created = 0, updated = 0, late = 0, absent = 0;
+
         const toTime = (dateStr: string, hm: string) => {
           const [h, m] = hm.split(":").map(x => parseInt(x));
           const d = new Date(dateStr);
           d.setHours(h, m, 0, 0);
           return d;
         };
+
         for (const r of rows) {
           if (!r.trim()) continue;
           const parts = r.split(",").map(s => s.trim());
-          const empNumber = parts[idxEmp];
+
+          // Find employee by number or name
+          let emp: any = null;
+          if (idxEmpNumber >= 0 && parts[idxEmpNumber]) {
+            emp = empByNumber.get(parts[idxEmpNumber].toLowerCase());
+          }
+          if (!emp && idxEmpName >= 0 && parts[idxEmpName]) {
+            emp = empByName.get(parts[idxEmpName].toLowerCase());
+          }
+
+          if (!emp) {
+            console.log(`[CSV Import] Employee not found: ${parts[idxEmpNumber] || parts[idxEmpName]}`);
+            continue;
+          }
+
           const dateStr = parts[idxDate];
-          const emp = empByNumber.get(empNumber);
-          if (!emp) continue;
+          const date = new Date(dateStr);
+          // Normalize date to start of day for comparison
+          date.setHours(0, 0, 0, 0);
+
           const checkInStr = idxIn >= 0 ? parts[idxIn] : "";
           const checkOutStr = idxOut >= 0 ? parts[idxOut] : "";
-          const date = new Date(dateStr);
-          const plannedStart = toTime(dateStr, shiftStart);
-          const graceMs = graceMinutes * 60 * 1000;
-          let status: "present" | "late" | "absent" | "half_day" = "present";
+
+          // Check if record exists for this employee on this date
+          const existingRecords = await db.select()
+            .from(schema.attendance)
+            .where(and(
+              eq(schema.attendance.employeeId, emp.id),
+              eq(schema.attendance.date, date)
+            ))
+            .limit(1);
+
+          const existingRecord = existingRecords[0];
+
+          // Parse check-in and check-out times
           let checkIn: Date | null = null;
           let checkOut: Date | null = null;
+
           if (checkInStr) {
             const [ih, im] = checkInStr.split(":").map(x => parseInt(x));
             checkIn = new Date(date);
             checkIn.setHours(ih, im, 0, 0);
           }
+
           if (checkOutStr) {
             const [oh, om] = checkOutStr.split(":").map(x => parseInt(x));
             checkOut = new Date(date);
             checkOut.setHours(oh, om, 0, 0);
           }
-          if (!checkIn) {
-            status = "absent";
-            absent++;
-          } else if ((checkIn.getTime() - plannedStart.getTime()) > graceMs) {
-            status = "late";
-            late++;
+
+          if (existingRecord) {
+            // UPDATE existing record
+            const updateData: any = {};
+
+            // Only update check-in if provided and record doesn't have one
+            if (checkIn && !existingRecord.checkIn) {
+              updateData.checkIn = checkIn;
+            }
+
+            // Update check-out if provided
+            if (checkOut) {
+              updateData.checkOut = checkOut;
+            }
+
+            // Calculate hours worked if we have both times
+            const finalCheckIn = updateData.checkIn || existingRecord.checkIn;
+            const finalCheckOut = updateData.checkOut || existingRecord.checkOut;
+
+            if (finalCheckIn && finalCheckOut) {
+              updateData.hoursWorked = Math.floor(
+                (new Date(finalCheckOut).getTime() - new Date(finalCheckIn).getTime()) / (1000 * 60 * 60)
+              );
+            }
+
+            // Update status based on check-in time
+            if (finalCheckIn) {
+              const plannedStart = toTime(dateStr, shiftStart);
+              const graceMs = graceMinutes * 60 * 1000;
+              if ((new Date(finalCheckIn).getTime() - plannedStart.getTime()) > graceMs) {
+                updateData.status = "late";
+              } else {
+                updateData.status = "present";
+              }
+            }
+
+            if (Object.keys(updateData).length > 0) {
+              await db.update(schema.attendance)
+                .set(updateData)
+                .where(eq(schema.attendance.id, existingRecord.id));
+              updated++;
+            }
+          } else {
+            // CREATE new record
+            const plannedStart = toTime(dateStr, shiftStart);
+            const graceMs = graceMinutes * 60 * 1000;
+            let status: "present" | "late" | "absent" | "half_day" = "present";
+
+            if (!checkIn) {
+              status = "absent";
+              absent++;
+            } else if ((checkIn.getTime() - plannedStart.getTime()) > graceMs) {
+              status = "late";
+              late++;
+            }
+
+            let hoursWorked = 0;
+            if (checkIn && checkOut) {
+              hoursWorked = Math.floor((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60));
+            }
+
+            await db.insert(schema.attendance).values({
+              employeeId: emp.id,
+              date,
+              checkIn: checkIn || undefined,
+              checkOut: checkOut || undefined,
+              hoursWorked,
+              status,
+              notes: ""
+            } as any);
+            created++;
           }
-          let hoursWorked = 0;
-          if (checkIn && checkOut) {
-            hoursWorked = Math.floor((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60));
-          }
-          await db.insert((await import("../../drizzle/schema")).attendance).values({
-            employeeId: emp.id,
-            date,
-            checkIn: checkIn || undefined,
-            checkOut: checkOut || undefined,
-            hoursWorked,
-            status,
-            notes: ""
-          } as any);
-          created++;
         }
-        return { success: true, created, late, absent };
+
+        return { success: true, created, updated, late, absent };
       }),
   }),
 
