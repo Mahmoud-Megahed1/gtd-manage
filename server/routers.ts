@@ -59,10 +59,11 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     // HR Manager - full access to HR
     hr_manager: { hr: 'full', dashboard: 'full' },
     // Finance roles
-    finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own' },
+    finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
     accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
     // Project roles
     project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own' },
+    department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full' },
     site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     architect: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
@@ -71,7 +72,7 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     // Regular employees - can only see their own data in HR
     employee: { hr: 'own', dashboard: 'readonly' },
     // Other roles
-    sales_manager: { clients: 'full', invoices: 'full', dashboard: 'full', hr: 'own' },
+    sales_manager: { clients: 'full', invoices: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
     procurement_officer: { procurement: 'full', purchases: 'full', dashboard: 'readonly', hr: 'own' },
     document_controller: { documents: 'full', attachments: 'full', dashboard: 'readonly', hr: 'own' },
     qa_qc: { qaqc: 'full', dashboard: 'readonly', hr: 'own' },

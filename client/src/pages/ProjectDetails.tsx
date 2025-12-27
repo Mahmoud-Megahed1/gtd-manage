@@ -252,6 +252,8 @@ export default function ProjectDetails() {
   // Check if project type allows financial section
   // Only execution and design_execution have financials
   const projectHasFinancials = (projectType: string) => {
+    // Always show for admin and project manager
+    if (user?.role === 'admin' || user?.role === 'project_manager') return true;
     return projectType === 'execution' || projectType === 'design_execution';
   };
 
