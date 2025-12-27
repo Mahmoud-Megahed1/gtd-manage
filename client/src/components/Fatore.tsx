@@ -1158,10 +1158,6 @@ export default function Fatore() {
                         <Download className="w-5 h-5 ml-2" />
                         تصدير HTML
                     </Button>
-                    <Button variant="ghost" onClick={resetForm}>
-                        <Plus className="w-5 h-5 ml-2" />
-                        جديد
-                    </Button>
                 </div>
             </div>
 
