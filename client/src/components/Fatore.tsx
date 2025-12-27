@@ -94,6 +94,10 @@ export default function Fatore() {
     const [cancellationFee, setCancellationFee] = useState("زيارة واستشارة");
     const [isCustomFee, setIsCustomFee] = useState(false);
 
+    // New editable terms
+    const [modificationTerms, setModificationTerms] = useState("مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.");
+    const [additionalWorkTerms, setAdditionalWorkTerms] = useState("أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.");
+
     const [customTerms, setCustomTerms] = useState<string[]>([]);
 
     // Tax Settings
@@ -205,6 +209,9 @@ export default function Fatore() {
                     if (data.cancellationFee) setCancellationFee(data.cancellationFee);
                     if (data.isCustomFee) setIsCustomFee(data.isCustomFee);
 
+                    if (data.modificationTerms) setModificationTerms(data.modificationTerms);
+                    if (data.additionalWorkTerms) setAdditionalWorkTerms(data.additionalWorkTerms);
+
                     if (data.customTerms) setCustomTerms(data.customTerms);
                     if (data.taxEnabled !== undefined) setTaxEnabled(data.taxEnabled);
                     if (data.images) setImages(data.images);
@@ -303,6 +310,7 @@ export default function Fatore() {
             validityPeriod, isCustomValidity,
             designDuration, isCustomDuration,
             cancellationFee, isCustomFee,
+            modificationTerms, additionalWorkTerms,
 
             customTerms,
 
@@ -310,8 +318,8 @@ export default function Fatore() {
                 `نظام الدفعات: ${paymentTermType === 'custom' ? customPaymentSystem : paymentTermType === '50-50' ? '50%-50% (دفعتين)' : paymentTermType === '50-25-25' ? '50%-25%-25% (ثلاث دفعات)' : paymentTermType === '100' ? '100% (دفعة كاملة)' : paymentTermType}`,
                 `عرض السعر صالح حتى ${isCustomValidity ? validityPeriod : validityPeriod} من تاريخ إصداره.`,
                 `مدة التصميم ${isCustomDuration ? designDuration : designDuration}.`,
-                `مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.`,
-                `أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.`,
+                modificationTerms,
+                additionalWorkTerms,
                 `يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم ${isCustomFee ? cancellationFee : cancellationFee}.`,
                 ...customTerms
             ],
@@ -1023,6 +1031,24 @@ export default function Fatore() {
                                 {isCustomDuration && (
                                     <input type="text" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm" value={designDuration} onChange={e => setDesignDuration(e.target.value)} />
                                 )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">شروط التعديلات والأعمال الإضافية</label>
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                                    value={modificationTerms}
+                                    onChange={e => setModificationTerms(e.target.value)}
+                                    placeholder="مدة جلسات التعديل..."
+                                />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                                    value={additionalWorkTerms}
+                                    onChange={e => setAdditionalWorkTerms(e.target.value)}
+                                    placeholder="أي أعمال إضافية..."
+                                />
                             </div>
 
                             <div className="space-y-2">
