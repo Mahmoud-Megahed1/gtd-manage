@@ -33,7 +33,11 @@ import {
     TrendingUp,
     TrendingDown,
     Building2,
-    Calendar
+    Calendar,
+    Archive,
+    Trash2,
+    Eye,
+    Filter
 } from "lucide-react";
 import { Pie, Bar } from "react-chartjs-2";
 import {
@@ -46,10 +50,21 @@ import {
     Tooltip,
     Legend,
 } from "chart.js";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-type ReportSection = 'clients' | 'projects' | 'tasks' | 'invoices' | 'accounting' | 'hr' | 'forms' | 'overview';
+type ReportSection = 'clients' | 'projects' | 'tasks' | 'invoices' | 'accounting' | 'hr' | 'forms' | 'overview' | 'saved_reports';
 
 const sectionIcons: Record<ReportSection, React.ReactNode> = {
     clients: <Users className="h-4 w-4" />,
@@ -60,6 +75,7 @@ const sectionIcons: Record<ReportSection, React.ReactNode> = {
     hr: <UserCog className="h-4 w-4" />,
     forms: <FileText className="h-4 w-4" />,
     overview: <LayoutDashboard className="h-4 w-4" />,
+    saved_reports: <Archive className="h-4 w-4" />,
 };
 
 export default function GeneralReports() {
@@ -71,6 +87,56 @@ export default function GeneralReports() {
     const [clientId, setClientId] = useState<string>("all");
     const [projectId, setProjectId] = useState<string>("all");
     const printRef = useRef<HTMLDivElement>(null);
+    const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+    const [reportName, setReportName] = useState("");
+    const [viewedReport, setViewedReport] = useState<any>(null);
+
+    const utils = trpc.useContext();
+    const saveReportMutation = trpc.generalReports.saveReport.useMutation({
+        onSuccess: () => {
+            toast.success("تم حفظ التقرير بنجاح");
+            setIsSaveDialogOpen(false);
+            setReportName("");
+            utils.generalReports.getSavedReports.invalidate();
+        }
+    });
+
+    const { data: savedReports } = trpc.generalReports.getSavedReports.useQuery(undefined, {
+        enabled: true // Always valid if component loaded
+    });
+
+    const deleteReportMutation = trpc.generalReports.deleteSavedReport.useMutation({
+        onSuccess: () => {
+            toast.success("تم حذف التقرير");
+            utils.generalReports.getSavedReports.invalidate();
+        }
+    });
+
+    const handleSave = () => {
+        let dataToSave = null;
+        if (activeSection === 'overview') dataToSave = overviewData;
+        else if (activeSection === 'clients') dataToSave = clientsData;
+        else if (activeSection === 'projects') dataToSave = projectsData;
+        else if (activeSection === 'tasks') dataToSave = tasksData;
+        else if (activeSection === 'invoices') dataToSave = invoicesData;
+        else if (activeSection === 'accounting') dataToSave = accountingData;
+        else if (activeSection === 'hr') dataToSave = hrData;
+        else if (activeSection === 'forms') dataToSave = formsData;
+
+        if (!dataToSave) {
+            toast.error("لا توجد بيانات لحفظها");
+            return;
+        }
+
+        const sectionLabel = availableSections?.find(s => s.key === activeSection)?.label || activeSection;
+
+        saveReportMutation.mutate({
+            name: reportName || `تقرير ${sectionLabel} - ${new Date().toLocaleDateString('ar-EG')}`,
+            reportType: activeSection,
+            filters: { from, to, clientId, projectId }, // Save current filters
+            data: dataToSave
+        });
+    };
 
     // Get available sections for current user
     const { data: availableSections, isLoading: sectionsLoading } = trpc.generalReports.getAvailableSections.useQuery();
@@ -485,6 +551,39 @@ export default function GeneralReports() {
                             <RefreshCw className={`h-4 w-4 ml-2 ${isLoading ? 'animate-spin' : ''}`} />
                             تحديث
                         </Button>
+                        <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" disabled={activeSection === 'saved_reports'}>
+                                    <Archive className="h-4 w-4 ml-2" />
+                                    حفظ التقرير
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>حفظ التقرير الحالي</DialogTitle>
+                                    <DialogDescription>
+                                        سيتم حفظ لقطة من البيانات الحالية للرجوع إليها لاحقاً.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label>اسم التقرير</Label>
+                                        <Input
+                                            placeholder="مثال: تقرير شهر يناير 2025"
+                                            value={reportName}
+                                            onChange={(e) => setReportName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>إلغاء</Button>
+                                    <Button onClick={handleSave} disabled={saveReportMutation.isLoading}>
+                                        {saveReportMutation.isLoading && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                                        حفظ
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                         <Button variant="outline" onClick={handlePrint}>
                             <Printer className="h-4 w-4 ml-2" />
                             طباعة
@@ -998,9 +1097,107 @@ export default function GeneralReports() {
                                 </div>
                             )}
                         </TabsContent>
+
+                        {/* Saved Reports Tab */}
+                        <TabsContent value="saved_reports">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>أرشيف التقارير</CardTitle>
+                                    <CardDescription>التقارير التي تم حفظها سابقاً</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        {!savedReports || savedReports.length === 0 ? (
+                                            <div className="text-center py-12">
+                                                <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                                                <p className="text-muted-foreground">لا توجد تقارير محفوظة</p>
+                                            </div>
+                                        ) : (
+                                            savedReports.map((report: any) => (
+                                                <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="bg-primary/10 p-2 rounded-full hidden md:block">
+                                                            {sectionIcons[report.reportType as ReportSection] || <FileText className="h-4 w-4" />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-lg">{report.name}</p>
+                                                            <div className="flex gap-2 text-sm text-muted-foreground">
+                                                                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(report.createdAt).toLocaleDateString('ar-EG')}</span>
+                                                                <span>•</span>
+                                                                <span>{availableSections?.find(s => s.key === report.reportType)?.label}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button variant="ghost" size="sm" onClick={() => setViewedReport(report)}>
+                                                            <Eye className="h-4 w-4 ml-1" />
+                                                            عرض
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => {
+                                                            if (confirm('هل أنت متأكد من حذف هذا التقرير؟')) {
+                                                                deleteReportMutation.mutate({ id: report.id });
+                                                            }
+                                                        }}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                     </div>
                 </Tabs>
             </div>
+
+            {/* View Report Dialog */}
+            <Dialog open={!!viewedReport} onOpenChange={(open) => !open && setViewedReport(null)}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{viewedReport?.name}</DialogTitle>
+                        <DialogDescription>
+                            {availableSections?.find(s => s.key === viewedReport?.reportType)?.label} - {viewedReport && new Date(viewedReport.createdAt).toLocaleDateString('ar-EG')}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="bg-muted p-4 rounded text-sm">
+                                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                    <Filter className="h-4 w-4" />
+                                    الفلاتر المستخدمة
+                                </h4>
+                                <div className="space-y-1 text-muted-foreground">
+                                    <p>من: {viewedReport?.filters?.from ? new Date(viewedReport.filters.from).toLocaleDateString('ar-EG') : 'غير محدد'}</p>
+                                    <p>إلى: {viewedReport?.filters?.to ? new Date(viewedReport.filters.to).toLocaleDateString('ar-EG') : 'غير محدد'}</p>
+                                    {viewedReport?.filters?.clientId !== 'all' && <p>العميل: {viewedReport?.filters?.clientId}</p>}
+                                    {viewedReport?.filters?.projectId !== 'all' && <p>المشروع: {viewedReport?.filters?.projectId}</p>}
+                                </div>
+                            </div>
+                            <div className="bg-muted p-4 rounded text-sm">
+                                <h4 className="font-semibold mb-2">معلومات الحفظ</h4>
+                                <div className="space-y-1 text-muted-foreground">
+                                    <p>تاريخ الحفظ: {viewedReport && new Date(viewedReport.createdAt).toLocaleString('ar-EG')}</p>
+                                    <p>نوع التقرير: {viewedReport?.reportType}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border p-4 rounded">
+                            <h4 className="font-semibold mb-2">بيانات التقرير</h4>
+                            <div className="text-sm bg-slate-50 p-4 rounded overflow-auto max-h-[400px] font-mono" dir="ltr">
+                                <pre>{JSON.stringify(viewedReport?.data, null, 2)}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button onClick={() => setViewedReport(null)}>إغلاق</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, int, varchar, timestamp, mysqlEnum, text, mediumtext, index, unique, tinyint } from "drizzle-orm/mysql-core"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, int, varchar, timestamp, mysqlEnum, text, mediumtext, index, unique, tinyint, json } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 export const attachments = mysqlTable("attachments", {
@@ -655,3 +655,16 @@ export const aiGeminiPages = mysqlTable("aiGeminiPages", {
 
 export type AiGeminiPage = typeof aiGeminiPages.$inferSelect;
 export type InsertAiGeminiPage = typeof aiGeminiPages.$inferInsert;
+
+export const savedReports = mysqlTable("savedReports", {
+	id: int().autoincrement().notNull(),
+	name: varchar({ length: 255 }).notNull(),
+	reportType: varchar({ length: 50 }).notNull(),
+	filters: json(),
+	data: json(),
+	createdBy: int().notNull(),
+	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+});
+
+export type SavedReport = typeof savedReports.$inferSelect;
+export type InsertSavedReport = typeof savedReports.$inferInsert;

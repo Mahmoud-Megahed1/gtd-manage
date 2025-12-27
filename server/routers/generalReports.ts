@@ -8,13 +8,13 @@ import { TRPCError } from "@trpc/server";
 import * as db from "../db";
 import { and, gte, lte, eq, sql, count, sum } from "drizzle-orm";
 import {
-    clients, projects, invoices, expenses, installments,
+    clients, projects, invoices, expenses, installments, purchases, savedReports,
     forms, employees, users
 } from "../../drizzle/schema";
 import * as demo from "../_core/demoStore";
 
 // ============= PERMISSION MATRIX =============
-type ReportSection = 'clients' | 'projects' | 'tasks' | 'invoices' | 'accounting' | 'hr' | 'forms' | 'overview';
+type ReportSection = 'clients' | 'projects' | 'tasks' | 'invoices' | 'accounting' | 'hr' | 'forms' | 'overview' | 'saved_reports';
 
 interface ReportPermission {
     canView: boolean;
@@ -39,6 +39,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
         },
         accountant: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -49,6 +50,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
         },
         project_manager: {
             clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -59,6 +61,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
         },
         designer: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -69,6 +72,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         architect: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -79,6 +83,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         site_engineer: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -89,6 +94,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         interior_designer: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -99,6 +105,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         planning_engineer: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -109,6 +116,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         hr_manager: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -119,6 +127,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         sales_manager: {
             clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -129,6 +138,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
         },
         // مدير قسم - صلاحيات مشابهة لمدير المشاريع
         department_manager: {
@@ -140,6 +150,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
         },
         // منسق مشاريع - يشوف المشاريع والمهام المسندة إليه
         project_coordinator: {
@@ -151,6 +162,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         // مساعد إداري - صلاحيات محدودة للعملاء والاستمارات
         admin_assistant: {
@@ -162,6 +174,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         // مسؤول مشتريات - يشوف المحاسبة والمشتريات
         procurement_manager: {
@@ -173,6 +186,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
         },
         // أمين مخازن - صلاحيات محدودة
         warehouse_manager: {
@@ -184,6 +198,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         // مسؤول جودة - يشوف المشاريع والمهام للمراقبة
         quality_manager: {
@@ -195,6 +210,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
         },
         // فني - مثل المصمم، يشوف المسند إليه فقط
         technician: {
@@ -206,6 +222,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         // أخرى / موظف عادي - بياناته فقط في HR
         other: {
@@ -217,6 +234,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
     };
 
@@ -246,7 +264,7 @@ export const generalReportsRouter = router({
     // Get available report sections for current user
     getAvailableSections: protectedProcedure
         .query(({ ctx }) => {
-            const sections: ReportSection[] = ['clients', 'projects', 'tasks', 'invoices', 'accounting', 'hr', 'forms', 'overview'];
+            const sections: ReportSection[] = ['clients', 'projects', 'tasks', 'invoices', 'accounting', 'hr', 'forms', 'overview', 'saved_reports'];
             const available: { key: ReportSection; label: string; canViewFinancials: boolean }[] = [];
 
             const labels: Record<ReportSection, string> = {
@@ -258,6 +276,7 @@ export const generalReportsRouter = router({
                 hr: 'شؤون الموظفين',
                 forms: 'الاستمارات',
                 overview: 'نظرة عامة',
+                saved_reports: 'الأرشيف',
             };
 
             for (const section of sections) {
@@ -575,14 +594,26 @@ export const generalReportsRouter = router({
             const from = input.from ?? new Date(0);
             const to = input.to ?? new Date();
 
-            // Expenses
+            // Expenses (Operating)
             const expConditions = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
             if (input.projectId) expConditions.push(eq(expenses.projectId, input.projectId));
 
             const expensesResult = await conn.select({ total: sum(expenses.amount) })
                 .from(expenses)
                 .where(and(...expConditions));
-            const totalExpenses = Number(expensesResult[0]?.total || 0);
+            const totalOperatingExpenses = Number(expensesResult[0]?.total || 0);
+
+            // Purchases
+            const purchConditions = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
+            if (input.projectId) purchConditions.push(eq(purchases.projectId, input.projectId));
+
+            const purchasesResult = await conn.select({ total: sum(purchases.amount) })
+                .from(purchases)
+                .where(and(...purchConditions));
+            const totalPurchases = Number(purchasesResult[0]?.total || 0);
+
+            // Total Expenses (Operating + Purchases)
+            const totalExpenses = totalOperatingExpenses + totalPurchases;
 
             // Expenses by category
             const categoryResult = await conn.select({
@@ -596,6 +627,11 @@ export const generalReportsRouter = router({
             categoryResult.forEach(r => {
                 expensesByCategory[r.category || 'أخرى'] = Number(r.total || 0);
             });
+            // Add purchases as a category? Or separate? For now, let's keep expensesByCategory for operating expenses only or add a generic 'Purchases' category.
+            // Let's add 'مشتريات' category if there are purchases
+            if (totalPurchases > 0) {
+                expensesByCategory['مشتريات'] = totalPurchases;
+            }
 
             // Installments
             const instConditions = [gte(installments.createdAt, from), lte(installments.createdAt, to)];
@@ -611,7 +647,7 @@ export const generalReportsRouter = router({
             const paidInstallments = Number(installmentsResult[0]?.paid || 0);
 
             return {
-                totalExpenses,
+                totalExpenses, // Now includes purchases
                 totalInstallments,
                 paidInstallments,
                 pendingInstallments: totalInstallments - paidInstallments,
@@ -789,7 +825,7 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                const [expResult, instResult] = await Promise.all([
+                const [expResult, instResult, purchResult] = await Promise.all([
                     conn.select({ total: sum(expenses.amount) })
                         .from(expenses)
                         .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
@@ -798,9 +834,15 @@ export const generalReportsRouter = router({
                         paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
                     }).from(installments)
                         .where(and(gte(installments.createdAt, from), lte(installments.createdAt, to))),
+                    conn.select({ total: sum(purchases.amount) })
+                        .from(purchases)
+                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
                 ]);
 
-                const totalExpenses = Number(expResult[0]?.total || 0);
+                const totalOperatingExpenses = Number(expResult[0]?.total || 0);
+                const totalPurchases = Number(purchResult[0]?.total || 0);
+                const totalExpenses = totalOperatingExpenses + totalPurchases;
+
                 const totalRevenue = Number(instResult[0]?.total || 0);
                 const paidRevenue = Number(instResult[0]?.paid || 0);
 
@@ -820,5 +862,50 @@ export const generalReportsRouter = router({
                 forms: { total: formsCount[0]?.count || 0 },
                 financials,
             };
+        }),
+
+    // 9. SAVED REPORTS
+    saveReport: protectedProcedure
+        .input(z.object({
+            name: z.string(),
+            reportType: z.string(),
+            filters: z.any(),
+            data: z.any()
+        }))
+        .mutation(async ({ input, ctx }) => {
+            const conn = await db.getDb();
+            if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+            await conn.insert(savedReports).values({
+                name: input.name,
+                reportType: input.reportType,
+                filters: input.filters,
+                data: input.data,
+                createdBy: ctx.user.id
+            });
+
+            return { success: true };
+        }),
+
+    getSavedReports: protectedProcedure
+        .query(async ({ ctx }) => {
+            const conn = await db.getDb();
+            if (!conn) return [];
+
+            return await conn.select()
+                .from(savedReports)
+                .orderBy(sql`${savedReports.createdAt} DESC`);
+        }),
+
+    deleteSavedReport: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+            const conn = await db.getDb();
+            if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+            await conn.delete(savedReports)
+                .where(eq(savedReports.id, input.id));
+
+            return { success: true };
         }),
 });
