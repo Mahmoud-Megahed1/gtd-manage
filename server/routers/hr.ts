@@ -251,7 +251,26 @@ export const hrRouter = router({
     list: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) return (await import("../_core/demoStore")).list("employees");
-      return await db.select().from(employees).orderBy(desc(employees.createdAt));
+      const res = await db.select({
+        id: employees.id,
+        userId: employees.userId,
+        employeeNumber: employees.employeeNumber,
+        department: employees.department,
+        position: employees.position,
+        hireDate: employees.hireDate,
+        salary: employees.salary,
+        bankAccount: employees.bankAccount,
+        emergencyContact: employees.emergencyContact,
+        status: employees.status,
+        createdAt: employees.createdAt,
+        userName: users.name,
+        userEmail: users.email
+      })
+        .from(employees)
+        .leftJoin(users, eq(employees.userId, users.id))
+        .orderBy(desc(employees.createdAt));
+
+      return res;
     }),
 
     // Get users without employee records

@@ -422,7 +422,10 @@ export default function HR() {
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">{emp.employeeNumber}</h3>
+                              <h3 className="font-semibold flex items-center gap-2">
+                                {emp.employeeNumber}
+                                {(emp as any).userName && <span className="text-sm font-normal text-muted-foreground">- {(emp as any).userName}</span>}
+                              </h3>
                               <Badge variant={emp.status === 'active' ? 'default' : 'secondary'}>
                                 {emp.status === 'active' ? 'نشط' : emp.status === 'on_leave' ? 'في إجازة' : 'منتهي'}
                               </Badge>
