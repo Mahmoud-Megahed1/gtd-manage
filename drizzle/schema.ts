@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, int, varchar, timestamp, mysqlEnum, text, index, unique, tinyint } from "drizzle-orm/mysql-core"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, int, varchar, timestamp, mysqlEnum, text, mediumtext, index, unique, tinyint } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 export const attachments = mysqlTable("attachments", {
@@ -233,7 +233,7 @@ export const invoices = mysqlTable("invoices", {
 	total: int().notNull(),
 	notes: text(),
 	terms: text(),
-	formData: text(),
+	formData: mediumtext(),
 	createdBy: int().notNull(),
 	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),

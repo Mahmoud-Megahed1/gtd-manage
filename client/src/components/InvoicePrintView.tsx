@@ -56,6 +56,8 @@ interface InvoicePrintViewProps {
     isCustomDuration: boolean;
     cancellationFee: string;
     isCustomFee: boolean;
+    modificationTerms: string;
+    additionalWorkTerms: string;
     customTerms: string[];
 }
 
@@ -118,7 +120,7 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
                     <h3>شركة اللمسة الذهبية للتصميم</h3>
                     <p style={{ margin: '0 0 5px 0', fontSize: '12px', fontWeight: 'bold', color: '#555' }}>سجل تجاري C.R. 7017891396</p>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '2px' }}>
-                        <span style={{ fontSize: '12px', color: '#555' }}><strong>الرقم:</strong> {props.serialNumber}</span>
+                        <span style={{ fontSize: '12px', color: '#555' }}><strong>الرقم المتسلسل:</strong> {props.serialNumber}</span>
                         <span style={{ fontSize: '12px', color: '#555' }}>| {props.issueDate}</span>
                         <span style={{ fontSize: '13px', fontWeight: 'bold', flex: 1, textAlign: 'left' }}>
                             {props.docType === 'invoice' ? 'عرض سعر وفاتورة سداد' : props.docType === 'quote' ? 'عرض سعر' : 'فاتورة سداد'}
@@ -239,7 +241,8 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
                     <ul className="terms-ul">
                         <li>عرض السعر صالح حتى <strong>{props.isCustomValidity ? props.validityPeriod : props.validityPeriod}</strong> من تاريخ إصداره.</li>
                         <li>مدة التصميم <strong>{props.isCustomDuration ? props.designDuration : props.designDuration}</strong>.</li>
-                        <li>مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.</li>
+                        <li>{props.modificationTerms}</li>
+                        <li>{props.additionalWorkTerms}</li>
                         <li>يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم <strong>{props.isCustomFee ? props.cancellationFee : props.cancellationFee}</strong>.</li>
                         {props.customTerms.map((t, i) => <li key={i}>{t}</li>)}
                     </ul>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 
 import './IntegratedInvoiceForm.css';
 import { InvoicePrintView } from './InvoicePrintView';
@@ -23,6 +23,10 @@ type PaymentMethod = 'tamara' | 'mispay' | 'visa' | 'mada' | 'stcpay' | 'bank' |
 
 export default function IntegratedInvoiceForm() {
     const [, setLocation] = useLocation();
+    const searchString = useSearch();
+    const searchParams = new URLSearchParams(searchString);
+    const editId = searchParams.get("id") ? Number(searchParams.get("id")) : undefined;
+
     const printRef = useRef<HTMLDivElement>(null);
 
     const [docType, setDocType] = useState<"invoice" | "quote">("invoice");
@@ -81,24 +85,106 @@ export default function IntegratedInvoiceForm() {
     const [cancellationFee, setCancellationFee] = useState("زيارة واستشارة");
     const [isCustomFee, setIsCustomFee] = useState(false);
 
+    // New editable terms
+    const [modificationTerms, setModificationTerms] = useState("مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة.");
+    const [additionalWorkTerms, setAdditionalWorkTerms] = useState("أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة.");
+
     const [customTerms, setCustomTerms] = useState<string[]>([]);
 
     // Tax Settings
     const [taxEnabled, setTaxEnabled] = useState(true);
     const [serialNumber, setSerialNumber] = useState("");
 
-    // Auto-generate Serial Number
+    // Fetch existing invoice if in Edit Mode
+    const { data: existingInvoice, isLoading: isLoadingInvoice } = trpc.invoices.getById.useQuery(
+        { id: editId! },
+        { enabled: !!editId }
+    );
+
+    // Populate form if editing
     useEffect(() => {
-        if (!serialNumber || serialNumber === '(Auto-generated)') {
+        if (existingInvoice && existingInvoice.invoice) {
+            const inv = existingInvoice.invoice;
+            setSerialNumber(inv.invoiceNumber);
+            setIssueDate(new Date(inv.issueDate).toISOString().split('T')[0]);
+            setDocType(inv.type as any);
+            setClientId(inv.clientId || 0);
+            if (existingInvoice.client) {
+                setClientName(existingInvoice.client.name);
+                setClientPhone(existingInvoice.client.phone || "");
+                setClientCity(existingInvoice.client.city || existingInvoice.client.address || "");
+            }
+            if (inv.projectId) setProjectId(inv.projectId);
+            setNotes(inv.notes || "");
+
+            // Tax
+            setTaxEnabled(inv.tax > 0);
+
+            // Items
+            if (existingInvoice.items) {
+                const mappedItems = existingInvoice.items.map((it: any) => ({
+                    id: Math.random().toString(36).substr(2, 9),
+                    description: it.description,
+                    unit: 'meter', // Default as stored items might not have unit
+                    quantity: it.quantity,
+                    price: it.unitPrice,
+                    discount: 0 // If discount stored separately or calculated, adjust
+                }));
+                setItems(mappedItems as any);
+            }
+
+            // Form Data
+            if (inv.formData) {
+                try {
+                    const fd = typeof inv.formData === 'string' ? JSON.parse(inv.formData) : inv.formData;
+                    if (fd.projectNature) setProjectNature(fd.projectNature);
+                    if (fd.otherProjectNature) setOtherProjectNature(fd.otherProjectNature);
+                    if (fd.siteNature) setSiteNature(fd.siteNature);
+                    if (fd.otherSiteNature) setOtherSiteNature(fd.otherSiteNature);
+                    if (fd.designReq) setDesignReq(fd.designReq);
+                    if (fd.otherDesignReq) setOtherDesignReq(fd.otherDesignReq);
+                    if (fd.style) setStyle(fd.style);
+                    if (fd.otherStyle) setOtherStyle(fd.otherStyle);
+
+                    if (fd.paymentMethods) setPaymentMethods(fd.paymentMethods);
+                    if (fd.paymentTermType) setPaymentTermType(fd.paymentTermType);
+
+                    if (fd.validityPeriod) setValidityPeriod(fd.validityPeriod);
+                    if (fd.isCustomValidity) setIsCustomValidity(fd.isCustomValidity);
+
+                    if (fd.designDuration) setDesignDuration(fd.designDuration);
+                    if (fd.isCustomDuration) setIsCustomDuration(fd.isCustomDuration);
+
+                    if (fd.cancellationFee) setCancellationFee(fd.cancellationFee);
+                    if (fd.isCustomFee) setIsCustomFee(fd.isCustomFee);
+
+                    if (fd.modificationTerms) setModificationTerms(fd.modificationTerms);
+                    if (fd.additionalWorkTerms) setAdditionalWorkTerms(fd.additionalWorkTerms);
+
+                    if (fd.customTerms) setCustomTerms(fd.customTerms);
+                } catch (e) {
+                    console.error("Failed to parse form data", e);
+                }
+            }
+        }
+    }, [existingInvoice]);
+
+    // Auto-generate Serial Number ONLY if NOT editing
+    useEffect(() => {
+        if (!editId && (!serialNumber || serialNumber === '(Auto-generated)')) {
             const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, '');
             const randomPart = Math.floor(1000 + Math.random() * 9000);
             setSerialNumber(`INV-${datePart}-${randomPart}`);
         }
-    }, []);
+    }, [editId]);
+
 
 
     // API
+    // API
     const createInvoice = trpc.invoices.create.useMutation();
+    const updateInvoice = trpc.invoices.update.useMutation();
+
     const { data: clients } = trpc.clients.list.useQuery();
     const { data: clientProjects } = trpc.projects.list.useQuery(
         { clientId: clientId || undefined },
@@ -153,6 +239,7 @@ export default function IntegratedInvoiceForm() {
                 paymentMethods, paymentTermType,
                 validityPeriod, designDuration, cancellationFee, customTerms,
                 isCustomValidity, isCustomDuration, isCustomFee,
+                modificationTerms, additionalWorkTerms,
                 generatedBy: "System_V2"
             };
 
@@ -163,22 +250,42 @@ export default function IntegratedInvoiceForm() {
                 total: calculateRowTotal(item)
             }));
 
-            await createInvoice.mutateAsync({
-                type: docType,
-                clientId: clientId || 1,
-                projectId: projectId,
-                invoiceNumber: serialNumber,
-                issueDate: new Date(issueDate),
-                subtotal: subtotal,
-                tax: vatAmount,
-                total: grandTotal,
-                notes: notes,
-                terms: JSON.stringify(customTerms),
-                formData: JSON.stringify(formData),
-                items: dbItems
-            });
+            if (editId) {
+                // UPDATE
+                await updateInvoice.mutateAsync({
+                    id: editId,
+                    type: docType,
+                    clientId: clientId || undefined,
+                    projectId: projectId,
+                    issueDate: new Date(issueDate),
+                    subtotal: subtotal,
+                    tax: vatAmount,
+                    total: grandTotal,
+                    notes: notes,
+                    terms: JSON.stringify(customTerms),
+                    formData: JSON.stringify(formData),
+                    items: dbItems
+                });
+                toast.success("تم تحديث الفاتورة بنجاح");
+            } else {
+                // CREATE
+                await createInvoice.mutateAsync({
+                    type: docType,
+                    clientId: clientId || 1,
+                    projectId: projectId,
+                    invoiceNumber: serialNumber,
+                    issueDate: new Date(issueDate),
+                    subtotal: subtotal,
+                    tax: vatAmount,
+                    total: grandTotal,
+                    notes: notes,
+                    terms: JSON.stringify(customTerms),
+                    formData: JSON.stringify(formData),
+                    items: dbItems
+                });
+                toast.success(isDraft ? "تم حفظ المسودة" : "تم إنشاء المستند بنجاح");
+            }
 
-            toast.success(isDraft ? "تم حفظ المسودة" : "تم إنشاء المستند بنجاح");
             if (!isDraft) setLocation("/invoices");
         } catch (error) {
             console.error(error);
@@ -496,10 +603,10 @@ export default function IntegratedInvoiceForm() {
                                 .
                             </li>
                             <li>
-                                <select style={{ width: '100%', padding: '1px' }}>
-                                    <option>مدة جلسات التعديل الخاصة بالعميل لا تدرج ضمن الفترة المحسوبة لاعتمادها على نوعية تعديلات العميل</option>
-                                    <option>أي اعمال إضافية او تعديلات لا تدرج ضمن الفترة المحسوبة لاعتمادها على نوعية طلبات العميل</option>
-                                </select>
+                                <input type="text" style={{ width: '100%' }} value={modificationTerms} onChange={(e) => setModificationTerms(e.target.value)} />
+                            </li>
+                            <li>
+                                <input type="text" style={{ width: '100%' }} value={additionalWorkTerms} onChange={(e) => setAdditionalWorkTerms(e.target.value)} />
                             </li>
                             <li>
                                 يحق للعميل الغاء الطلب قبل المباشرة ويحتسب رسوم
@@ -679,6 +786,8 @@ export default function IntegratedInvoiceForm() {
                         isCustomDuration={isCustomDuration}
                         cancellationFee={cancellationFee}
                         isCustomFee={isCustomFee}
+                        modificationTerms={modificationTerms}
+                        additionalWorkTerms={additionalWorkTerms}
                         customTerms={customTerms}
                     />
                 </div>
