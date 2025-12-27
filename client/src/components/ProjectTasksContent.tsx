@@ -57,10 +57,24 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
         onError: () => toast.error("فشل حذف المهمة"),
     });
 
-    const { data: usersList } = trpc.users.list.useQuery(undefined, {
+    const { data: rawUsersList } = trpc.users.list.useQuery(undefined, {
         refetchOnWindowFocus: false,
         enabled: can('users', 'view') || user?.role === 'admin' || user?.role === 'project_manager'
     });
+
+    const { data: teamMembers } = trpc.projects.listTeam.useQuery({ projectId });
+
+    const usersList = useMemo(() => {
+        if (rawUsersList && rawUsersList.length > 0) return rawUsersList;
+        if (teamMembers && teamMembers.length > 0) {
+            return teamMembers.map((m: any) => ({
+                id: m.userId,
+                name: m.userName || m.userEmail || `User ${m.userId}`,
+                email: m.userEmail
+            }));
+        }
+        return [];
+    }, [rawUsersList, teamMembers]);
 
     // Permission flags
     const canCreateTasks = canCreate('tasks');
