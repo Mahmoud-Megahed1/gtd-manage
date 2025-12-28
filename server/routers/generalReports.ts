@@ -543,17 +543,27 @@ export const generalReportsRouter = router({
                 .where(conditions.length ? and(...conditions) : undefined)
                 .groupBy(invoices.status);
 
-            // Calculate REAL paid amount (Sales)
-            const paidResult = await conn.select({
-                paid: sum(sales.amount)
-            })
-                .from(sales)
-                .innerJoin(invoices, eq(sales.invoiceId, invoices.id))
-                .where(and(
-                    eq(sales.status, 'completed'),
-                    ...conditions
-                ));
-            const paidAmount = Number(paidResult[0]?.paid || 0);
+            // Calculate REAL paid amount (Sales + Installments)
+            // We need to sum payments from both tables that are linked to these invoices
+            const [paidSalesResult, paidInstResult] = await Promise.all([
+                conn.select({ paid: sum(sales.amount) })
+                    .from(sales)
+                    .innerJoin(invoices, eq(sales.invoiceId, invoices.id))
+                    .where(and(
+                        eq(sales.status, 'completed'),
+                        ...conditions
+                    )),
+
+                conn.select({ paid: sum(installments.amount) })
+                    .from(installments)
+                    .innerJoin(invoices, eq(installments.invoiceId, invoices.id))
+                    .where(and(
+                        eq(installments.status, 'paid'),
+                        ...conditions
+                    ))
+            ]);
+
+            const paidAmount = Number(paidSalesResult[0]?.paid || 0) + Number(paidInstResult[0]?.paid || 0);
 
             const invoicesByStatus: Record<string, { count: number; total: number }> = {};
             let totalAmount = 0;
