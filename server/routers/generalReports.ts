@@ -543,14 +543,25 @@ export const generalReportsRouter = router({
                 .where(conditions.length ? and(...conditions) : undefined)
                 .groupBy(invoices.status);
 
+            // Calculate REAL paid amount (Sales)
+            const paidResult = await conn.select({
+                paid: sum(sales.amount)
+            })
+                .from(sales)
+                .innerJoin(invoices, eq(sales.invoiceId, invoices.id))
+                .where(and(
+                    eq(sales.status, 'completed'),
+                    ...conditions
+                ));
+            const paidAmount = Number(paidResult[0]?.paid || 0);
+
             const invoicesByStatus: Record<string, { count: number; total: number }> = {};
             let totalAmount = 0;
-            let paidAmount = 0;
+
             statusResult.forEach(r => {
                 const st = r.status || 'draft';
                 invoicesByStatus[st] = { count: r.count, total: Number(r.total || 0) };
                 totalAmount += Number(r.total || 0);
-                if (st === 'paid') paidAmount = Number(r.total || 0);
             });
 
             // Recent invoices
