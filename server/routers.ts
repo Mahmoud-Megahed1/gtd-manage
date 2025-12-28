@@ -320,35 +320,35 @@ async function ensurePerm(ctx: any, sectionKey: string) {
   const allowedByRole: Record<string, string[]> = {
     // === الإدارة العليا ===
     admin: ['*'],
-    department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms'],
+    department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms', 'generalReports'],
 
     // === إدارة المشاريع ===
-    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms'],
+    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports'],
     project_coordinator: ['projects', 'projectTasks', 'dashboard'],
 
     // === المهندسين والفنيين ===
     architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard'],
     interior_designer: ['projects', 'drawings', 'dashboard'],
     site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard'],
-    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard'],
+    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard', 'generalReports'],
     designer: ['projects', 'projectTasks', 'dashboard'],
     technician: ['projectTasks', 'dashboard'],
 
     // === الإدارة المالية ===
-    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms'],
-    accountant: ['accounting', 'reports', 'dashboard', 'invoices'],
+    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms', 'generalReports'],
+    accountant: ['accounting', 'reports', 'dashboard', 'invoices', 'generalReports'],
 
     // === المبيعات ===
-    sales_manager: ['sales', 'clients', 'invoices', 'dashboard', 'forms'],
+    sales_manager: ['sales', 'clients', 'invoices', 'dashboard', 'forms', 'generalReports'],
 
     // === الموارد البشرية ===
     hr_manager: ['hr', 'dashboard'],
     admin_assistant: ['hr', 'dashboard', 'forms', 'clients'],
 
     // === المشتريات والمخازن ===
-    procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard'],
+    procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard', 'generalReports'],
     storekeeper: ['procurement', 'dashboard'],
-    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard'],
+    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard', 'generalReports'],
   };
   const allowedList = allowedByRole[role] || [];
   const roleAllowed = allowedList.includes('*') || allowedList.includes(sectionKey);
@@ -2345,7 +2345,7 @@ export const appRouter = router({
         // Generate token
         const crypto = await import('crypto');
         const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days - لا ينتهي إلا بعد الاستخدام أو 30 يوم
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
         // Save token
         const conn = await db.getDb();
@@ -2403,7 +2403,7 @@ export const appRouter = router({
           userId: input.userId,
           fromUserId: ctx.user.id,
           type: 'action',
-          title: '🔑 كلمة سر مؤقتة',
+          title: 'تم تعيين كلمة سر مؤقتة',
           message: `كلمة السر المؤقتة: ${tempPassword} - يجب تغييرها عند الدخول`,
           link: '/'
         });
