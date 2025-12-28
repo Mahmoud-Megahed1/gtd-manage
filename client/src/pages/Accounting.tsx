@@ -861,26 +861,22 @@ export default function Accounting() {
                             />
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                              {purchase.status === 'completed' && 'مكتمل'}
-                              {purchase.status === 'pending' && 'قيد المعالجة'}
-                              {purchase.status === 'cancelled' && 'ملغي'}
-                            </span>
+                            <Select
+                              defaultValue={purchase.status || "pending"}
+                              onValueChange={(v) => updatePurchase.mutate({ id: purchase.id, status: v as any })}
+                            >
+                              <SelectTrigger className="h-8 w-[130px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">قيد المعالجة</SelectItem>
+                                <SelectItem value="completed">مكتمل</SelectItem>
+                                <SelectItem value="cancelled">ملغي</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="text-left">
                             <div className="flex gap-2 justify-end">
-                              {purchase.status !== 'cancelled' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => cancelPurchase.mutate({ id: purchase.id })}
-                                >
-                                  إلغاء
-                                </Button>
-                              )}
                               <Button
                                 variant="destructive"
                                 size="sm"
