@@ -361,10 +361,13 @@ export async function getAllInvoices() {
     terms: invoices.terms,
     createdBy: invoices.createdBy,
     createdAt: invoices.createdAt,
-    updatedAt: invoices.updatedAt
+    updatedAt: invoices.updatedAt,
+    projectName: projects.name,
+    projectNumber: projects.projectNumber
   })
     .from(invoices)
     .leftJoin(clients, eq(invoices.clientId, clients.id))
+    .leftJoin(projects, eq(invoices.projectId, projects.id))
     .orderBy(desc(invoices.createdAt));
 }
 

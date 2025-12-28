@@ -105,6 +105,12 @@ export default function Invoices() {
               {invoice.clientName && (
                 <p className="text-sm font-medium text-foreground">{invoice.clientName}</p>
               )}
+              {invoice.projectName && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <span className="opacity-70">مشروع:</span>
+                  {invoice.projectName}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 {format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: ar })}
               </p>
