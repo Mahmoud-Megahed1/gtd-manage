@@ -6,7 +6,7 @@ import {
   expenses, boq, installments, sales, purchases,
   InsertExpense, InsertBOQ, InsertInstallment, InsertSale, InsertPurchase
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, desc, sum, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sum, sql, inArray } from "drizzle-orm";
 import * as demo from "../_core/demoStore";
 
 // Admin/Accountant procedure
@@ -892,7 +892,7 @@ export const accountingRouter = router({
           };
         }
 
-        const expensesResult = await db.select({ total: sum(expenses.amount) }).from(expenses);
+        const expensesResult = await db.select({ total: sum(expenses.amount) }).from(expenses).where(inArray(expenses.status, ['active', 'completed']));
         const purchasesRes = await db.select({ total: sum(purchases.amount) }).from(purchases).where(eq(purchases.status, 'completed'));
         const instRes = await db.select({
           total: sum(installments.amount),

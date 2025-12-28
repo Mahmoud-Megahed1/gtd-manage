@@ -606,7 +606,6 @@ export default function Accounting() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="active">نشط</SelectItem>
                                 <SelectItem value="processing">قيد المعالجة</SelectItem>
                                 <SelectItem value="completed">مكتمل</SelectItem>
                                 <SelectItem value="cancelled">ملغي</SelectItem>
