@@ -1597,14 +1597,36 @@ export const hrRouter = router({
 
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
           demo.remove("performanceReviews", input.id);
           return { success: true };
         }
+
+        // Get review to find employee
+        const review = await db.select().from(performanceReviews).where(eq(performanceReviews.id, input.id)).limit(1);
+
+        // Delete
         await db.delete(performanceReviews).where(eq(performanceReviews.id, input.id));
+
+        // Notify
+        if (review[0]) {
+          const emp = await db.select().from(employees).where(eq(employees.id, review[0].employeeId)).limit(1);
+          if (emp[0]?.userId) {
+            const { createNotification } = await import('./notifications');
+            await createNotification({
+              userId: emp[0].userId,
+              fromUserId: ctx.user.id,
+              type: 'info',
+              title: 'تم حذف تقييم الأداء 🗑️',
+              message: 'عذرا تم ارسال تقييم بالخطأ',
+              entityType: 'performance_review',
+              link: '/hr'
+            });
+          }
+        }
         return { success: true };
       }),
   }),

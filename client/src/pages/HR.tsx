@@ -124,6 +124,14 @@ export default function HR() {
     onError: () => toast.error("تعذر رفض طلب الإلغاء"),
   });
 
+  const deleteReview = trpc.hr.reviews.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف تقييم الأداء");
+      utils.hr.reviews.list.invalidate();
+    },
+    onError: () => toast.error("تعذر حذف تقييم الأداء"),
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -812,6 +820,21 @@ export default function HR() {
                           <div className="flex items-center justify-between">
                             <p className="font-medium">{(review as any).employeeName || review.employee?.name || `موظف #${review.employeeId}`}</p>
                             <div className="flex items-center gap-2">
+                              {hasFullAccess && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    if (confirm("هل أنت متأكد من حذف هذا التقييم؟ سيتم إشعار الموظف.")) {
+                                      deleteReview.mutate({ id: review.id });
+                                    }
+                                  }}
+                                  disabled={deleteReview.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                               {review.rating && (
                                 <Badge variant="outline">
                                   <Award className="ml-1 h-3 w-3" />
