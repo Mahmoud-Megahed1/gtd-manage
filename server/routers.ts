@@ -320,7 +320,7 @@ async function ensurePerm(ctx: any, sectionKey: string) {
   const allowedByRole: Record<string, string[]> = {
     // === الإدارة العليا ===
     admin: ['*'],
-    department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard'],
+    department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms'],
 
     // === إدارة المشاريع ===
     project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms'],
@@ -339,11 +339,11 @@ async function ensurePerm(ctx: any, sectionKey: string) {
     accountant: ['accounting', 'reports', 'dashboard', 'invoices'],
 
     // === المبيعات ===
-    sales_manager: ['sales', 'clients', 'invoices', 'dashboard'],
+    sales_manager: ['sales', 'clients', 'invoices', 'dashboard', 'forms'],
 
     // === الموارد البشرية ===
     hr_manager: ['hr', 'dashboard'],
-    admin_assistant: ['hr', 'dashboard'],
+    admin_assistant: ['hr', 'dashboard', 'forms', 'clients'],
 
     // === المشتريات والمخازن ===
     procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard'],
@@ -427,7 +427,7 @@ const accountantProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 const managerProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (!['admin', 'project_manager', 'site_engineer', 'architect', 'interior_designer', 'planning_engineer', 'designer'].includes(ctx.user.role)) {
+  if (!['admin', 'department_manager', 'project_manager', 'site_engineer', 'architect', 'interior_designer', 'planning_engineer', 'designer'].includes(ctx.user.role)) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Project manager access required' });
   }
   return next({ ctx });
@@ -2164,7 +2164,7 @@ export const appRouter = router({
         const user = await db.getUserByEmail(input.email);
         if (!user) {
           // Don't reveal if email exists or not
-          return { success: true, requestId: null, message: 'إذا كان البريد الإلكتروني موجوداً، سيتم إرسال طلب للمدير' };
+          return { success: true, requestId: null, message: 'إذا كان البريد الإلكتروني موجوداً، سيجري إرسال طلب للمدير' };
         }
 
         const conn = await db.getDb();
@@ -2208,7 +2208,7 @@ export const appRouter = router({
         const conn = await db.getDb();
         if (!conn) return { valid: false };
 
-        const { passwordResetTokens, passwordResetRequests, users } = await import('../drizzle/schema');
+        const { passwordResetRequests, passwordResetTokens, users } = await import('../drizzle/schema');
         const { eq, and, gt, or } = await import('drizzle-orm');
 
         // First check passwordResetRequests table (new flow)
@@ -2410,9 +2410,8 @@ export const appRouter = router({
 
         await logAudit(ctx.user.id, 'SEND_TEMP_PASSWORD', 'user', input.userId, 'Admin sent temp password', ctx);
 
-        return { success: true, message: 'تم إرسال كلمة سر مؤقتة للمستخدم' };
+        return { success: true };
       }),
-
     // Get all pending password reset requests (admin)
     listResetRequests: adminProcedure
       .query(async () => {
