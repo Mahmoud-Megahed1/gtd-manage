@@ -137,6 +137,7 @@ export default function IntegratedInvoiceForm() {
             if (inv.formData) {
                 try {
                     const fd = typeof inv.formData === 'string' ? JSON.parse(inv.formData) : inv.formData;
+                    if (fd.docType) setDocType(fd.docType);
                     if (fd.projectNature) setProjectNature(fd.projectNature);
                     if (fd.otherProjectNature) setOtherProjectNature(fd.otherProjectNature);
                     if (fd.siteNature) setSiteNature(fd.siteNature);
@@ -229,6 +230,7 @@ export default function IntegratedInvoiceForm() {
     const handleSave = async (isDraft: boolean) => {
         try {
             const formData = {
+                docType, // Store specific type here
                 clientName, clientPhone, clientCity,
                 projectNature, otherProjectNature,
                 siteNature, otherSiteNature,
@@ -250,11 +252,14 @@ export default function IntegratedInvoiceForm() {
                 total: calculateRowTotal(item)
             }));
 
+            // Backend expects 'invoice' or 'quote'. Map 'payment_invoice' to 'invoice'.
+            const backendType = docType === 'payment_invoice' ? 'invoice' : docType;
+
             if (editId) {
                 // UPDATE
                 await updateInvoice.mutateAsync({
                     id: editId,
-                    type: docType,
+                    type: backendType,
                     clientId: clientId || undefined,
                     projectId: projectId,
                     issueDate: new Date(issueDate),
@@ -270,7 +275,7 @@ export default function IntegratedInvoiceForm() {
             } else {
                 // CREATE
                 await createInvoice.mutateAsync({
-                    type: docType,
+                    type: backendType,
                     clientId: clientId || 1,
                     projectId: projectId,
                     invoiceNumber: serialNumber,
