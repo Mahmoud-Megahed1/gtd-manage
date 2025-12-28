@@ -253,7 +253,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center gap-3">
               <img src="/logo.png" alt="Logo" className="h-12" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
               <div>
-                <h1 className="font-bold text-xl text-primary">Golden Touch</h1>
+                <h1 className="font-bold text-xl text-primary">Golden Touch v2.0</h1>
                 <p className="text-xs text-muted-foreground">نظام الإدارة المتكامل</p>
               </div>
             </div>
@@ -291,6 +291,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <ScrollArea className="flex-1 px-3 max-h-[calc(100vh-300px)] overflow-y-auto">
             <nav className="space-y-1 py-2">
               {filteredNavItems.map((item) => {
+                // ULTRA FAILSAFE: Do not render Accounting for Department Manager
+                if (user?.role === 'department_manager' && item.href === '/accounting') return null;
+
                 const isActive = location === item.href || location.startsWith(item.href + "/");
                 return (
                   <Link key={item.href} href={item.href}>
