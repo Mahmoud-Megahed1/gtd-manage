@@ -137,7 +137,7 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       hr: { ...ownPerms, view: true },
       projects: fullPerms,
       tasks: fullPerms,
-      accounting: readonlyPerms,
+      accounting: nonePerms,
       clients: readonlyPerms,
       forms: fullPerms,
       invoices: readonlyPerms,
