@@ -253,7 +253,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center gap-3">
               <img src="/logo.png" alt="Logo" className="h-12" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
               <div>
-                <h1 className="font-bold text-xl text-primary">Golden Touch v2.0</h1>
+                <h1 className="font-bold text-xl text-primary">Golden Touch v2.1</h1>
                 <p className="text-xs text-muted-foreground">نظام الإدارة المتكامل</p>
               </div>
             </div>
