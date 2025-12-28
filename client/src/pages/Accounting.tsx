@@ -162,7 +162,7 @@ export default function Accounting() {
       datasets: [
         // { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
         { label: "إجمالي الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
+        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + (r.purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
         { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.2 },
       ],
     };

@@ -154,8 +154,8 @@ export const reportsRouter = router({
       if (input.projectId) instWhere.push(sql`${installments.projectId} = ${input.projectId}`);
       if (input.installmentStatus) instWhere.push(sql`${installments.status} = ${input.installmentStatus}`);
       const instRows = await conn.select().from(installments).where(and(...instWhere));
-      const acc: Record<string, { invoices: number; expenses: number; installments: number }> = {};
-      range.forEach(r => { acc[r.key] = { invoices: 0, expenses: 0, installments: 0 }; });
+      const acc: Record<string, { invoices: number; expenses: number; installments: number; purchases: number }> = {};
+      range.forEach(r => { acc[r.key] = { invoices: 0, expenses: 0, installments: 0, purchases: 0 }; });
       invRows.forEach((r: any) => {
         const d = new Date(r.issueDate);
         const key = makeKey(d);
@@ -171,10 +171,21 @@ export const reportsRouter = router({
         const key = makeKey(d);
         if (acc[key]) acc[key].installments += Number(r.amount || 0);
       });
+      // Purchases aggregation
+      const purWhere = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
+      if (input.projectId) purWhere.push(sql`${purchases.projectId} = ${input.projectId}`);
+      if (input.purchaseStatus) purWhere.push(sql`${purchases.status} = ${input.purchaseStatus}`);
+      const purRows = await conn.select().from(purchases).where(and(...purWhere));
+      purRows.forEach((r: any) => {
+        const d = new Date(r.purchaseDate);
+        const key = makeKey(d);
+        if (acc[key]) acc[key].purchases += Number(r.amount || 0);
+      });
+
       return range.map(r => {
-        const v = acc[r.key] || { invoices: 0, expenses: 0, installments: 0 };
-        const net = v.invoices + v.installments - v.expenses;
-        return { dateKey: r.key, invoices: v.invoices, expenses: v.expenses, installments: v.installments, net };
+        const v = acc[r.key] || { invoices: 0, expenses: 0, installments: 0, purchases: 0 };
+        const net = v.invoices + v.installments - v.expenses - v.purchases;
+        return { dateKey: r.key, invoices: v.invoices, expenses: v.expenses, installments: v.installments, purchases: v.purchases, net };
       });
     })
   ,
