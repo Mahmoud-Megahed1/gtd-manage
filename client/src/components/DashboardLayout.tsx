@@ -94,7 +94,7 @@ const navItems: NavItem[] = [
   // المحاسبة - Accounting (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️, project_manager👁️💰, sales_manager👁️💰, procurement_officer👁️)
   {
     title: "المحاسبة", href: "/accounting", icon: <Calculator className="w-5 h-5" />, roles: [
-      "admin", "finance_manager", "accountant", "department_manager",
+      "admin", "finance_manager", "accountant",
       "project_manager", "sales_manager", "procurement_officer"
     ]
   },
