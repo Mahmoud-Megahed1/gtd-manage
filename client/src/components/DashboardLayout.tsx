@@ -145,6 +145,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const filteredNavItems = navItems.filter(item => {
+    // Force hide Accounting for department_manager (Hard override)
+    if (user?.role === 'department_manager' && item.href === '/accounting') return false;
+
     // First check: role-based access (primary)
     const byRole = !item.roles || (user && item.roles.includes(user.role));
 
