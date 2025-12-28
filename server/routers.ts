@@ -62,8 +62,8 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
     accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
     // Project roles
-    project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own' },
-    department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full', invoices: 'readonly' },
+    project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', clients: 'readonly' },
+    department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full', invoices: 'readonly', clients: 'readonly', reports: 'readonly' },
     site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     architect: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
@@ -2532,7 +2532,7 @@ export const appRouter = router({
 
         // Generate temp password
         const crypto = await import('crypto');
-        const tempPassword = crypto.randomBytes(4).toString('hex');
+        const tempPassword = crypto.randomBytes(4).toString('hex'); // 8 char password
         const hash = crypto.createHash('sha256').update(tempPassword).digest('hex');
 
         // Set 24-hour expiry for temp password
