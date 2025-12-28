@@ -160,30 +160,56 @@ export default function Accounting() {
     return {
       labels,
       datasets: [
-        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
-        { label: "الأقساط", data: (timeseries || []).map(r => r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
+        // { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
+        { label: "إجمالي الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
         { label: "المصروفات", data: (timeseries || []).map(r => r.expenses), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
         { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.2 },
       ],
     };
   }, [timeseries]);
+
   const breakdownData = useMemo(() => {
     const rows = ((breakdown || []) as any[]);
     const labels = rows.map(r => r.dateKey);
     const ds: any[] = [];
-    const colorsInv: Record<string, string> = { draft: "#9CA3AF", sent: "#F59E0B", paid: "#16A34A", cancelled: "#EF4444" };
-    const colorsPur: Record<string, string> = { pending: "#A78BFA", completed: "#22C55E", cancelled: "#EF4444" };
-    const colorsExp: Record<string, string> = { active: "#EF4444", cancelled: "#9CA3AF" };
-    const colorsInst: Record<string, string> = { pending: "#F59E0B", paid: "#22C55E", overdue: "#DC2626", cancelled: "#9CA3AF" };
-    invSel.forEach(st => {
+
+    // Revenue logic: Aggregate Invoices and Installments
+    // "Paid" Installments + "Paid" Invoices = Completed Revenue
+    // "Pending" Installments + "Sent" Invoices = Processing Revenue
+
+    // We will use instSel to drive the Revenue display as per user request to map "Installments" to "Revenue"
+    if (instSel.includes("paid")) {
       ds.push({
-        label: `الفواتير: ${st}`,
-        data: rows.map(r => (r.invoices || {})[st] || 0),
-        borderColor: colorsInv[st] || "#6B7280",
-        backgroundColor: (colorsInv[st] || "#6B7280") + "40",
+        label: "إيرادات مكتملة",
+        data: rows.map(r => ((r.invoices || {}).paid || 0) + ((r.installments || {}).paid || 0)),
+        borderColor: "#16A34A",
+        backgroundColor: "#16A34A40",
+        tension: 0.2
+      });
+    }
+    if (instSel.includes("pending")) {
+      ds.push({
+        label: "إيرادات قيد المعالجة",
+        data: rows.map(r => ((r.invoices || {}).sent || 0) + ((r.installments || {}).pending || 0)),
+        borderColor: "#F59E0B",
+        backgroundColor: "#F59E0B40",
+        tension: 0.2
+      });
+    }
+    // Handle other installment statuses normally if needed, or ignore to avoid clutter
+    instSel.forEach(st => {
+      if (st === 'paid' || st === 'pending') return; // Handled above
+      ds.push({
+        label: `أقساط: ${st}`,
+        data: rows.map(r => (r.installments || {})[st] || 0),
+        borderColor: "#6B7280",
+        backgroundColor: "#6B728040",
         tension: 0.2
       });
     });
+
+    // Keeping Purchases and Expenses as is
+    const colorsPur: Record<string, string> = { pending: "#A78BFA", completed: "#22C55E", cancelled: "#EF4444" };
     purSel.forEach(st => {
       ds.push({
         label: `المشتريات: ${st}`,
@@ -193,6 +219,8 @@ export default function Accounting() {
         tension: 0.2
       });
     });
+
+    const colorsExp: Record<string, string> = { active: "#EF4444", cancelled: "#9CA3AF" };
     expSel.forEach(st => {
       ds.push({
         label: `المصروفات: ${st}`,
@@ -202,15 +230,7 @@ export default function Accounting() {
         tension: 0.2
       });
     });
-    instSel.forEach(st => {
-      ds.push({
-        label: `الأقساط: ${st}`,
-        data: rows.map(r => (r.installments || {})[st] || 0),
-        borderColor: colorsInst[st] || "#6B7280",
-        backgroundColor: (colorsInst[st] || "#6B7280") + "40",
-        tension: 0.2
-      });
-    });
+
     return { labels, datasets: ds };
   }, [breakdown, invSel, purSel, expSel, instSel]);
   const canExportCsv = useMemo(() => (timeseries || []).length > 0, [timeseries]);
@@ -1100,7 +1120,7 @@ export default function Accounting() {
                   <div>
                     <div className="text-sm mb-2">حالات المصروفات</div>
                     <div className="flex flex-col gap-2">
-                      {["active", "cancelled"].map(s => (
+                      {["processing", "completed", "cancelled"].map(s => (
                         <label key={s} className="flex items-center gap-2 text-sm">
                           <Checkbox
                             checked={expSel.includes(s)}
@@ -1118,7 +1138,7 @@ export default function Accounting() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm mb-2">حالات الأقساط</div>
+                    <div className="text-sm mb-2">حالات الإيرادات</div>
                     <div className="flex flex-col gap-2">
                       {["pending", "paid", "overdue", "cancelled"].map(s => (
                         <label key={s} className="flex items-center gap-2 text-sm">
