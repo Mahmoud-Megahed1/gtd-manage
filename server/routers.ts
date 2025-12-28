@@ -760,7 +760,7 @@ export const appRouter = router({
         name: z.string().optional(),
         description: z.string().optional(),
         // status is lifecycle state (can be changed), projectType is immutable
-        status: z.string().optional(),
+        status: z.enum(['in_progress', 'delivered', 'cancelled']).optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         budget: z.number().optional(),

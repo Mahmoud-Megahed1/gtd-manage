@@ -25,8 +25,11 @@ import {
   MapPin,
   Briefcase,
   CreditCard,
-  Edit
+
+  Edit,
+  Trash2
 } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -35,6 +38,7 @@ export default function EmployeeProfile() {
   const [, setLocation] = useLocation();
   const employeeId = params.id ? parseInt(params.id) : 0;
 
+  const { user: currentUser } = useAuth();
   const { data, isLoading, refetch } = trpc.hr.employees.getDetails.useQuery({ id: employeeId });
 
   // Edit dialog state
@@ -72,6 +76,14 @@ export default function EmployeeProfile() {
       refetch();
     },
     onError: (err) => toast.error("فشل التحديث: " + err.message)
+  });
+
+  const deleteReview = trpc.hr.reviews.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف تقييم الأداء");
+      refetch();
+    },
+    onError: () => toast.error("تعذر حذف تقييم الأداء"),
   });
 
   const handleSave = () => {
@@ -543,6 +555,21 @@ export default function EmployeeProfile() {
                             <div className="text-left">
                               <p className="text-2xl font-bold text-yellow-500">{review.rating}/5</p>
                             </div>
+                          )}
+                          {(currentUser?.role === 'admin' || currentUser?.role === 'hr_manager') && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="bg-red-50 text-red-600 hover:bg-red-100 h-8 w-8 p-0"
+                              onClick={() => {
+                                if (confirm("هل أنت متأكد من حذف هذا التقييم؟ سيتم إشعار الموظف.")) {
+                                  deleteReview.mutate({ id: review.id });
+                                }
+                              }}
+                              disabled={deleteReview.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                         {review.strengths && (
