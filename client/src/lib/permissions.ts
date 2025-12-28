@@ -61,7 +61,6 @@ export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
         projects: ['view', 'create', 'edit'],
         tasks: ['view', 'create', 'edit'],
         invoices: ['view'],
-        accounting: ['view'],
         'accounting.reports': ['view', 'create'],
         forms: ['view', 'create', 'edit'],
         'forms.change_orders': ['view', 'create', 'edit', 'approve'],

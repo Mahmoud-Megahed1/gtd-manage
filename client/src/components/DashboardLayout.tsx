@@ -17,7 +17,6 @@ import {
   Menu,
   X,
   UserCog,
-  FileDiff,
   Bell,
   BarChart3
 } from "lucide-react";
@@ -54,6 +53,7 @@ const navItems: NavItem[] = [
   // Dashboard - visible to all logged in users
   { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
 
+  // المشاريع - Projects (Most important for project management company)
   // المشاريع - Projects (Most important for project management company)
   {
     title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: [
