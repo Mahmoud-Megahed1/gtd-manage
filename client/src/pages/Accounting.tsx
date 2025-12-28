@@ -408,7 +408,7 @@ export default function Accounting() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">إجمالي الإيرادات (الفواتير)</CardTitle>
@@ -438,7 +438,20 @@ export default function Accounting() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي التكاليف التشغيلية</CardTitle>
+              <CardTitle className="text-sm font-medium">إجمالي المصروفات</CardTitle>
+              <TrendingDown className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">
+                {summary?.totalExpenses?.toLocaleString() || 0} ر.س
+              </div>
+              <p className="text-xs text-muted-foreground">شامل المشتريات والتشغيل</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">التكاليف التشغيلية</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
@@ -987,7 +1000,7 @@ export default function Accounting() {
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي الأقساط</div>
-                      <div className="text-2xl font-bold">{reportData?.installmentsTotal ?? 0}</div>
+                      <div className="text-2xl font-bold">{(reportData?.invoicesTotal || 0) + (reportData?.installmentsTotal || 0)}</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
