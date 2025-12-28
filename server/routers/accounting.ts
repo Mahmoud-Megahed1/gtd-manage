@@ -870,13 +870,17 @@ export const accountingRouter = router({
           const instRows = demo.list("installments");
           const salesRows = demo.list("sales").filter((r: any) => (r.status || "completed") === "completed");
           const purchasesRows = demo.list("purchases").filter((r: any) => (r.status || "completed") === "completed");
-          const totalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0) + purchasesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const totalOperationalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const totalPurchases = purchasesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const totalExpenses = totalOperationalExpenses + totalPurchases;
           const installmentsRevenue = instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const salesRevenue = salesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const totalRevenue = installmentsRevenue + salesRevenue;
           const paidRevenue = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0) + salesRevenue;
           return {
             totalExpenses,
+            totalOperationalExpenses,
+            totalPurchases,
             totalRevenue,
             paidRevenue,
             pendingRevenue: totalRevenue - paidRevenue,
@@ -893,12 +897,18 @@ export const accountingRouter = router({
         }).from(installments);
         const salesTable = (await import("../../drizzle/schema")).sales;
         const salesRes = await db.select({ total: sum(salesTable.amount) }).from(salesTable).where(eq(salesTable.status, 'completed'));
-        const totalExpenses = Number(expensesResult[0]?.total || 0) + Number(purchasesRes[0]?.total || 0);
+
+        const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
+        const totalPurchases = Number(purchasesRes[0]?.total || 0);
+        const totalExpenses = totalOperationalExpenses + totalPurchases;
+
         const totalRevenue = Number(instRes[0]?.total || 0) + Number(salesRes[0]?.total || 0);
         const paidRevenue = Number(instRes[0]?.paid || 0) + Number(salesRes[0]?.total || 0);
 
         return {
           totalExpenses,
+          totalOperationalExpenses,
+          totalPurchases,
           totalRevenue,
           paidRevenue,
           pendingRevenue: totalRevenue - paidRevenue,

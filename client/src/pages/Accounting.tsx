@@ -56,7 +56,9 @@ export default function Accounting() {
   const utils = trpc.useUtils();
   const summary = {
     totalRevenue: overallFinancials?.paidRevenue || 0,
-    totalExpenses: overallFinancials?.totalExpenses || 0
+    totalExpenses: overallFinancials?.totalExpenses || 0,
+    totalOperationalExpenses: overallFinancials?.totalOperationalExpenses || 0,
+    totalPurchases: overallFinancials?.totalPurchases || 0
   };
 
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -436,14 +438,14 @@ export default function Accounting() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي المصروفات</CardTitle>
+              <CardTitle className="text-sm font-medium">إجمالي التكاليف التشغيلية</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {summary?.totalExpenses?.toLocaleString() || 0} ر.س
+                {summary?.totalOperationalExpenses?.toLocaleString() || 0} ر.س
               </div>
-              <p className="text-xs text-muted-foreground">التكاليف التشغيلية</p>
+              <p className="text-xs text-muted-foreground">المصروفات الإدارية والعمومية</p>
             </CardContent>
           </Card>
 
