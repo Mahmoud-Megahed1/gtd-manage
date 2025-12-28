@@ -326,6 +326,14 @@ export default function Accounting() {
     },
     onError: () => toast.error("تعذر حذف المصروف"),
   });
+  const updateExpense = trpc.accounting.expenses.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث المصروف");
+      refetchExpenses();
+      refetchFinancials();
+    },
+    onError: () => toast.error("تعذر تحديث المصروف"),
+  });
   const cancelSale = trpc.accounting.sales.cancel.useMutation({
     onSuccess: () => {
       toast.success("تم إلغاء عملية البيع");
@@ -573,6 +581,7 @@ export default function Accounting() {
                       <TableHead>التاريخ</TableHead>
                       <TableHead>الفئة</TableHead>
                       <TableHead>الوصف</TableHead>
+                      <TableHead>الحالة</TableHead>
                       <TableHead className="text-left">المبلغ</TableHead>
                       <TableHead className="text-left">إجراءات</TableHead>
                     </TableRow>
@@ -580,7 +589,7 @@ export default function Accounting() {
                   <TableBody>
                     {loadingExpenses ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center">جاري التحميل...</TableCell>
+                        <TableCell colSpan={6} className="text-center">جاري التحميل...</TableCell>
                       </TableRow>
                     ) : expenses && expenses.length > 0 ? (
                       expenses.map((expense) => (
@@ -588,16 +597,25 @@ export default function Accounting() {
                           <TableCell>{new Date(expense.expenseDate).toLocaleDateString('ar-SA')}</TableCell>
                           <TableCell>{expense.category}</TableCell>
                           <TableCell>{expense.description}</TableCell>
+                          <TableCell>
+                            <Select
+                              defaultValue={expense.status || "active"}
+                              onValueChange={(v) => updateExpense.mutate({ id: expense.id, status: v as any })}
+                            >
+                              <SelectTrigger className="h-8 w-[130px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">نشط</SelectItem>
+                                <SelectItem value="processing">قيد المعالجة</SelectItem>
+                                <SelectItem value="completed">مكتمل</SelectItem>
+                                <SelectItem value="cancelled">ملغي</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                           <TableCell className="text-left font-medium">{expense.amount.toLocaleString()} ر.س</TableCell>
                           <TableCell className="text-left">
                             <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => cancelExpense.mutate({ id: expense.id })}
-                              >
-                                إلغاء
-                              </Button>
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -611,7 +629,7 @@ export default function Accounting() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
                           لا توجد تكاليف مسجلة
                         </TableCell>
                       </TableRow>

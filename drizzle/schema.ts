@@ -161,7 +161,7 @@ export const expenses = mysqlTable("expenses", {
 	amount: int().notNull(),
 	expenseDate: timestamp({ mode: 'date' }).notNull(),
 	receipt: varchar({ length: 500 }),
-	status: mysqlEnum(['active', 'cancelled']).default('active').notNull(),
+	status: mysqlEnum(['active', 'processing', 'completed', 'cancelled']).default('active').notNull(),
 	createdBy: int().notNull(),
 	createdAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
 	updatedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
