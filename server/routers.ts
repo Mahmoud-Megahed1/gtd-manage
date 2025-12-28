@@ -310,36 +310,9 @@ async function getEmployeeIdForUser(userId: number): Promise<number | null> {
   return emp?.id || null;
 }
 
-// Helper for audit logging - extracts IP from context
-async function logAudit(
-  userId: number,
-  action: string,
-  entityType?: string,
-  entityId?: number,
-  details?: string,
-  ctx?: any
-) {
-  let ipAddress: string | undefined;
-  if (ctx?.req) {
-    // Get IP from X-Forwarded-For (nginx), X-Real-IP, or req.ip
-    const xForwardedFor = ctx.req.headers?.['x-forwarded-for'];
-    if (xForwardedFor) {
-      ipAddress = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor.split(',')[0].trim();
-    } else if (ctx.req.headers?.['x-real-ip']) {
-      ipAddress = ctx.req.headers['x-real-ip'] as string;
-    } else if (ctx.req.ip) {
-      ipAddress = ctx.req.ip;
-    }
-  }
-  await db.createAuditLog({
-    userId,
-    action,
-    entityType,
-    entityId,
-    details,
-    ipAddress
-  });
-}
+import { logAudit } from "./_core/audit";
+
+// Permission levels for granular access control
 
 async function ensurePerm(ctx: any, sectionKey: string) {
   // SECURITY: Permission checks apply in ALL environments (removed dev bypass)
@@ -381,24 +354,14 @@ async function ensurePerm(ctx: any, sectionKey: string) {
   const roleAllowed = allowedList.includes('*') || allowedList.includes(sectionKey);
   if (!roleAllowed) {
     // Log denied access attempt for security audit
-    await db.createAuditLog({
-      userId: ctx.user.id,
-      action: 'ACCESS_DENIED',
-      entityType: 'section',
-      details: `Role "${role}" attempted to access "${sectionKey}" - DENIED`
-    });
+    await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `Role "${role}" attempted to access "${sectionKey}" - DENIED`, ctx);
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
   }
   const perms = await db.getUserPermissions(ctx.user.id);
   const record = perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
   if (record.hasOwnProperty(sectionKey) && !record[sectionKey]) {
     // Log denied access attempt due to user-specific restriction
-    await db.createAuditLog({
-      userId: ctx.user.id,
-      action: 'ACCESS_DENIED',
-      entityType: 'section',
-      details: `User permission override denied access to "${sectionKey}"`
-    });
+    await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `User permission override denied access to "${sectionKey}"`, ctx);
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
   }
 }

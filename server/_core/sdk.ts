@@ -11,6 +11,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
+import { logAudit } from "./audit";
 import type {
   ExchangeTokenRequest,
   ExchangeTokenResponse,
@@ -340,13 +341,14 @@ class SDKServer {
     });
     try {
       if (!previousSignIn || (signedInAt.getTime() - previousSignIn.getTime()) > 10 * 60 * 1000) {
-        await db.createAuditLog({
-          userId: user.id,
-          action: 'LOGIN',
-          entityType: 'user',
-          entityId: user.id,
-          details: 'User signed in',
-        } as any);
+        await logAudit(
+          user.id,
+          'LOGIN',
+          'user',
+          user.id,
+          'User signed in',
+          { req }
+        );
       }
     } catch { }
 

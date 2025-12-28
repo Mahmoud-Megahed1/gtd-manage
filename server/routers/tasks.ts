@@ -6,6 +6,7 @@ import * as demo from "../_core/demoStore";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { projectTasks, taskComments } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
+import { logAudit } from "../_core/audit";
 
 async function ensureTasksPerm(ctx: any) {
   const role = ctx.user.role;
@@ -152,7 +153,7 @@ export const tasksRouter = router({
         createdAt: new Date(),
         updatedAt: new Date()
       } as any);
-      await db.createAuditLog({ userId: ctx.user.id, action: 'CREATE_TASK', entityType: 'task', details: `Task: ${input.name}` } as any);
+      await logAudit(ctx.user.id, 'CREATE_TASK', 'task', undefined, `Task: ${input.name}`, ctx);
 
       // Notify assigned user about new task
       if (input.assignedTo) {
@@ -264,7 +265,7 @@ export const tasksRouter = router({
           }
         }
       }
-      await db.createAuditLog({ userId: ctx.user.id, action: 'UPDATE_TASK', entityType: 'task', entityId: input.id, details: `Updated task` } as any);
+      await logAudit(ctx.user.id, 'UPDATE_TASK', 'task', input.id, `Updated task`, ctx);
       return { success: true };
     }),
   delete: protectedProcedure
@@ -285,7 +286,7 @@ export const tasksRouter = router({
         return { success: true };
       }
       await conn.delete(projectTasks).where(eq(projectTasks.id, input.id));
-      await db.createAuditLog({ userId: ctx.user.id, action: 'DELETE_TASK', entityType: 'task', entityId: input.id, details: `Deleted task` } as any);
+      await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, `Deleted task`, ctx);
       return { success: true };
     }),
   comments: router({
@@ -309,7 +310,7 @@ export const tasksRouter = router({
           createdBy: ctx.user.id,
           createdAt: new Date()
         } as any);
-        await db.createAuditLog({ userId: ctx.user.id, action: 'ADD_TASK_COMMENT', entityType: 'task', entityId: input.taskId, details: `Comment added` } as any);
+        await logAudit(ctx.user.id, 'ADD_TASK_COMMENT', 'task', input.taskId, `Comment added`, ctx);
         return { success: true };
       }),
     delete: protectedProcedure
@@ -319,7 +320,7 @@ export const tasksRouter = router({
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         await conn.delete(taskComments).where(eq(taskComments.id, input.id));
-        await db.createAuditLog({ userId: ctx.user.id, action: 'DELETE_TASK_COMMENT', entityType: 'task', entityId: input.id, details: `Comment deleted` } as any);
+        await logAudit(ctx.user.id, 'DELETE_TASK_COMMENT', 'task', input.id, `Comment deleted`, ctx);
         return { success: true };
       })
   })
