@@ -161,7 +161,7 @@ export default function Projects() {
                       <span className="text-sm font-medium text-primary">{clientMap[project.clientId]}</span>
                     </div>
                   )}
-                  {project.budget && canViewFinancials && (
+                  {project.budget && canViewFinancials && (project.projectType === 'execution' || project.projectType === 'design_execution') && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">الميزانية:</span>
                       <span className="text-sm font-medium">{project.budget.toLocaleString()} ريال</span>

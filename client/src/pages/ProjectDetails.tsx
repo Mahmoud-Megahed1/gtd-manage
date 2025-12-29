@@ -61,6 +61,10 @@ export default function ProjectDetails() {
   const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
   const canViewFinancials = permissions?.permissions.projects.viewFinancials || user?.role === 'admin' || user?.role === 'project_manager';
 
+  // Specific logic: Design projects don't see financial data
+  const hasFinancials = project?.projectType === 'execution' || project?.projectType === 'design_execution';
+  const showFinancials = canViewFinancials && hasFinancials;
+
   const { data: projectFiles, refetch: refetchFiles } = trpc.projects.listFiles.useQuery({ projectId });
 
   // Permission check for financial data
@@ -427,8 +431,8 @@ export default function ProjectDetails() {
           </Button>
         </div>
 
-        {/* Stats Cards - Only visible to users with financial access */}
-        {canViewFinancials && (
+        {/* Stats Cards - Only visible to users with financial access AND execution projects */}
+        {showFinancials && (
           <div className="grid gap-6 md:grid-cols-5">
             <Card>
               <CardContent className="pt-6">
@@ -549,7 +553,7 @@ export default function ProjectDetails() {
           {/* First row of tabs: المالية - المهام الزمنية - الفريق */}
           <TabsList className="grid w-full max-w-4xl grid-cols-6 mb-2">
             {/* Financial tab - only shows for execution or design_execution projects */}
-            {canViewFinancials && project.projectType && projectHasFinancials(project.projectType) && (
+            {showFinancials && (
               <TabsTrigger value="financials" className="gap-2">
                 <DollarSign className="w-4 h-4" />
                 المالية
@@ -578,7 +582,7 @@ export default function ProjectDetails() {
             </TabsTrigger>
           </TabsList>
 
-          {canViewFinancials && (
+          {showFinancials && (
             <TabsContent value="financials" className="mt-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <Card>
