@@ -90,6 +90,7 @@ export default function ProjectDetails() {
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
   const sales = projectData?.sales || [];
+  const projectInvoices = projectData?.projectInvoices || [];
   const client = projectData?.client;
 
   // Permission check for financial data
@@ -632,14 +633,14 @@ export default function ProjectDetails() {
                   <Tabs defaultValue="installments" className="w-full">
                     <div className="px-6 pt-6 flex justify-between items-center">
                       <TabsList>
-                        <TabsTrigger value="installments">سجل الفواتير - الإيرادات ({sales.length})</TabsTrigger>
+                        <TabsTrigger value="installments">سجل الفواتير - الإيرادات ({projectInvoices.length})</TabsTrigger>
                         <TabsTrigger value="purchases">المشتريات ({projectPurchases.length})</TabsTrigger>
                         <TabsTrigger value="operatingCosts">التكاليف التشغيلية ({projectOperatingCosts.length})</TabsTrigger>
                       </TabsList>
                     </div>
 
                     <div className="p-6">
-                      {/* Sales/Invoices Logic Replaces Installments */}
+                      {/* Invoices Section */}
                       <TabsContent value="installments" className="mt-0">
                         <div className="flex justify-between items-center mb-4">
                           <div>
@@ -652,25 +653,26 @@ export default function ProjectDetails() {
                             <TableHeader>
                               <TableRow>
                                 <TableHead>رقم الفاتورة</TableHead>
-                                <TableHead>الوصف</TableHead>
+                                <TableHead>النوع</TableHead>
                                 <TableHead>المبلغ</TableHead>
                                 <TableHead>التاريخ</TableHead>
                                 <TableHead>الحالة</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {(sales || []).length > 0 ? (
-                                sales.map((sale) => (
-                                  <TableRow key={sale.id}>
-                                    <TableCell>{sale.saleNumber}</TableCell>
-                                    <TableCell>{sale.description}</TableCell>
-                                    <TableCell>{sale.amount.toLocaleString()} ريال</TableCell>
-                                    <TableCell>{new Date(sale.saleDate).toLocaleDateString('ar-SA')}</TableCell>
+                              {(projectInvoices || []).length > 0 ? (
+                                projectInvoices.map((inv: any) => (
+                                  <TableRow key={inv.id}>
+                                    <TableCell>{inv.invoiceNumber}</TableCell>
+                                    <TableCell>{inv.type === 'invoice' ? 'فاتورة' : 'عرض سعر'}</TableCell>
+                                    <TableCell>{(inv.total || 0).toLocaleString()} ريال</TableCell>
+                                    <TableCell>{new Date(inv.issueDate).toLocaleDateString('ar-SA')}</TableCell>
                                     <TableCell>
-                                      <span className={`px-2 py-1 rounded text-xs ${sale.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                      <span className={`px-2 py-1 rounded text-xs ${inv.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                        inv.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                                          inv.status === 'sent' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
                                         }`}>
-                                        {sale.status === 'completed' ? 'مدفوع' : sale.status === 'pending' ? 'معلق' : 'ملغي'}
+                                        {inv.status === 'paid' ? 'مدفوعة' : inv.status === 'draft' ? 'مسودة' : inv.status === 'sent' ? 'مرسلة' : 'ملغية'}
                                       </span>
                                     </TableCell>
                                   </TableRow>

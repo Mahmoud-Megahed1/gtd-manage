@@ -819,12 +819,13 @@ export const appRouter = router({
         const isDesigner = designerRoles.includes(ctx.user.role);
         const canViewFinancials = !isDesigner;
 
-        const [boq, expenses, installments, client, sales] = await Promise.all([
+        const [boq, expenses, installments, client, sales, projectInvoices] = await Promise.all([
           canViewFinancials ? db.getProjectBOQ(input.id) : Promise.resolve([]),
           canViewFinancials ? db.getProjectExpenses(input.id) : Promise.resolve([]),
           canViewFinancials ? db.getProjectInstallments(input.id) : Promise.resolve([]),
           project.clientId ? db.getClientById(project.clientId) : null,
-          canViewFinancials ? db.getProjectSales(input.id) : Promise.resolve([])
+          canViewFinancials ? db.getProjectSales(input.id) : Promise.resolve([]),
+          canViewFinancials ? db.getProjectInvoices(input.id) : Promise.resolve([])
         ]);
 
         // Strip budget from project for designers
@@ -832,7 +833,7 @@ export const appRouter = router({
           ? { ...project, budget: undefined }
           : project;
 
-        return { project: safeProject, boq, expenses, installments, client, sales };
+        return { project: safeProject, boq, expenses, installments, client, sales, projectInvoices };
       }),
 
     createTask: protectedProcedure

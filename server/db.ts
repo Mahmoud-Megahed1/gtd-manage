@@ -238,6 +238,12 @@ export async function getProjectSales(projectId: number) {
   return await db.select().from(sales).where(eq(sales.projectId, projectId)).orderBy(desc(sales.saleDate));
 }
 
+export async function getProjectInvoices(projectId: number) {
+  const db = await getDb();
+  if (!db) return demo.filter("invoices", (i) => i.projectId === projectId);
+  return await db.select().from(invoices).where(eq(invoices.projectId, projectId)).orderBy(desc(invoices.createdAt));
+}
+
 
 
 export async function getAllClients() {
