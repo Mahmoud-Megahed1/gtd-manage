@@ -6,7 +6,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import * as db from "../db";
-import { and, gte, lte, eq, sql, count, sum, ne } from "drizzle-orm";
+import { and, gte, lte, eq, sql, count, sum, ne, isNull } from "drizzle-orm";
 import {
     clients, projects, invoices, expenses, installments, purchases, savedReports,
     forms, employees, users, sales
@@ -679,11 +679,12 @@ export const generalReportsRouter = router({
             const invoicesTotal = Number(invResult[0]?.total || 0);
             const invoicesPaid = Number(invResult[0]?.paid || 0);
 
-            // 3. Manual Sales (Completed ONLY)
+            // 3. Manual Sales (Completed ONLY, not linked to invoices)
             const salesConditions = [
                 gte(sales.saleDate, from),
                 lte(sales.saleDate, to),
-                eq(sales.status, 'completed')
+                eq(sales.status, 'completed'),
+                isNull(sales.invoiceId)
             ];
             if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
 
@@ -907,13 +908,14 @@ export const generalReportsRouter = router({
                         .from(purchases)
                         .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
 
-                    // Manual Sales (Completed ONLY)
+                    // Manual Sales (Completed ONLY, not linked to invoices)
                     conn.select({ total: sum(sales.amount) })
                         .from(sales)
                         .where(and(
                             gte(sales.saleDate, from),
                             lte(sales.saleDate, to),
-                            eq(sales.status, 'completed')
+                            eq(sales.status, 'completed'),
+                            isNull(sales.invoiceId)
                         )),
                 ]);
 

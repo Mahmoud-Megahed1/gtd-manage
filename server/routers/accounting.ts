@@ -6,7 +6,7 @@ import {
   expenses, boq, installments, sales, purchases, invoices,
   InsertExpense, InsertBOQ, InsertInstallment, InsertSale, InsertPurchase
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, desc, sum, sql, inArray, ne } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sum, sql, inArray, ne, isNull } from "drizzle-orm";
 import * as demo from "../_core/demoStore";
 
 // Admin/Accountant procedure
@@ -906,10 +906,13 @@ export const accountingRouter = router({
           paid: sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.total} else 0 end)`
         }).from(invoices).where(and(ne(invoices.status, 'cancelled'), eq(invoices.type, 'invoice')));
 
-        // Manual sales (completed only)
+        // Manual sales (completed only, not linked to invoices)
         const manualSalesRes = await db.select({
           total: sum(sales.amount)
-        }).from(sales).where(eq(sales.status, 'completed'));
+        }).from(sales).where(and(
+          eq(sales.status, 'completed'),
+          isNull(sales.invoiceId)
+        ));
 
         const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
         const totalPurchases = Number(purchasesRes[0]?.total || 0);
