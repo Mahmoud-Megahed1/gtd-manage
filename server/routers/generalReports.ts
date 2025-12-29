@@ -6,7 +6,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import * as db from "../db";
-import { and, gte, lte, eq, sql, count, sum } from "drizzle-orm";
+import { and, gte, lte, eq, sql, count, sum, ne } from "drizzle-orm";
 import {
     clients, projects, invoices, expenses, installments, purchases, savedReports,
     forms, employees, users, sales
