@@ -716,9 +716,9 @@ export default function Accounting() {
                               value={invoice.status}
                               onChange={(e) => updateInvoice.mutate({ id: invoice.id, status: e.target.value as any })}
                               className={`border rounded p-1 text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                                  invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                    invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-red-100 text-red-800'
+                                invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                  invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
                                 }`}
                             >
                               <option value="draft">قيد المعالجة</option>
@@ -1121,7 +1121,7 @@ export default function Accounting() {
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي الإيرادات (المكتملة)</div>
-                      <div className="text-2xl font-bold text-green-600">{(Number(reportData?.invoicesTotal || 0) + Number(reportData?.installmentsTotal || 0)).toLocaleString()} ر.س</div>
+                      <div className="text-2xl font-bold text-green-600">{(Number(reportData?.paidInvoicesTotal || 0) + Number(reportData?.installmentsTotal || 0)).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>

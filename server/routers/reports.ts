@@ -34,16 +34,20 @@ export const reportsRouter = router({
           return dt >= from && dt <= to;
         };
         const invRows = demo.list("invoices").filter((r: any) => within(r.issueDate));
+        const paidInvRows = invRows.filter((r: any) => r.status === 'paid');
         const purRows = demo.list("purchases").filter((r: any) => within(r.purchaseDate));
         const expRows = demo.list("expenses").filter((r: any) => within(r.expenseDate));
         const instRows = demo.list("installments").filter((r: any) => within(r.createdAt));
+        const paidInvoicesTotal = paidInvRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
         return {
           invoicesTotal: invRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0),
           invoicesCount: invRows.length,
+          paidInvoicesTotal,
+          paidInvoicesCount: paidInvRows.length,
           purchasesTotal: purRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
           expensesTotal: expRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
           installmentsTotal: instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
-          net: invRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0)
+          net: paidInvoicesTotal
             + instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
             - purRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
             - expRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
@@ -51,6 +55,7 @@ export const reportsRouter = router({
       }
       const from = input.from ?? new Date(0);
       const to = input.to ?? new Date();
+      // All invoices (for total value display)
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to)];
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
       if (input.projectId) invWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
@@ -61,6 +66,18 @@ export const reportsRouter = router({
       })
         .from(invoices)
         .where(and(...invWhere));
+
+      // Paid invoices only (for revenue calculation)
+      const paidInvWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), sql`${invoices.status} = 'paid'`];
+      if (input.clientId) paidInvWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
+      if (input.projectId) paidInvWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
+      const paidInvSum = await conn.select({
+        total: sql<number>`SUM(${invoices.total})`,
+        count: sql<number>`COUNT(${invoices.id})`
+      })
+        .from(invoices)
+        .where(and(...paidInvWhere));
+
       const purWhere = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
       if (input.projectId) purWhere.push(sql`${purchases.projectId} = ${input.projectId}`);
       if (input.purchaseStatus) purWhere.push(sql`${purchases.status} = ${input.purchaseStatus}`);
@@ -81,11 +98,14 @@ export const reportsRouter = router({
         .where(and(...instWhere));
       const invoicesTotal = Number(invSum[0]?.total ?? 0);
       const invoicesCount = Number(invSum[0]?.count ?? 0);
+      const paidInvoicesTotal = Number(paidInvSum[0]?.total ?? 0);
+      const paidInvoicesCount = Number(paidInvSum[0]?.count ?? 0);
       const purchasesTotal = Number(purSum[0]?.total ?? 0);
       const expensesTotal = Number(expSum[0]?.total ?? 0);
       const installmentsTotal = Number(instSum[0]?.total ?? 0);
-      const net = invoicesTotal + installmentsTotal - purchasesTotal - expensesTotal;
-      return { invoicesTotal, invoicesCount, purchasesTotal, expensesTotal, installmentsTotal, net };
+      // Net profit = paid invoices + installments - expenses - purchases
+      const net = paidInvoicesTotal + installmentsTotal - purchasesTotal - expensesTotal;
+      return { invoicesTotal, invoicesCount, paidInvoicesTotal, paidInvoicesCount, purchasesTotal, expensesTotal, installmentsTotal, net };
     }),
   timeseries: protectedProcedure
     .input(z.object({
