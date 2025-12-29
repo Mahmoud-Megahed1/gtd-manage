@@ -1126,13 +1126,12 @@ export default function ProjectDetails() {
                       <label className="text-sm font-medium mb-2 block">اختر من المهام الجاهزة:</label>
                       <select
                         className="w-full p-2 border rounded-md bg-background text-sm"
+                        value=""
                         onChange={(e) => {
                           const selectedTask = e.target.value;
                           if (selectedTask) {
-                            const input = document.querySelector('input[name="phaseName"]') as HTMLInputElement;
-                            if (input) input.value = selectedTask;
+                            setNewTask({ ...newTask, name: selectedTask });
                           }
-                          e.target.value = '';
                         }}
                       >
                         <option value="">-- اختر مهمة جاهزة --</option>
