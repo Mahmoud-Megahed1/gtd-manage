@@ -41,10 +41,10 @@ export default function Reports() {
   const { data: clients } = trpc.clients.list.useQuery(undefined, { refetchOnWindowFocus: false });
   const { data: projects } = trpc.projects.list.useQuery(undefined, { refetchOnWindowFocus: false });
   const { data, refetch, isLoading } = trpc.reports.summary.useQuery(
-    { 
-      from: from ? new Date(from) : undefined, 
-      to: to ? new Date(to) : undefined, 
-      clientId: clientId === "all" ? undefined : Number(clientId), 
+    {
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+      clientId: clientId === "all" ? undefined : Number(clientId),
       projectId: projectId === "all" ? undefined : Number(projectId),
       invoiceStatus: invoiceStatus === "all" ? undefined : (invoiceStatus as any),
       purchaseStatus: purchaseStatus === "all" ? undefined : (purchaseStatus as any),
@@ -54,11 +54,11 @@ export default function Reports() {
     { refetchOnWindowFocus: false }
   );
   const { data: timeseries, isLoading: tsLoading, refetch: tsRefetch } = trpc.reports.timeseries.useQuery(
-    { 
-      from: from ? new Date(from) : new Date(new Date().getFullYear(), 0, 1), 
-      to: to ? new Date(to) : new Date(), 
-      granularity: "month", 
-      clientId: clientId === "all" ? undefined : Number(clientId), 
+    {
+      from: from ? new Date(from) : new Date(new Date().getFullYear(), 0, 1),
+      to: to ? new Date(to) : new Date(),
+      granularity: "month",
+      clientId: clientId === "all" ? undefined : Number(clientId),
       projectId: projectId === "all" ? undefined : Number(projectId),
       invoiceStatus: invoiceStatus === "all" ? undefined : (invoiceStatus as any),
       purchaseStatus: purchaseStatus === "all" ? undefined : (purchaseStatus as any),
@@ -69,7 +69,7 @@ export default function Reports() {
   );
   const chartRef = useRef<any>(null);
   const csvRows = useMemo(() => {
-    const rows = [["date","invoices","installments","expenses","net"]];
+    const rows = [["التاريخ", "الفواتير", "التكاليف التشغيلية", "المصروفات", "الصافي"]];
     (timeseries || []).forEach(r => {
       rows.push([r.dateKey, String(r.invoices), String(r.installments), String(r.expenses), String(r.net)]);
     });
@@ -116,23 +116,23 @@ export default function Reports() {
     return {
       labels,
       datasets: [
-        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
-        { label: "الأقساط", data: (timeseries || []).map(r => r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
+        { label: "الفواتير", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
+        { label: "التكاليف التشغيلية", data: (timeseries || []).map(r => r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
         { label: "المصروفات", data: (timeseries || []).map(r => r.expenses), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
         { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.2 },
       ],
     };
   }, [timeseries]);
-  const [invSel, setInvSel] = useState<string[]>(["paid","sent"]);
-  const [purSel, setPurSel] = useState<string[]>(["completed","pending"]);
+  const [invSel, setInvSel] = useState<string[]>(["paid", "sent"]);
+  const [purSel, setPurSel] = useState<string[]>(["completed", "pending"]);
   const [expSel, setExpSel] = useState<string[]>(["active"]);
-  const [instSel, setInstSel] = useState<string[]>(["pending","paid"]);
+  const [instSel, setInstSel] = useState<string[]>(["pending", "paid"]);
   const { data: breakdown, isLoading: bdLoading, refetch: bdRefetch } = trpc.reports.timeseriesBreakdown.useQuery(
-    { 
-      from: from ? new Date(from) : new Date(new Date().getFullYear(), 0, 1), 
-      to: to ? new Date(to) : new Date(), 
+    {
+      from: from ? new Date(from) : new Date(new Date().getFullYear(), 0, 1),
+      to: to ? new Date(to) : new Date(),
       granularity: "month",
-      clientId: clientId === "all" ? undefined : Number(clientId), 
+      clientId: clientId === "all" ? undefined : Number(clientId),
       projectId: projectId === "all" ? undefined : Number(projectId),
       invoiceStatuses: invSel as any,
       purchaseStatuses: purSel as any,
@@ -178,7 +178,7 @@ export default function Reports() {
     });
     instSel.forEach(st => {
       ds.push({
-        label: `الأقساط: ${st}`,
+        label: `التكاليف: ${st}`,
         data: rows.map(r => (r.installments || {})[st] || 0),
         borderColor: colorsInst[st] || "#6B7280",
         backgroundColor: (colorsInst[st] || "#6B7280") + "40",
@@ -225,7 +225,7 @@ export default function Reports() {
           <h1>التقارير</h1>
           <div class="grid">
             <div class="card"><div>إجمالي الفواتير</div><h2>${data?.invoicesTotal ?? 0}</h2></div>
-            <div class="card"><div>إجمالي الأقساط</div><h2>${data?.installmentsTotal ?? 0}</h2></div>
+            <div class="card"><div>إجمالي التكاليف التشغيلية</div><h2>${data?.installmentsTotal ?? 0}</h2></div>
             <div class="card"><div>إجمالي المصروفات</div><h2>${data?.expensesTotal ?? 0}</h2></div>
             <div class="card"><div>الصافي</div><h2>${data?.net ?? 0}</h2></div>
           </div>
@@ -251,7 +251,7 @@ export default function Reports() {
       w.document.open();
       w.document.write(html);
       w.document.close();
-    } catch {}
+    } catch { }
   };
   const exportServerPdf = () => {
     const qs = buildQuery();
@@ -351,7 +351,7 @@ export default function Reports() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm">حالة الأقساط</label>
+                <label className="text-sm">حالة التكاليف التشغيلية</label>
                 <Select value={installmentStatus} onValueChange={(v) => setInstallmentStatus(v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="الكل" />
@@ -407,7 +407,7 @@ export default function Reports() {
                   <div className="text-2xl font-bold">{data?.invoicesTotal ?? 0}</div>
                 </div>
                 <div className="p-4 border rounded">
-                  <div className="text-sm text-muted-foreground">إجمالي الأقساط</div>
+                  <div className="text-sm text-muted-foreground">إجمالي التكاليف التشغيلية</div>
                   <div className="text-2xl font-bold">{data?.installmentsTotal ?? 0}</div>
                 </div>
                 <div className="p-4 border rounded">
@@ -455,7 +455,7 @@ export default function Reports() {
               <div>
                 <div className="text-sm mb-2">حالات الفواتير</div>
                 <div className="flex flex-col gap-2">
-                  {["draft","sent","paid","cancelled"].map(s => (
+                  {["draft", "sent", "paid", "cancelled"].map(s => (
                     <label key={s} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={invSel.includes(s)}
@@ -475,7 +475,7 @@ export default function Reports() {
               <div>
                 <div className="text-sm mb-2">حالات المشتريات</div>
                 <div className="flex flex-col gap-2">
-                  {["pending","completed","cancelled"].map(s => (
+                  {["pending", "completed", "cancelled"].map(s => (
                     <label key={s} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={purSel.includes(s)}
@@ -495,7 +495,7 @@ export default function Reports() {
               <div>
                 <div className="text-sm mb-2">حالات المصروفات</div>
                 <div className="flex flex-col gap-2">
-                  {["active","cancelled"].map(s => (
+                  {["active", "cancelled"].map(s => (
                     <label key={s} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={expSel.includes(s)}
@@ -513,9 +513,9 @@ export default function Reports() {
                 </div>
               </div>
               <div>
-                <div className="text-sm mb-2">حالات الأقساط</div>
+                <div className="text-sm mb-2">حالات التكاليف التشغيلية</div>
                 <div className="flex flex-col gap-2">
-                  {["pending","paid","overdue","cancelled"].map(s => (
+                  {["pending", "paid", "overdue", "cancelled"].map(s => (
                     <label key={s} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={instSel.includes(s)}

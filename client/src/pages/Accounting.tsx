@@ -200,7 +200,7 @@ export default function Accounting() {
     instSel.forEach(st => {
       if (st === 'paid' || st === 'pending') return; // Handled above
       ds.push({
-        label: `أقساط: ${st}`,
+        label: `التكاليف: ${st}`,
         data: rows.map(r => (r.installments || {})[st] || 0),
         borderColor: "#6B7280",
         backgroundColor: "#6B728040",
@@ -250,7 +250,7 @@ export default function Accounting() {
           <h1>التقارير</h1>
           <div class="grid">
             <div class="card"><div>إجمالي الفواتير</div><h2>${reportData?.invoicesTotal ?? 0}</h2></div>
-            <div class="card"><div>إجمالي الأقساط</div><h2>${reportData?.installmentsTotal ?? 0}</h2></div>
+            <div class="card"><div>إجمالي التكاليف التشغيلية</div><h2>${reportData?.installmentsTotal ?? 0}</h2></div>
             <div class="card"><div>إجمالي المصروفات</div><h2>${reportData?.expensesTotal ?? 0}</h2></div>
             <div class="card"><div>الصافي</div><h2>${reportData?.net ?? 0}</h2></div>
           </div>
@@ -431,7 +431,7 @@ export default function Accounting() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">المحاسبة</h1>
-            <p className="text-muted-foreground">إدارة التكاليف والمصروفات والأقساط</p>
+            <p className="text-muted-foreground">إدارة التكاليف والمصروفات والإيرادات</p>
           </div>
         </div>
 
@@ -1032,7 +1032,7 @@ export default function Accounting() {
                       <div className="text-2xl font-bold">{reportData?.invoicesTotal ?? 0}</div>
                     </div>
                     <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">إجمالي الأقساط</div>
+                      <div className="text-sm text-muted-foreground">إجمالي الإيرادات</div>
                       <div className="text-2xl font-bold">{(reportData?.invoicesTotal || 0) + (reportData?.installmentsTotal || 0)}</div>
                     </div>
                     <div className="p-4 border rounded">

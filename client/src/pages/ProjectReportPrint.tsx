@@ -95,7 +95,7 @@ export default function ProjectReportPrint() {
                             <div className="text-xl font-bold">{totalExpenses.toLocaleString()} ريال</div>
                         </div>
                         <div className="p-4 border border-gray-300 rounded text-center">
-                            <div className="text-sm text-gray-600 mb-1">إجمالي الأقساط</div>
+                            <div className="text-sm text-gray-600 mb-1">إجمالي التكاليف التشغيلية</div>
                             <div className="text-xl font-bold">{totalInstallments.toLocaleString()} ريال</div>
                         </div>
                         <div className="p-4 border border-gray-300 rounded text-center">
