@@ -1532,6 +1532,8 @@ export const appRouter = router({
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
+        type: z.enum(['invoice', 'quote']).optional(),
+        invoiceNumber: z.string().optional(),
         status: z.enum(['draft', 'sent', 'paid', 'cancelled']).optional(),
         notes: z.string().optional(),
         formData: z.string().optional(),
@@ -1554,6 +1556,10 @@ export const appRouter = router({
         await ensurePerm(ctx, 'invoices');
         const { id, items, ...data } = input;
 
+        // Get existing invoice to check type transition
+        const existingInvoice = await db.getInvoiceById(id);
+        const oldType = existingInvoice?.type;
+
         // 1. Update Invoice Header
         await db.updateInvoice(id, data);
 
@@ -1569,8 +1575,32 @@ export const appRouter = router({
           })));
         }
 
-        // 3. INTEGRATION: Update sale status/amount
-        if (data.status || data.total) {
+        // 3. INTEGRATION: Update sale status/amount OR Create Sale if Quote -> Invoice
+        // Case A: Quote converted to Invoice
+        if (oldType === 'quote' && data.type === 'invoice') {
+          // We need to register it in accounting now
+          const invoiceId = id;
+          const total = data.total || existingInvoice?.total || 0;
+          const projectId = data.projectId || existingInvoice?.projectId;
+          const issueDate = data.issueDate || existingInvoice?.issueDate || new Date();
+          const invoiceNumber = data.invoiceNumber || existingInvoice?.invoiceNumber || "UNKNOWN";
+
+          // Copy logic from create
+          await db.createSale({
+            invoiceId,
+            projectId: projectId,
+            amount: total,
+            saleDate: issueDate,
+            description: `فاتورة رقم ${invoiceNumber}`,
+            paymentMethod: 'bank', // default
+            status: (data.status === 'paid' ? 'completed' : 'pending') as any
+          });
+
+          // Log it
+          await logAudit(ctx.user.id, 'CONVERT_QUOTE', 'invoice', invoiceId, undefined, ctx);
+        }
+        // Case B: Normal update for existing Voice (update linked sale)
+        else if ((oldType === 'invoice' || data.type === 'invoice') && (data.status || data.total)) {
           const updateData: any = {};
 
           if (data.status) {
