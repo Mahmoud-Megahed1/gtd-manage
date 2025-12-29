@@ -38,9 +38,14 @@ export default function Invoices() {
 
   const [showNewInvoice, setShowNewInvoice] = useState(false);
 
+  const utils = trpc.useUtils();
+
   const deleteInvoice = trpc.invoices.delete.useMutation({
     onSuccess: () => {
       toast.success("تم حذف المستند بنجاح");
+      utils.invoices.list.invalidate();
+      utils.accounting.sales.list.invalidate();
+      utils.accounting.reports.overallFinancials.invalidate();
       refetchAll();
       refetchInvoices();
       refetchQuotes();
