@@ -29,10 +29,96 @@ import { Label } from "@/components/ui/label";
 
 interface ProjectPhasesContentProps {
     projectId: number;
+    projectType: string;
 }
 
-export default function ProjectPhasesContent({ projectId }: ProjectPhasesContentProps) {
+const DESIGN_PHASES = [
+    "جمع المعلومات (طبات العميل - المخططات والصور)",
+    "الرفع المعماري (2D+3D الكونسبت - مخطط الوضع القائم)",
+    "توزيع الحركة والمخططات (مخطط توزيع اولي - تحديد وتوزيع الحركة والاثاث والديكور)",
+    "المود بورد + الماتريال (اختيار الألوان والخامات والاضاءة والاثاث)",
+    "التصميم ثلاثي الابعاد (تطبيق التطشيبات ثم الديكور ثم الاثاث - رندر مبدئي)",
+    "جلسات التعديل (تعديل طلبات العميل وفقا لاستمارة التعديلات)",
+    "المخططات التنفيذية (المخططات التنفيذية كاملة (مبسط او تفصيلي) - جداول الكميات)",
+    "الإخراج النهائي فيديو + صور + VR (رندر نهائي للصور والفيديو و الـ VR وفقا لشمولية المشروع)",
+    "ملفات التسليم (تجهيز ملفات التسليم (PDF - فيديو و VR))",
+    "التسليم النهائي"
+];
+
+const EXECUTION_PHASES = [
+    "هدم و ترحيل و طلب حاوية مخلفات",
+    "تعميد مقاسات و كميات مباني (جدران - اسقف - حديد - خرسانة)",
+    "تعميد مقاسات و كميات تشطيب (كهرباء- سباكة -لياسة - دهان -تشطيب - ابواب - نوافذ-عزل)",
+    "تعميد مقاسات و كميات ديكور (تكسيات جدران - تكسيات ارضيات - لوحات -جبس -جبس بورد)",
+    "تعميد مقاسات و كميات اثاث (اسرة - خزائن - طاولات -رفوف - كنب -ستائر -سجاد)",
+    "تعميد الخامات مع العميل (تشطيب - ديكور - اثاث)",
+    "طلب مواد العظم",
+    "طلب مواد التشطيب",
+    "طلب مواد الديكور",
+    "طلب الاثاث",
+    "اعمال نجارة العظم",
+    "اعمال حديد العظم",
+    "صبة النظافة",
+    "صب القواعد",
+    "صب الاعمدة",
+    "صب الجسور",
+    "صب الاسقف",
+    "عزل القواعد",
+    "عزل الرقاب",
+    "بناء الجدران",
+    "تأسيس سباكة",
+    "تأسيس كهرباء",
+    "تأسيس التكييف",
+    "تأسيس كاميرات وشبكات",
+    "تأسيس سمارت هوم",
+    "تأسيس لاندسكيب (احواض - كهرباء - سباكة)",
+    "لياسة داخلية",
+    "لياسة خارجية",
+    "لياسة السور",
+    "عزل مائي حمامات ومطابخ",
+    "عزل مائي سطح",
+    "عزل حراري جدران",
+    "عزل حراري اسقف",
+    "جبس الاسقف",
+    "جبس الديكور",
+    "فتحات جبس التكييف والصيانة",
+    "فتحات جبس الانارة و الكهرباء",
+    "بلاط الحمامات والمطابخ",
+    "بلاط الارضيات الداخلية والخارجية",
+    "دهان الاسقف والجدران الداخلية",
+    "دهان الجدران والواجهات الخارجية",
+    "تركيب الشبابيك",
+    "تركيب الابواب",
+    "تركيب المفاتيح والافياش",
+    "تركيب الانارة",
+    "تركيب المراحيض والمغاسل",
+    "تركيب السخانات و الخزانات",
+    "تركيب المضخات",
+    "تركيب تكسيات ديكور الجدران",
+    "تركيب تكسيات ديكور الارضيات",
+    "تركيب اللوحات والمعلقات الجدارية",
+    "تركيب الستائر",
+    "تركيب غرف النوم",
+    "تركيب الكنب",
+    "تركيب الطاولات (جاهزة)",
+    "تركيب الرفوف والطاولات (تفصيل)",
+    "تركيب المظلات والسواتر",
+    "تركيب الديكورات الخارجية واللاندسكيب",
+    "الزراعة",
+    "النظافة"
+];
+
+export default function ProjectPhasesContent({ projectId, projectType }: ProjectPhasesContentProps) {
     const { canCreate, canDelete, canEdit } = usePermission();
+
+    // Determine which phases to show
+    const availablePhases = useMemo(() => {
+        if (projectType === 'design') return DESIGN_PHASES;
+        if (projectType === 'execution') return EXECUTION_PHASES;
+        // For design_execution or supervision, assume combined or default to execution as it is more comprehensive
+        if (projectType === 'design_execution') return [...DESIGN_PHASES, ...EXECUTION_PHASES];
+        return [...DESIGN_PHASES, ...EXECUTION_PHASES]; // Default fallback
+    }, [projectType]);
 
     const { data: phases, refetch, isLoading } = trpc.tasks.list.useQuery(
         { projectId, taskType: 'phase' },
@@ -132,20 +218,19 @@ export default function ProjectPhasesContent({ projectId }: ProjectPhasesContent
                             <div className="space-y-4">
                                 {/* Common Phases Selection (Toggle List) */}
                                 <div>
-                                    <Label className="text-sm">اختر مرحلة نموذجية أو اكتب اسماً جديداً</Label>
+                                    <Label className="text-sm">اختر مرحلة ({projectType === 'design' ? 'تصميم' : 'تنفيذ'})</Label>
                                     <Select
                                         onValueChange={(v) => setNewPhase({ ...newPhase, name: v })}
-                                        value={["مرحلة التخطيط", "مرحلة التصميم", "مرحلة التنفيذ", "مرحلة التشطيبات", "مرحلة التسليم"].includes(newPhase.name) ? newPhase.name : ""}
+                                        value={availablePhases.includes(newPhase.name) ? newPhase.name : ""}
                                     >
                                         <SelectTrigger className="w-full mt-1">
-                                            <SelectValue placeholder="-- اختر مرحلة جاهزة --" />
+                                            <SelectValue placeholder="-- اختر من مراحل المشروع --" />
                                         </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="مرحلة التخطيط">مرحلة التخطيط</SelectItem>
-                                            <SelectItem value="مرحلة التصميم">مرحلة التصميم</SelectItem>
-                                            <SelectItem value="مرحلة التنفيذ">مرحلة التنفيذ</SelectItem>
-                                            <SelectItem value="مرحلة التشطيبات">مرحلة التشطيبات</SelectItem>
-                                            <SelectItem value="مرحلة التسليم">مرحلة التسليم</SelectItem>
+                                        <SelectContent className="max-h-60 overflow-y-auto">
+                                            {availablePhases.map((phase, i) => (
+                                                <SelectItem key={i} value={phase}>{phase}</SelectItem>
+                                            ))}
+                                            <SelectItem value="custom">مخصص (اكتب الاسم يدوياً)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

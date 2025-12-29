@@ -750,6 +750,17 @@ export default function ProjectDetails() {
             </TabsContent>
           )}
 
+          <TabsContent value="phases" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>مراحل المشروع</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProjectPhasesContent projectId={projectId} projectType={project?.projectType || 'execution'} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="team" className="mt-6">
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
