@@ -1582,12 +1582,19 @@ export const appRouter = router({
           const invoiceId = id;
           const total = data.total || existingInvoice?.total || 0;
           const projectId = data.projectId || existingInvoice?.projectId;
+          const clientId = data.clientId || existingInvoice?.clientId;
           const issueDate = data.issueDate || existingInvoice?.issueDate || new Date();
           const invoiceNumber = data.invoiceNumber || existingInvoice?.invoiceNumber || "UNKNOWN";
+
+          if (!clientId) {
+            console.error("Attempted to convert quote to invoice without clientId", invoiceId);
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'clientId is missing' });
+          }
 
           // Copy logic from create
           await db.createSale({
             invoiceId,
+            clientId,
             projectId: projectId,
             amount: total,
             saleDate: issueDate,
