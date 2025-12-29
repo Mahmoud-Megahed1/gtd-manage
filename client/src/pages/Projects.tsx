@@ -301,11 +301,8 @@ export default function Projects() {
                   value={editProject.status}
                   onChange={(e) => setEditProject({ ...editProject, status: e.target.value })}
                 >
-                  <option value="design">تصميم</option>
-                  <option value="execution">تنفيذ</option>
-                  <option value="in_progress">قيد التنفيذ</option>
-                  <option value="delivery">تسليم</option>
-                  <option value="completed">مكتمل</option>
+                  <option value="in_progress">قيد التقدم</option>
+                  <option value="delivered">تم التسليم</option>
                   <option value="cancelled">ملغي</option>
                 </select>
               </div>
