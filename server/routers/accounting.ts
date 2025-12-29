@@ -906,12 +906,19 @@ export const accountingRouter = router({
           paid: sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.total} else 0 end)`
         }).from(invoices).where(and(ne(invoices.status, 'cancelled'), eq(invoices.type, 'invoice')));
 
+        // Manual sales (completed only)
+        const manualSalesRes = await db.select({
+          total: sum(sales.amount)
+        }).from(sales).where(eq(sales.status, 'completed'));
+
         const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
         const totalPurchases = Number(purchasesRes[0]?.total || 0);
         const totalExpenses = totalOperationalExpenses + totalPurchases;
 
-        const totalRevenue = Number(instRes[0]?.total || 0) + Number(invRes[0]?.total || 0);
-        const paidRevenue = Number(instRes[0]?.paid || 0) + Number(invRes[0]?.paid || 0);
+        const manualSalesTotal = Number(manualSalesRes[0]?.total || 0);
+
+        const totalRevenue = Number(instRes[0]?.total || 0) + Number(invRes[0]?.total || 0) + manualSalesTotal;
+        const paidRevenue = Number(instRes[0]?.paid || 0) + Number(invRes[0]?.paid || 0) + manualSalesTotal;
 
         return {
           totalExpenses,
