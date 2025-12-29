@@ -1200,90 +1200,98 @@ export default function ProjectDetails() {
 
 
                 {tasks && tasks.length > 0 ? (
-                  <div className="space-y-4">
-                    {tasks.map((task: any, idx: number) => {
-                      const start = task.startDate ? new Date(task.startDate) : null;
-                      const end = task.endDate ? new Date(task.endDate) : null;
-                      const now = new Date();
-                      let progress = 0;
-                      if (start && end) {
-                        const total = end.getTime() - start.getTime();
-                        const elapsed = now.getTime() - start.getTime();
-                        progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
-                      }
-                      const isCompleted = task.status === 'completed';
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-right">#</TableHead>
+                          <TableHead className="text-right">اسم المرحلة</TableHead>
+                          <TableHead className="text-right">تاريخ البداية</TableHead>
+                          <TableHead className="text-right">تاريخ النهاية</TableHead>
+                          <TableHead className="text-center">الحالة</TableHead>
+                          <TableHead className="text-center">نسبة الإنجاز</TableHead>
+                          <TableHead className="text-left">إجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tasks.map((task: any, idx: number) => {
+                          const start = task.startDate ? new Date(task.startDate) : null;
+                          const end = task.endDate ? new Date(task.endDate) : null;
+                          const now = new Date();
+                          let progress = 0;
+                          if (start && end) {
+                            const total = end.getTime() - start.getTime();
+                            const elapsed = now.getTime() - start.getTime();
+                            progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                          }
+                          const isCompleted = task.status === 'done' || task.status === 'completed';
 
-                      return (
-                        <div key={task.id} className="relative group">
-                          {idx < tasks.length - 1 && (
-                            <div className="absolute left-5 top-12 w-0.5 h-full bg-border" />
-                          )}
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500 text-white' : 'bg-primary/10 text-primary'
-                              }`}>
-                              {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
-                            </div>
-                            <div className="flex-1 bg-muted/50 rounded-lg p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold">{task.name}</h4>
+                          return (
+                            <TableRow key={task.id} className={isCompleted ? 'bg-green-50' : ''}>
+                              <TableCell className="font-medium">{idx + 1}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{task.name}</p>
+                                  {task.description && (
+                                    <p className="text-xs text-muted-foreground">{task.description}</p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {start ? start.toLocaleDateString('ar-SA') : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {end ? end.toLocaleDateString('ar-SA') : '-'}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant={isCompleted ? 'default' : task.status === 'in_progress' ? 'secondary' : 'outline'}>
+                                  {isCompleted ? 'مكتملة' : task.status === 'in_progress' ? 'جارية' : 'مخططة'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Badge variant={isCompleted ? 'default' : 'outline'}>
-                                    {isCompleted ? 'مكتملة' : 'جارية'}
-                                  </Badge>
-                                  {/* Action Buttons */}
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                    {!isCompleted && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-green-600 hover:text-green-700"
-                                        onClick={() => {
-                                          updateTask.mutate({ id: task.id, status: 'done', progress: 100 });
-                                        }}
-                                      >
-                                        <CheckCircle2 className="w-4 h-4" />
-                                      </Button>
-                                    )}
+                                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className={`h-2 rounded-full ${isCompleted ? 'bg-green-500' : 'bg-primary'}`}
+                                      style={{ width: `${isCompleted ? 100 : Math.round(progress)}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">{isCompleted ? 100 : Math.round(progress)}%</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  {!isCompleted && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="text-red-500 hover:text-red-600"
-                                      onClick={() => {
-                                        if (confirm('هل تريد حذف هذه المرحلة؟')) {
-                                          deleteTask.mutate({ id: task.id });
-                                        }
-                                      }}
+                                      className="text-green-600 hover:text-green-700"
+                                      onClick={() => updateTask.mutate({ id: task.id, status: 'done', progress: 100 })}
+                                      title="تحديد كمكتملة"
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <CheckCircle2 className="w-4 h-4" />
                                     </Button>
-                                  </div>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-500 hover:text-red-600"
+                                    onClick={() => {
+                                      if (confirm('هل تريد حذف هذه المرحلة؟')) {
+                                        deleteTask.mutate({ id: task.id });
+                                      }
+                                    }}
+                                    title="حذف"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                              </div>
-                              {task.description && (
-                                <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
-                              )}
-                              {start && end && (
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span>من: {start.toLocaleDateString('ar-SA')}</span>
-                                  <span>إلى: {end.toLocaleDateString('ar-SA')}</span>
-                                </div>
-                              )}
-                              {!isCompleted && start && end && (
-                                <div className="mt-2">
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                      className="bg-primary h-2 rounded-full transition-all"
-                                      style={{ width: `${progress}%` }}
-                                    />
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">{Math.round(progress)}% مكتمل</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
