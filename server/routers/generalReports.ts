@@ -985,15 +985,15 @@ export const generalReportsRouter = router({
                 .orderBy(sql`${savedReports.createdAt} DESC`);
         }),
 
-    teSavedReport: protectedProcedure
-        ut(z.object({ id: z.number() }))
-ation(async ({ input, ctx }) => {
-            t conn = await db.getDb();
-    !conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+    deleteSavedReport: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+            const conn = await db.getDb();
+            if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
-            t conn.delete(savedReports)
-re(eq(savedReports.id, input.id));
+            await conn.delete(savedReports)
+                .where(eq(savedReports.id, input.id));
 
-            rn { success: true };
-        
+            return { success: true };
+        }),
 });
