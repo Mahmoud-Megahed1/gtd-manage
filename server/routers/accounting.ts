@@ -871,15 +871,16 @@ export const accountingRouter = router({
         if (!db) {
           const expensesRows = demo.list("expenses");
           const instRows = demo.list("installments");
-          const salesRows = demo.list("sales").filter((r: any) => (r.status || "completed") === "completed");
+          const invoicesRows = demo.list("invoices").filter((r: any) => r.status !== "cancelled");
           const purchasesRows = demo.list("purchases").filter((r: any) => (r.status || "completed") === "completed");
           const totalOperationalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const totalPurchases = purchasesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const totalExpenses = totalOperationalExpenses + totalPurchases;
           const installmentsRevenue = instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-          const salesRevenue = salesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-          const totalRevenue = installmentsRevenue + salesRevenue;
-          const paidRevenue = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0) + salesRevenue;
+          const invoicesRevenue = invoicesRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+          const totalRevenue = installmentsRevenue + invoicesRevenue;
+          const paidRevenue = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
+            + invoicesRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.total || 0), 0);
           return {
             totalExpenses,
             totalOperationalExpenses,
@@ -898,15 +899,20 @@ export const accountingRouter = router({
           total: sum(installments.amount),
           paid: sql<number>`sum(case when ${installments.status} = 'paid' then ${installments.amount} else 0 end)`
         }).from(installments);
-        const salesTable = (await import("../../drizzle/schema")).sales;
-        const salesRes = await db.select({ total: sum(salesTable.amount) }).from(salesTable).where(eq(salesTable.status, 'completed'));
+
+        // Use invoices for revenue calculation
+        const invoicesTable = (await import("../../drizzle/schema")).invoices;
+        const invRes = await db.select({
+          total: sum(invoicesTable.total),
+          paid: sql<number>`sum(case when ${invoicesTable.status} = 'paid' then ${invoicesTable.total} else 0 end)`
+        }).from(invoicesTable).where(ne(invoicesTable.status, 'cancelled'));
 
         const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
         const totalPurchases = Number(purchasesRes[0]?.total || 0);
         const totalExpenses = totalOperationalExpenses + totalPurchases;
 
-        const totalRevenue = Number(instRes[0]?.total || 0) + Number(salesRes[0]?.total || 0);
-        const paidRevenue = Number(instRes[0]?.paid || 0) + Number(salesRes[0]?.total || 0);
+        const totalRevenue = Number(instRes[0]?.total || 0) + Number(invRes[0]?.total || 0);
+        const paidRevenue = Number(instRes[0]?.paid || 0) + Number(invRes[0]?.paid || 0);
 
         return {
           totalExpenses,
