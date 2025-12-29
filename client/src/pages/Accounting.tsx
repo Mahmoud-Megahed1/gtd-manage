@@ -414,6 +414,15 @@ export default function Accounting() {
     },
     onError: () => toast.error("تعذر إلغاء القسط"),
   });
+  const updateInvoice = trpc.invoices.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث حالة الفاتورة");
+      utils.invoices.list.invalidate();
+      refetchFinancials();
+      refetchReportData();
+    },
+    onError: () => toast.error("تعذر تحديث الفاتورة"),
+  });
 
   const handleSubmitExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -696,23 +705,27 @@ export default function Accounting() {
                           <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
                           <TableCell>{invoice.projectName || 'بدون مشروع'}</TableCell>
                           <TableCell>{invoice.clientName || '-'}</TableCell>
-                          <TableCell className="text-green-600 font-semibold">
+                          <TableCell className={`font-semibold ${invoice.status === 'paid' ? 'text-green-600' : 'text-muted-foreground'}`}>
                             {Number(invoice.total || 0).toLocaleString()} ر.س
                           </TableCell>
                           <TableCell>
                             {invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString('ar-SA') : '-'}
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                              invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                              }`}>
-                              {invoice.status === 'paid' ? 'مدفوعة' :
-                                invoice.status === 'sent' ? 'مرسلة' :
-                                  invoice.status === 'draft' ? 'مسودة' :
-                                    invoice.status === 'cancelled' ? 'ملغية' : invoice.status}
-                            </span>
+                            <select
+                              value={invoice.status}
+                              onChange={(e) => updateInvoice.mutate({ id: invoice.id, status: e.target.value as any })}
+                              className={`border rounded p-1 text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                  invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                    invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                }`}
+                            >
+                              <option value="draft">قيد المعالجة</option>
+                              <option value="sent">مرسلة</option>
+                              <option value="paid">مكتملة (مدفوعة)</option>
+                              <option value="cancelled">ملغية</option>
+                            </select>
                           </TableCell>
                           <TableCell className="text-left">
                             <Button
