@@ -26,10 +26,13 @@ import {
   Upload,
   Database,
   ListTodo,
-  Plus
+  Plus,
+  GanttChartSquare
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { Gantt, Task, ViewMode } from "gantt-task-react";
+import "gantt-task-react/dist/index.css";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
@@ -61,6 +64,20 @@ export default function ProjectDetails() {
   // Keep the generic one for backwards compatibility if needed, or just rely on the above
   const { data: allTasks } = trpc.tasks.list.useQuery({ projectId });
   const tasks = allTasks || []; // Fallback
+
+  // Transform phases for Gantt chart
+  const ganttPhases = useMemo<Task[]>(() => {
+    const phases = (phasesQuery.data || []) as any[];
+    return phases.map((p) => ({
+      id: String(p.id),
+      name: p.name,
+      start: p.startDate ? new Date(p.startDate) : new Date(),
+      end: p.endDate ? new Date(p.endDate) : new Date(new Date().getTime() + 86400000 * 7),
+      progress: typeof p.progress === "number" ? p.progress : (p.status === "done" ? 100 : 0),
+      type: "task" as const,
+      isDisabled: false,
+    }));
+  }, [phasesQuery.data]);
 
   const createTask = trpc.tasks.create.useMutation({
     onSuccess: () => {
@@ -1384,6 +1401,29 @@ export default function ProjectDetails() {
                   <div className="text-center py-8 text-muted-foreground">
                     <Layers className="mx-auto h-12 w-12 mb-4 opacity-50" />
                     <p>لا توجد مراحل مسجلة للمشروع</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Gantt Chart for Phases */}
+            <Card className="mt-6">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <GanttChartSquare className="w-5 h-5" />
+                  <CardTitle>مخطط جانت للمراحل</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {phasesQuery.isLoading ? (
+                  <div className="h-72 bg-muted rounded animate-pulse" />
+                ) : ganttPhases.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Gantt tasks={ganttPhases} viewMode={ViewMode.Month} locale="ar" />
+                  </div>
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border rounded">
+                    لا توجد مراحل لعرض المخطط
                   </div>
                 )}
               </CardContent>
