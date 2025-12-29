@@ -63,11 +63,8 @@ export default function Projects() {
 
   const getStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
-      design: "تصميم",
-      execution: "تنفيذ",
-      in_progress: "قيد التنفيذ",
-      delivery: "تسليم",
-      completed: "مكتمل",
+      in_progress: "قيد التقدم",
+      delivered: "تم التسليم",
       cancelled: "ملغي"
     };
     return statusMap[status] || status;
@@ -75,11 +72,8 @@ export default function Projects() {
 
   const getStatusColor = (status: string) => {
     const colorMap: Record<string, string> = {
-      design: "bg-blue-500/10 text-blue-500",
-      execution: "bg-yellow-500/10 text-yellow-500",
-      in_progress: "bg-orange-500/10 text-orange-500",
-      delivery: "bg-purple-500/10 text-purple-500",
-      completed: "bg-green-500/10 text-green-500",
+      in_progress: "bg-blue-500/10 text-blue-500",
+      delivered: "bg-green-500/10 text-green-500",
       cancelled: "bg-red-500/10 text-red-500"
     };
     return colorMap[status] || "bg-gray-500/10 text-gray-500";
