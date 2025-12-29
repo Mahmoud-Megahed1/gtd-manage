@@ -667,24 +667,27 @@ export const generalReportsRouter = router({
             const instTotal = Number(instResult[0]?.total || 0);
             const instPaid = Number(instResult[0]?.paid || 0);
 
-            // 2. Sales (Completed ONLY - mirroring accounting.ts)
-            const salesConditions = [
-                gte(sales.saleDate, from),
-                lte(sales.saleDate, to),
-                eq(sales.status, 'completed')
+            // 2. Invoices (Mirroring accounting.ts logic + Date filter)
+            const invConditions = [
+                gte(invoices.issueDate, from),
+                lte(invoices.issueDate, to),
+                eq(invoices.type, 'invoice'),
+                ne(invoices.status, 'cancelled')
             ];
-            if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
+            if (input.projectId) invConditions.push(eq(invoices.projectId, input.projectId));
 
-            const salesResult = await conn.select({
-                total: sum(sales.amount)
-            }).from(sales)
-                .where(and(...salesConditions));
+            const invResult = await conn.select({
+                total: sum(invoices.total),
+                paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
+            }).from(invoices)
+                .where(and(...invConditions));
 
-            const salesTotal = Number(salesResult[0]?.total || 0);
+            const invoicesTotal = Number(invResult[0]?.total || 0);
+            const invoicesPaid = Number(invResult[0]?.paid || 0);
 
-            // Total Revenue = Installments + Completed Sales
-            const totalSales = instTotal + salesTotal;
-            const paidSales = instPaid + salesTotal;
+            // Total Revenue = Installments + Invoices
+            const totalSales = instTotal + invoicesTotal;
+            const paidSales = instPaid + invoicesPaid;
 
             return {
                 totalExpenses, // Now includes purchases
@@ -871,15 +874,16 @@ export const generalReportsRouter = router({
                         .from(expenses)
                         .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
 
-                    // Sales (Completed ONLY - mirroring accounting.ts)
+                    // Invoices (Mirroring accounting.ts logic + Date filter)
                     conn.select({
-                        total: sum(sales.amount),
-                        paid: sum(sales.amount)
-                    }).from(sales)
+                        total: sum(invoices.total),
+                        paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
+                    }).from(invoices)
                         .where(and(
-                            gte(sales.saleDate, from),
-                            lte(sales.saleDate, to),
-                            eq(sales.status, 'completed')
+                            gte(invoices.issueDate, from),
+                            lte(invoices.issueDate, to),
+                            eq(invoices.type, 'invoice'),
+                            ne(invoices.status, 'cancelled')
                         )),
 
                     // Installments (All for total, Paid for paid - mirroring accounting.ts)
@@ -899,13 +903,14 @@ export const generalReportsRouter = router({
                 const totalPurchases = Number(purchResult[0]?.total || 0);
                 const totalExpenses = totalOperatingExpenses + totalPurchases;
 
-                const salesRevenue = Number(salesResult[0]?.total || 0);
+                const invoicesTotal = Number(salesResult[0]?.total || 0);
+                const invoicesPaid = Number(salesResult[0]?.paid || 0);
 
                 const instRevenue = Number(instResult[0]?.total || 0);
                 const instPaid = Number(instResult[0]?.paid || 0);
 
-                const totalRevenue = instRevenue + salesRevenue;
-                const paidRevenue = instPaid + salesRevenue;
+                const totalRevenue = instRevenue + invoicesTotal;
+                const paidRevenue = instPaid + invoicesPaid;
 
                 financials = {
                     totalRevenue,
