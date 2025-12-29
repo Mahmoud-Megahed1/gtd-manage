@@ -38,7 +38,7 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
     const { data: tasks, refetch, isLoading } = trpc.tasks.list.useQuery(
-        { projectId, status: statusFilter === "all" ? undefined : (statusFilter as any) },
+        { projectId, taskType: 'task', status: statusFilter === "all" ? undefined : (statusFilter as any) },
         { refetchOnWindowFocus: false }
     );
 
@@ -136,6 +136,7 @@ export default function ProjectTasksContent({ projectId }: ProjectTasksContentPr
             priority: form.priority as any,
             estimateHours: form.estimateHours ? Number(form.estimateHours) : undefined,
             assignedTo: form.assignedTo ? Number(form.assignedTo) : undefined,
+            taskType: 'task'
         });
         setForm({ name: "", description: "", startDate: "", endDate: "", priority: "medium", estimateHours: "", assignedTo: "" });
         setShowForm(false);

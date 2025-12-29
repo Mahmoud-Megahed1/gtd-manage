@@ -26,13 +26,10 @@ import {
   Upload,
   Database,
   ListTodo,
-  Plus,
-  GanttChartSquare
+  Plus
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
-import { Gantt, Task, ViewMode } from "gantt-task-react";
-import "gantt-task-react/dist/index.css";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
@@ -47,6 +44,7 @@ import {
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ProjectTasksContent from "@/components/ProjectTasksContent";
+import ProjectPhasesContent from "@/components/ProjectPhasesContent";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
@@ -58,56 +56,15 @@ export default function ProjectDetails() {
   const utils = trpc.useUtils();
   const { data: projectData, isLoading } = trpc.projects.getDetails.useQuery({ id: projectId });
 
-  // Separate queries for Phases and Tasks
-  const phasesQuery = trpc.tasks.list.useQuery({ projectId, taskType: 'phase' });
-  const tasksQuery = trpc.tasks.list.useQuery({ projectId, taskType: 'task' });
-  // Keep the generic one for backwards compatibility if needed, or just rely on the above
-  const { data: allTasks } = trpc.tasks.list.useQuery({ projectId });
-  const tasks = allTasks || []; // Fallback
+  // Permissions for buttons/tabs
+  const { user } = useAuth();
+  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
+  const canViewFinancials = permissions?.permissions.projects.viewFinancials || user?.role === 'admin' || user?.role === 'project_manager';
 
-  // Transform phases for Gantt chart
-  const ganttPhases = useMemo<Task[]>(() => {
-    const phases = (phasesQuery.data || []) as any[];
-    return phases.map((p) => ({
-      id: String(p.id),
-      name: p.name,
-      start: p.startDate ? new Date(p.startDate) : new Date(),
-      end: p.endDate ? new Date(p.endDate) : new Date(new Date().getTime() + 86400000 * 7),
-      progress: typeof p.progress === "number" ? p.progress : (p.status === "done" ? 100 : 0),
-      type: "task" as const,
-      isDisabled: false,
-    }));
-  }, [phasesQuery.data]);
+  const { data: projectFiles, refetch: refetchFiles } = trpc.projects.listFiles.useQuery({ projectId });
 
-  const createTask = trpc.tasks.create.useMutation({
-    onSuccess: () => {
-      utils.tasks.list.invalidate({ projectId });
-      toast.success("تم الإضافة بنجاح");
-    },
-    onError: () => toast.error("تعذر الإضافة")
-  });
-  const deleteTask = trpc.tasks.delete.useMutation({
-    onSuccess: () => {
-      utils.tasks.list.invalidate({ projectId });
-      toast.success("تم الحذف بنجاح");
-    },
-    onError: () => toast.error("تعذر الحذف")
-  });
-  const updateTask = trpc.tasks.update.useMutation({
-    onSuccess: () => {
-      utils.tasks.list.invalidate({ projectId });
-      toast.success("تم التحديث بنجاح");
-    },
-    onError: () => toast.error("تعذر التحديث")
-  });
-
-  const [newTask, setNewTask] = useState({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-    assignedTo: ""
-  });
+  // Permission check for financial data
+  // Moved up to use hook
 
   const project = projectData?.project;
   const boq = projectData?.boqItems || [];
@@ -117,10 +74,6 @@ export default function ProjectDetails() {
   const projectInvoices = projectData?.projectInvoices || [];
   const client = projectData?.client;
 
-  // Permission check for financial data
-  const { user } = useAuth();
-  const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
-  const canViewFinancials = permissions?.permissions.projects.viewFinancials || user?.role === 'admin' || user?.role === 'project_manager';
   const { data: rfis } = trpc.rfi.list.useQuery({ projectId });
   const { data: submittals } = trpc.submittals.list.useQuery({ projectId });
   const { data: drawings } = trpc.drawings.list.useQuery({ projectId });
@@ -186,10 +139,7 @@ export default function ProjectDetails() {
   const { data: teamMembers } = trpc.projects.listTeam.useQuery({ projectId });
 
   // Project files (attachments)
-  const { data: projectFiles, refetch: refetchFiles } = trpc.files.list.useQuery(
-    { entityType: 'project', entityId: projectId },
-    { enabled: projectId > 0 }
-  );
+
   const deleteFile = trpc.files.delete.useMutation({
     onSuccess: () => {
       refetchFiles();
@@ -886,166 +836,7 @@ export default function ProjectDetails() {
 
           {/* المهام التفصيلية - Tasks Tab */}
           <TabsContent value="tasks" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ListTodo className="w-5 h-5" />
-                    سجل المهام ({tasksQuery.data?.length || 0})
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Add Task Form specifically for Tasks */}
-                <form
-                  className="mb-6 p-4 border rounded-lg bg-muted/30"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!newTask.name) {
-                      toast.error("أدخل اسم المهمة");
-                      return;
-                    }
-                    try {
-                      await createTask.mutateAsync({
-                        projectId,
-                        name: newTask.name,
-                        description: newTask.description || undefined,
-                        startDate: newTask.startDate ? new Date(newTask.startDate) : undefined,
-                        endDate: newTask.endDate ? new Date(newTask.endDate) : undefined,
-                        assignedTo: newTask.assignedTo ? parseInt(newTask.assignedTo) : undefined,
-                        taskType: 'task' // Explicitly creating a Task
-                      });
-                      setNewTask({ name: "", description: "", startDate: "", endDate: "", assignedTo: "" });
-                      toast.success("تم إضافة المهمة");
-                    } catch (err: any) {
-                      toast.error("تعذر إضافة المهمة");
-                    }
-                  }}
-                >
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <ListTodo className="w-4 h-4" />
-                    إضافة مهمة جديدة
-                  </h4>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      placeholder="اسم المهمة *"
-                      value={newTask.name}
-                      onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                      required
-                    />
-                    <select
-                      className="w-full p-2 border rounded bg-background text-sm"
-                      value={newTask.assignedTo}
-                      onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
-                    >
-                      <option value="">-- تعيين لعضو فريق --</option>
-                      {(teamMembers || []).map((m: any) => (
-                        <option key={m.userId} value={m.userId}>{m.userName || m.userEmail}</option>
-                      ))}
-                    </select>
-                    <Input
-                      type="date"
-                      placeholder="تاريخ البداية"
-                      value={newTask.startDate}
-                      onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
-                    />
-                    <Input
-                      type="date"
-                      placeholder="تاريخ النهاية"
-                      value={newTask.endDate}
-                      onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
-                    />
-                  </div>
-                  <Button type="submit" className="mt-3" disabled={createTask.isPending}>
-                    <Plus className="w-4 h-4 ml-2" />
-                    إضافة مهمة
-                  </Button>
-                </form>
-
-                {tasksQuery.data && tasksQuery.data.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-right">#</TableHead>
-                          <TableHead className="text-right">المهمة</TableHead>
-                          <TableHead className="text-right">المسؤول</TableHead>
-                          <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
-                          <TableHead className="text-center">الحالة</TableHead>
-                          <TableHead className="text-left">إجراءات</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tasksQuery.data.map((task: any, idx: number) => {
-                          const end = task.endDate ? new Date(task.endDate) : null;
-                          const isCompleted = task.status === 'done' || task.status === 'completed';
-                          const asignee = (teamMembers || []).find((m: any) => m.userId === task.assignedTo);
-
-                          return (
-                            <TableRow key={task.id} className={isCompleted ? 'bg-green-50' : ''}>
-                              <TableCell className="font-medium">{idx + 1}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{task.name}</p>
-                                  {task.description && <p className="text-xs text-muted-foreground">{task.description}</p>}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {asignee ? (
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                                      {asignee.userName?.[0] || 'U'}
-                                    </div>
-                                    <span className="text-sm">{asignee.userName}</span>
-                                  </div>
-                                ) : <span className="text-muted-foreground">-</span>}
-                              </TableCell>
-                              <TableCell>{end ? end.toLocaleDateString('ar-SA') : '-'}</TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={isCompleted ? 'default' : 'secondary'}>
-                                  {isCompleted ? 'مكتملة' : task.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1 justify-end">
-                                  {!isCompleted && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-green-600"
-                                      onClick={() => updateTask.mutate({ id: task.id, status: 'done', progress: 100 })}
-                                    >
-                                      <CheckCircle2 className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-500"
-                                    onClick={() => {
-                                      if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) {
-                                        deleteTask.mutate({ id: task.id });
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ListTodo className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>لا توجد مهام مسجلة</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ProjectTasksContent projectId={projectId} />
           </TabsContent>
 
           {/* ملفات المشروع */}
@@ -1253,181 +1044,9 @@ export default function ProjectDetails() {
             </Card>
           </TabsContent>
 
-          {/* مراحل المشروع - using tasks as phases */}
           {/* مراحل المشروع - Phases Tab */}
           <TabsContent value="phases" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-5 h-5" />
-                    مراحل المشروع ({phasesQuery.data?.length || 0})
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Add Phase Form */}
-                <form
-                  className="mb-6 p-4 border rounded-lg bg-muted/30"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!newTask.name) {
-                      toast.error("أدخل اسم المرحلة");
-                      return;
-                    }
-                    try {
-                      await createTask.mutateAsync({
-                        projectId,
-                        name: newTask.name,
-                        description: newTask.description || undefined,
-                        startDate: newTask.startDate ? new Date(newTask.startDate) : undefined,
-                        endDate: newTask.endDate ? new Date(newTask.endDate) : undefined,
-                        taskType: 'phase' // Explicitly creating a Phase
-                      });
-                      setNewTask({ name: "", description: "", startDate: "", endDate: "", assignedTo: "" });
-                      toast.success("تم إضافة المرحلة");
-                    } catch (err: any) {
-                      toast.error("تعذر إضافة المرحلة");
-                    }
-                  }}
-                >
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <Layers className="w-4 h-4" />
-                    إضافة مرحلة جديدة
-                  </h4>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      placeholder="اسم المرحلة *"
-                      value={newTask.name}
-                      onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                      required
-                    />
-                    <Input
-                      placeholder="الوصف (اختياري)"
-                      value={newTask.description}
-                      onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                    />
-                    <Input
-                      type="date"
-                      placeholder="تاريخ البداية"
-                      value={newTask.startDate}
-                      onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
-                    />
-                    <Input
-                      type="date"
-                      placeholder="تاريخ النهاية"
-                      value={newTask.endDate}
-                      onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
-                    />
-                  </div>
-                  <Button type="submit" className="mt-3" disabled={createTask.isPending}>
-                    <Plus className="w-4 h-4 ml-2" />
-                    إضافة مرحلة
-                  </Button>
-                </form>
-
-                {phasesQuery.data && phasesQuery.data.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-right">#</TableHead>
-                          <TableHead className="text-right">المرحلة</TableHead>
-                          <TableHead className="text-right">تاريخ البداية</TableHead>
-                          <TableHead className="text-right">تاريخ النهاية</TableHead>
-                          <TableHead className="text-center">الحالة</TableHead>
-                          <TableHead className="text-center">الإنجاز</TableHead>
-                          <TableHead className="text-left">إجراءات</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {phasesQuery.data.map((phase: any, idx: number) => {
-                          const start = phase.startDate ? new Date(phase.startDate) : null;
-                          const end = phase.endDate ? new Date(phase.endDate) : null;
-                          const isCompleted = phase.status === 'done' || phase.status === 'completed';
-
-                          return (
-                            <TableRow key={phase.id} className={isCompleted ? 'bg-green-50' : ''}>
-                              <TableCell className="font-medium">{idx + 1}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{phase.name}</p>
-                                  {phase.description && <p className="text-xs text-muted-foreground">{phase.description}</p>}
-                                </div>
-                              </TableCell>
-                              <TableCell>{start ? start.toLocaleDateString('ar-SA') : '-'}</TableCell>
-                              <TableCell>{end ? end.toLocaleDateString('ar-SA') : '-'}</TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={isCompleted ? 'default' : 'outline'}>
-                                  {isCompleted ? 'مكتملة' : 'جارية'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="text-sm font-medium">{phase.progress || 0}%</span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1 justify-end">
-                                  {!isCompleted && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-green-600 hover:text-green-700"
-                                      onClick={() => updateTask.mutate({ id: phase.id, status: 'done', progress: 100 })}
-                                    >
-                                      <CheckCircle2 className="w-4 h-4" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-500"
-                                    onClick={() => {
-                                      if (confirm('هل أنت متأكد من حذف هذه المرحلة؟')) {
-                                        deleteTask.mutate({ id: phase.id });
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Layers className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>لا توجد مراحل مسجلة للمشروع</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Gantt Chart for Phases */}
-            <Card className="mt-6">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <GanttChartSquare className="w-5 h-5" />
-                  <CardTitle>مخطط جانت للمراحل</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {phasesQuery.isLoading ? (
-                  <div className="h-72 bg-muted rounded animate-pulse" />
-                ) : ganttPhases.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Gantt tasks={ganttPhases} viewMode={ViewMode.Month} locale="ar" />
-                  </div>
-                ) : (
-                  <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border rounded">
-                    لا توجد مراحل لعرض المخطط
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ProjectPhasesContent projectId={projectId} />
           </TabsContent>
 
 
