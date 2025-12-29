@@ -3,10 +3,10 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import {
-  expenses, boq, installments, sales, purchases,
+  expenses, boq, installments, sales, purchases, invoices,
   InsertExpense, InsertBOQ, InsertInstallment, InsertSale, InsertPurchase
 } from "../../drizzle/schema";
-import { eq, and, gte, lte, desc, sum, sql, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sum, sql, inArray, ne } from "drizzle-orm";
 import * as demo from "../_core/demoStore";
 
 // Admin/Accountant procedure
@@ -901,11 +901,10 @@ export const accountingRouter = router({
         }).from(installments);
 
         // Use invoices for revenue calculation
-        const invoicesTable = (await import("../../drizzle/schema")).invoices;
         const invRes = await db.select({
-          total: sum(invoicesTable.total),
-          paid: sql<number>`sum(case when ${invoicesTable.status} = 'paid' then ${invoicesTable.total} else 0 end)`
-        }).from(invoicesTable).where(ne(invoicesTable.status, 'cancelled'));
+          total: sum(invoices.total),
+          paid: sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.total} else 0 end)`
+        }).from(invoices).where(ne(invoices.status, 'cancelled'));
 
         const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
         const totalPurchases = Number(purchasesRes[0]?.total || 0);
