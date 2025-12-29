@@ -920,8 +920,8 @@ export const accountingRouter = router({
 
         const manualSalesTotal = Number(manualSalesRes[0]?.total || 0);
 
-        // Total Revenue = Invoices + Installments (original logic)
-        const totalRevenue = Number(instRes[0]?.total || 0) + Number(invRes[0]?.total || 0);
+        // Total Revenue = Invoices + Installments + Manual Sales
+        const totalRevenue = Number(instRes[0]?.total || 0) + Number(invRes[0]?.total || 0) + manualSalesTotal;
         // Paid Revenue = Paid Invoices + Paid Installments + Completed Manual Sales
         const paidRevenue = Number(instRes[0]?.paid || 0) + Number(invRes[0]?.paid || 0) + manualSalesTotal;
 
