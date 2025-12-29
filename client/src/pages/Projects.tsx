@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Edit2 } from "lucide-react";
 
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 export default function Projects() {
   const { data: projects, isLoading, refetch } = trpc.projects.list.useQuery();
   const [, setLocation] = useLocation();
@@ -25,6 +27,7 @@ export default function Projects() {
   const { data: permissions } = trpc.auth.getMyPermissions.useQuery();
   const { data: clients } = trpc.clients.clientNames.useQuery();
   const { data: users } = trpc.users.list.useQuery();
+  const [activeTab, setActiveTab] = useState("all");
 
   // Create a map for quick client lookup
   const clientMap = (clients || []).reduce((acc: Record<number, string>, c: any) => {
@@ -82,6 +85,12 @@ export default function Projects() {
     return colorMap[status] || "bg-gray-500/10 text-gray-500";
   };
 
+  // Filter projects based on active tab
+  const filteredProjects = (projects || []).filter((project: any) => {
+    if (activeTab === "all") return true;
+    return project.projectType === activeTab;
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -95,6 +104,17 @@ export default function Projects() {
           </div>
           {canAdd && <AddProjectDialog />}
         </div>
+
+        {/* Tabs for Project Types */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="all">الكل ({projects?.length || 0})</TabsTrigger>
+            <TabsTrigger value="design">تصميم ({projects?.filter((p: any) => p.projectType === 'design').length || 0})</TabsTrigger>
+            <TabsTrigger value="execution">تنفيذ ({projects?.filter((p: any) => p.projectType === 'execution').length || 0})</TabsTrigger>
+            <TabsTrigger value="design_execution">تصميم وتنفيذ ({projects?.filter((p: any) => p.projectType === 'design_execution').length || 0})</TabsTrigger>
+            <TabsTrigger value="supervision">إشراف ({projects?.filter((p: any) => p.projectType === 'supervision').length || 0})</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Projects Grid */}
         {isLoading ? (
@@ -112,9 +132,9 @@ export default function Projects() {
               </Card>
             ))}
           </div>
-        ) : projects && projects.length > 0 ? (
+        ) : filteredProjects && filteredProjects.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {filteredProjects.map((project: any) => (
               <Card
                 key={project.id}
                 className="hover:shadow-lg transition-shadow"
