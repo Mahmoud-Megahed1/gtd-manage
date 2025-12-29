@@ -79,11 +79,11 @@ export const reportsRouter = router({
       const instSum = await conn.select({ total: sql<number>`SUM(${installments.amount})` })
         .from(installments)
         .where(and(...instWhere));
-      const invoicesTotal = invSum[0]?.total ?? 0;
-      const invoicesCount = invSum[0]?.count ?? 0;
-      const purchasesTotal = purSum[0]?.total ?? 0;
-      const expensesTotal = expSum[0]?.total ?? 0;
-      const installmentsTotal = instSum[0]?.total ?? 0;
+      const invoicesTotal = Number(invSum[0]?.total ?? 0);
+      const invoicesCount = Number(invSum[0]?.count ?? 0);
+      const purchasesTotal = Number(purSum[0]?.total ?? 0);
+      const expensesTotal = Number(expSum[0]?.total ?? 0);
+      const installmentsTotal = Number(instSum[0]?.total ?? 0);
       const net = invoicesTotal + installmentsTotal - purchasesTotal - expensesTotal;
       return { invoicesTotal, invoicesCount, purchasesTotal, expensesTotal, installmentsTotal, net };
     }),

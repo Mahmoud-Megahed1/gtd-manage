@@ -51,6 +51,7 @@ export default function Accounting() {
   // Removed installments section per requirement
   const { data: salesList, isLoading: loadingSales, refetch: refetchSales } = trpc.accounting.sales.list.useQuery();
   const { data: purchasesList, isLoading: loadingPurchases, refetch: refetchPurchases } = trpc.accounting.purchases.list.useQuery();
+  const { data: invoicesList, isLoading: loadingInvoices } = trpc.invoices.list.useQuery();
   const { data: overallFinancials, refetch: refetchFinancials } = trpc.accounting.reports.overallFinancials.useQuery();
   const { data: projects } = trpc.projects.list.useQuery();
   const utils = trpc.useUtils();
@@ -663,10 +664,80 @@ export default function Accounting() {
 
           {/* Sales Tab */}
           <TabsContent value="sales" className="space-y-4">
+            {/* Invoices Section */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle>سجل الإيرادات (الفواتير)</CardTitle>
+                  <CardTitle>الفواتير</CardTitle>
+                  <Button variant="outline" onClick={() => window.location.href = '/invoices'}>
+                    إنشاء فاتورة جديدة
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingInvoices ? (
+                  <p className="text-center py-8 text-muted-foreground">جاري التحميل...</p>
+                ) : invoicesList && invoicesList.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>رقم الفاتورة</TableHead>
+                        <TableHead>المشروع</TableHead>
+                        <TableHead>العميل</TableHead>
+                        <TableHead>المبلغ</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead className="text-left">إجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoicesList.map((invoice: any) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                          <TableCell>{invoice.projectName || 'بدون مشروع'}</TableCell>
+                          <TableCell>{invoice.clientName || '-'}</TableCell>
+                          <TableCell className="text-green-600 font-semibold">
+                            {Number(invoice.total || 0).toLocaleString()} ر.س
+                          </TableCell>
+                          <TableCell>
+                            {invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString('ar-SA') : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                  invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                              }`}>
+                              {invoice.status === 'paid' ? 'مدفوعة' :
+                                invoice.status === 'sent' ? 'مرسلة' :
+                                  invoice.status === 'draft' ? 'مسودة' :
+                                    invoice.status === 'cancelled' ? 'ملغية' : invoice.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-left">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.location.href = `/invoices/${invoice.id}`}
+                            >
+                              عرض
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-center py-12 text-muted-foreground">لا توجد فواتير حالياً</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Manual Sales Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>سجل المبيعات اليدوية</CardTitle>
                   <AddSaleDialog />
                 </div>
               </CardHeader>
@@ -786,7 +857,7 @@ export default function Accounting() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-center py-12 text-muted-foreground">لا توجد عمليات بيع حالياً</p>
+                  <p className="text-center py-8 text-muted-foreground">لا توجد عمليات بيع يدوية</p>
                 )}
               </CardContent>
             </Card>
@@ -1033,28 +1104,28 @@ export default function Accounting() {
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">قيمة الفواتير</div>
-                      <div className="text-2xl font-bold">{(reportData?.invoicesTotal ?? 0).toLocaleString()} ر.س</div>
+                      <div className="text-2xl font-bold">{Number(reportData?.invoicesTotal ?? 0).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">إجمالي الإيرادات</div>
-                      <div className="text-2xl font-bold text-green-600">{((reportData?.invoicesTotal || 0) + (reportData?.installmentsTotal || 0)).toLocaleString()} ر.س</div>
+                      <div className="text-sm text-muted-foreground">إجمالي الإيرادات (المكتملة)</div>
+                      <div className="text-2xl font-bold text-green-600">{(Number(reportData?.invoicesTotal || 0) + Number(reportData?.installmentsTotal || 0)).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
-                      <div className="text-2xl font-bold text-red-600">{((reportData?.expensesTotal ?? 0) + (reportData?.purchasesTotal ?? 0)).toLocaleString()} ر.س</div>
+                      <div className="text-2xl font-bold text-red-600">{(Number(reportData?.expensesTotal ?? 0) + Number(reportData?.purchasesTotal ?? 0)).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">التكاليف التشغيلية</div>
-                      <div className="text-2xl font-bold">{(reportData?.expensesTotal ?? 0).toLocaleString()} ر.س</div>
+                      <div className="text-2xl font-bold">{Number(reportData?.expensesTotal ?? 0).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">المشتريات</div>
-                      <div className="text-2xl font-bold">{(reportData?.purchasesTotal ?? 0).toLocaleString()} ر.س</div>
+                      <div className="text-2xl font-bold">{Number(reportData?.purchasesTotal ?? 0).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded md:col-span-3 bg-primary/5">
                       <div className="text-sm text-muted-foreground">صافي الربح</div>
-                      <div className={`text-3xl font-bold ${(reportData?.net ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {(reportData?.net ?? 0).toLocaleString()} ر.س
+                      <div className={`text-3xl font-bold ${Number(reportData?.net ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {Number(reportData?.net ?? 0).toLocaleString()} ر.س
                       </div>
                     </div>
                   </div>
