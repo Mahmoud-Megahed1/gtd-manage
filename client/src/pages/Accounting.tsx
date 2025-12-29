@@ -71,6 +71,10 @@ export default function Accounting() {
     projectId: "" as string
   });
 
+  const manualSales = useMemo(() => {
+    return (salesList || []).filter(s => !s.invoiceId);
+  }, [salesList]);
+
   // ========== Advanced Reports States ==========
   const [reportFrom, setReportFrom] = useState<string>(() => {
     const d = new Date();
@@ -757,7 +761,7 @@ export default function Accounting() {
               <CardContent>
                 {loadingSales ? (
                   <p className="text-center py-8 text-muted-foreground">جاري التحميل...</p>
-                ) : salesList && salesList.length > 0 ? (
+                ) : manualSales && manualSales.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -772,7 +776,7 @@ export default function Accounting() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {salesList.map((sale) => (
+                      {manualSales.map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.saleNumber}</TableCell>
                           <TableCell>
