@@ -679,9 +679,24 @@ export const generalReportsRouter = router({
             const invoicesTotal = Number(invResult[0]?.total || 0);
             const invoicesPaid = Number(invResult[0]?.paid || 0);
 
-            // Total Revenue = Installments + Invoices
-            const totalSales = instTotal + invoicesTotal;
-            const paidSales = instPaid + invoicesPaid;
+            // 3. Manual Sales (Completed ONLY)
+            const salesConditions = [
+                gte(sales.saleDate, from),
+                lte(sales.saleDate, to),
+                eq(sales.status, 'completed')
+            ];
+            if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
+
+            const salesResult = await conn.select({
+                total: sum(sales.amount)
+            }).from(sales)
+                .where(and(...salesConditions));
+
+            const manualSalesTotal = Number(salesResult[0]?.total || 0);
+
+            // Total Revenue = Installments + Invoices + Manual Sales
+            const totalSales = instTotal + invoicesTotal + manualSalesTotal;
+            const paidSales = instPaid + invoicesPaid + manualSalesTotal;
 
             return {
                 totalExpenses, // Now includes purchases
@@ -862,7 +877,7 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                const [expResult, salesResult, instResult, purchResult] = await Promise.all([
+                const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
                     // Expenses - filter by expenseDate
                     conn.select({ total: sum(expenses.amount) })
                         .from(expenses)
@@ -891,20 +906,31 @@ export const generalReportsRouter = router({
                     conn.select({ total: sum(purchases.amount) })
                         .from(purchases)
                         .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
+
+                    // Manual Sales (Completed ONLY)
+                    conn.select({ total: sum(sales.amount) })
+                        .from(sales)
+                        .where(and(
+                            gte(sales.saleDate, from),
+                            lte(sales.saleDate, to),
+                            eq(sales.status, 'completed')
+                        )),
                 ]);
 
                 const totalOperatingExpenses = Number(expResult[0]?.total || 0);
                 const totalPurchases = Number(purchResult[0]?.total || 0);
                 const totalExpenses = totalOperatingExpenses + totalPurchases;
 
-                const invoicesTotal = Number(salesResult[0]?.total || 0);
-                const invoicesPaid = Number(salesResult[0]?.paid || 0);
+                const invoicesTotal = Number(invResult[0]?.total || 0);
+                const invoicesPaid = Number(invResult[0]?.paid || 0);
 
                 const instRevenue = Number(instResult[0]?.total || 0);
                 const instPaid = Number(instResult[0]?.paid || 0);
 
-                const totalRevenue = instRevenue + invoicesTotal;
-                const paidRevenue = instPaid + invoicesPaid;
+                const manualSalesTotal = Number(manualSalesResult[0]?.total || 0);
+
+                const totalRevenue = instRevenue + invoicesTotal + manualSalesTotal;
+                const paidRevenue = instPaid + invoicesPaid + manualSalesTotal;
 
                 financials = {
                     totalRevenue,
