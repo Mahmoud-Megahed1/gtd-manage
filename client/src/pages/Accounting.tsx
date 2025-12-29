@@ -1026,26 +1026,36 @@ export default function Accounting() {
                     <div className="h-24 bg-muted rounded"></div>
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">إجمالي الفواتير</div>
-                      <div className="text-2xl font-bold">{reportData?.invoicesTotal ?? 0}</div>
+                      <div className="text-sm text-muted-foreground">عدد الفواتير</div>
+                      <div className="text-2xl font-bold">{reportData?.invoicesCount ?? 0} فاتورة</div>
+                    </div>
+                    <div className="p-4 border rounded">
+                      <div className="text-sm text-muted-foreground">قيمة الفواتير</div>
+                      <div className="text-2xl font-bold">{(reportData?.invoicesTotal ?? 0).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي الإيرادات</div>
-                      <div className="text-2xl font-bold">{(reportData?.invoicesTotal || 0) + (reportData?.installmentsTotal || 0)}</div>
+                      <div className="text-2xl font-bold text-green-600">{((reportData?.invoicesTotal || 0) + (reportData?.installmentsTotal || 0)).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
-                      <div className="text-2xl font-bold">{reportData?.expensesTotal ?? 0}</div>
+                      <div className="text-2xl font-bold text-red-600">{((reportData?.expensesTotal ?? 0) + (reportData?.purchasesTotal ?? 0)).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">إجمالي المشتريات</div>
-                      <div className="text-2xl font-bold">{reportData?.purchasesTotal ?? 0}</div>
+                      <div className="text-sm text-muted-foreground">التكاليف التشغيلية</div>
+                      <div className="text-2xl font-bold">{(reportData?.expensesTotal ?? 0).toLocaleString()} ر.س</div>
                     </div>
-                    <div className="p-4 border rounded md:col-span-2">
-                      <div className="text-sm text-muted-foreground">الصافي</div>
-                      <div className="text-3xl font-bold">{reportData?.net ?? 0}</div>
+                    <div className="p-4 border rounded">
+                      <div className="text-sm text-muted-foreground">المشتريات</div>
+                      <div className="text-2xl font-bold">{(reportData?.purchasesTotal ?? 0).toLocaleString()} ر.س</div>
+                    </div>
+                    <div className="p-4 border rounded md:col-span-3 bg-primary/5">
+                      <div className="text-sm text-muted-foreground">صافي الربح</div>
+                      <div className={`text-3xl font-bold ${(reportData?.net ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {(reportData?.net ?? 0).toLocaleString()} ر.س
+                      </div>
                     </div>
                   </div>
                 )}

@@ -39,6 +39,7 @@ export const reportsRouter = router({
         const instRows = demo.list("installments").filter((r: any) => within(r.createdAt));
         return {
           invoicesTotal: invRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0),
+          invoicesCount: invRows.length,
           purchasesTotal: purRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
           expensesTotal: expRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
           installmentsTotal: instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0),
@@ -54,7 +55,10 @@ export const reportsRouter = router({
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
       if (input.projectId) invWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
       if (input.invoiceStatus) invWhere.push(sql`${invoices.status} = ${input.invoiceStatus}`);
-      const invSum = await conn.select({ total: sql<number>`SUM(${invoices.total})` })
+      const invSum = await conn.select({
+        total: sql<number>`SUM(${invoices.total})`,
+        count: sql<number>`COUNT(${invoices.id})`
+      })
         .from(invoices)
         .where(and(...invWhere));
       const purWhere = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
@@ -76,11 +80,12 @@ export const reportsRouter = router({
         .from(installments)
         .where(and(...instWhere));
       const invoicesTotal = invSum[0]?.total ?? 0;
+      const invoicesCount = invSum[0]?.count ?? 0;
       const purchasesTotal = purSum[0]?.total ?? 0;
       const expensesTotal = expSum[0]?.total ?? 0;
       const installmentsTotal = instSum[0]?.total ?? 0;
       const net = invoicesTotal + installmentsTotal - purchasesTotal - expensesTotal;
-      return { invoicesTotal, purchasesTotal, expensesTotal, installmentsTotal, net };
+      return { invoicesTotal, invoicesCount, purchasesTotal, expensesTotal, installmentsTotal, net };
     }),
   timeseries: protectedProcedure
     .input(z.object({
