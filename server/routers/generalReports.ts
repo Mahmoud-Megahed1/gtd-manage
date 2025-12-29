@@ -661,11 +661,30 @@ export const generalReportsRouter = router({
             const instTotal = Number(instResult[0]?.total || 0);
             const instPaid = Number(instResult[0]?.paid || 0);
 
-            // 2. Sales (Completed - includes Invoices and Manual Sales)
+            // 2. Invoices (Mirroring accounting.ts logic + Date filter)
+            const invConditions = [
+                gte(invoices.issueDate, from),
+                lte(invoices.issueDate, to),
+                eq(invoices.type, 'invoice'),
+                ne(invoices.status, 'cancelled')
+            ];
+            if (input.projectId) invConditions.push(eq(invoices.projectId, input.projectId));
+
+            const invResult = await conn.select({
+                total: sum(invoices.total),
+                paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
+            }).from(invoices)
+                .where(and(...invConditions));
+
+            const invoicesTotal = Number(invResult[0]?.total || 0);
+            const invoicesPaid = Number(invResult[0]?.paid || 0);
+
+            // 3. Manual Sales (Completed ONLY, not linked to invoices)
             const salesConditions = [
                 gte(sales.saleDate, from),
                 lte(sales.saleDate, to),
-                eq(sales.status, 'completed')
+                eq(sales.status, 'completed'),
+                isNull(sales.invoiceId)
             ];
             if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
 
@@ -674,11 +693,11 @@ export const generalReportsRouter = router({
             }).from(sales)
                 .where(and(...salesConditions));
 
-            const salesTotal = Number(salesResult[0]?.total || 0);
+            const manualSalesTotal = Number(salesResult[0]?.total || 0);
 
-            // Total Revenue = Installments + Sales
-            const totalSales = instTotal + salesTotal;
-            const paidSales = instPaid + salesTotal;
+            // Total Revenue = Installments + Invoices + Manual Sales
+            const totalSales = instTotal + invoicesTotal + manualSalesTotal;
+            const paidSales = instPaid + invoicesPaid + manualSalesTotal;
 
             return {
                 totalExpenses, // Now includes purchases
@@ -859,31 +878,44 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                const [expResult, instResult, purchResult, salesResult] = await Promise.all([
-                    // Expenses
+                const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
+                    // Expenses - filter by expenseDate
                     conn.select({ total: sum(expenses.amount) })
                         .from(expenses)
                         .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
 
-                    // Installments
+                    // Invoices (Mirroring accounting.ts logic + Date filter)
+                    conn.select({
+                        total: sum(invoices.total),
+                        paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
+                    }).from(invoices)
+                        .where(and(
+                            gte(invoices.issueDate, from),
+                            lte(invoices.issueDate, to),
+                            eq(invoices.type, 'invoice'),
+                            ne(invoices.status, 'cancelled')
+                        )),
+
+                    // Installments (All for total, Paid for paid - mirroring accounting.ts)
                     conn.select({
                         total: sum(installments.amount),
                         paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
                     }).from(installments)
                         .where(and(gte(installments.dueDate, from), lte(installments.dueDate, to))),
 
-                    // Purchases
+                    // Purchases - filter by purchaseDate
                     conn.select({ total: sum(purchases.amount) })
                         .from(purchases)
                         .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
 
-                    // Sales (Completed)
+                    // Manual Sales (Completed ONLY, not linked to invoices)
                     conn.select({ total: sum(sales.amount) })
                         .from(sales)
                         .where(and(
                             gte(sales.saleDate, from),
                             lte(sales.saleDate, to),
-                            eq(sales.status, 'completed')
+                            eq(sales.status, 'completed'),
+                            isNull(sales.invoiceId)
                         )),
                 ]);
 
@@ -891,13 +923,16 @@ export const generalReportsRouter = router({
                 const totalPurchases = Number(purchResult[0]?.total || 0);
                 const totalExpenses = totalOperatingExpenses + totalPurchases;
 
+                const invoicesTotal = Number(invResult[0]?.total || 0);
+                const invoicesPaid = Number(invResult[0]?.paid || 0);
+
                 const instRevenue = Number(instResult[0]?.total || 0);
                 const instPaid = Number(instResult[0]?.paid || 0);
 
-                const salesTotal = Number(salesResult[0]?.total || 0);
+                const manualSalesTotal = Number(manualSalesResult[0]?.total || 0);
 
-                const totalRevenue = instRevenue + salesTotal;
-                const paidRevenue = instPaid + salesTotal;
+                const totalRevenue = instRevenue + invoicesTotal + manualSalesTotal;
+                const paidRevenue = instPaid + invoicesPaid + manualSalesTotal;
 
                 financials = {
                     totalRevenue,
@@ -950,15 +985,15 @@ export const generalReportsRouter = router({
                 .orderBy(sql`${savedReports.createdAt} DESC`);
         }),
 
-    deleteSavedReport: protectedProcedure
-        .input(z.object({ id: z.number() }))
-        .mutation(async ({ input, ctx }) => {
-            const conn = await db.getDb();
-            if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+    teSavedReport: protectedProcedure
+        ut(z.object({ id: z.number() }))
+ation(async ({ input, ctx }) => {
+            t conn = await db.getDb();
+    !conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
-            await conn.delete(savedReports)
-                .where(eq(savedReports.id, input.id));
+            t conn.delete(savedReports)
+re(eq(savedReports.id, input.id));
 
-            return { success: true };
-        }),
+            rn { success: true };
+        
 });
