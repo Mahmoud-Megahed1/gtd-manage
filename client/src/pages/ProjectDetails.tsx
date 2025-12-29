@@ -148,6 +148,16 @@ export default function ProjectDetails() {
     onError: () => toast.error("تعذر حذف الملف")
   });
 
+  const convertQuote = trpc.invoices.convertQuoteToInvoice.useMutation({
+    onSuccess: (data) => {
+      utils.projects.getDetails.invalidate({ id: projectId });
+      toast.success(`تم تحويل عرض السعر إلى فاتورة رقم ${data.newInvoiceNumber}`);
+    },
+    onError: (err) => {
+      toast.error(err.message || "فشل التحويل");
+    }
+  });
+
   // Financial Mutations
   const createInstallment = trpc.accounting.installments.create.useMutation({
     onSuccess: () => {
@@ -632,6 +642,7 @@ export default function ProjectDetails() {
                                 <TableHead>المبلغ</TableHead>
                                 <TableHead>التاريخ</TableHead>
                                 <TableHead>الحالة</TableHead>
+                                <TableHead className="text-left">إجراءات</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -650,11 +661,30 @@ export default function ProjectDetails() {
                                         {inv.status === 'paid' ? 'مدفوعة' : inv.status === 'draft' ? 'مسودة' : inv.status === 'sent' ? 'مرسلة' : 'ملغية'}
                                       </span>
                                     </TableCell>
+                                    <TableCell className="text-left">
+                                      {inv.type === 'quote' && (
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          className="bg-blue-600 hover:bg-blue-700 h-8 text-xs"
+                                          onClick={() => {
+                                            if (confirm("هل أنت متأكد من تحويل عرض السعر هذا إلى فاتورة؟")) {
+                                              convertQuote.mutate({ id: inv.id });
+                                            }
+                                          }}
+                                        >
+                                          تحويل لفاتورة
+                                        </Button>
+                                      )}
+                                      {inv.type === 'invoice' && (
+                                        <span className="text-xs text-muted-foreground">-</span>
+                                      )}
+                                    </TableCell>
                                   </TableRow>
                                 ))
                               ) : (
                                 <TableRow>
-                                  <TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد فواتير مربوطة بهذا المشروع</TableCell>
+                                  <TableCell colSpan={6} className="text-center text-muted-foreground">لا توجد فواتير مربوطة بهذا المشروع</TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
@@ -748,7 +778,8 @@ export default function ProjectDetails() {
                 </Card>
               </div>
             </TabsContent>
-          )}
+          )
+          }
 
           <TabsContent value="phases" className="mt-6">
             <Card>
@@ -1061,7 +1092,7 @@ export default function ProjectDetails() {
           </TabsContent>
 
 
-        </Tabs>
+        </Tabs >
 
 
         <Card>
@@ -1284,7 +1315,7 @@ export default function ProjectDetails() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div >
     </DashboardLayout >
   );
 }

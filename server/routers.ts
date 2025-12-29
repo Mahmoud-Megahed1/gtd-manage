@@ -1599,14 +1599,59 @@ export const appRouter = router({
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'invoices');
-        // INTEGRATION: Delete linked sale record
-        await db.deleteSaleByInvoiceId(input.id);
-
         await db.deleteInvoice(input.id);
         await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id, undefined, ctx);
         return { success: true };
-      })
+      }),
+
+    // Convert Quote to Invoice
+    convertQuoteToInvoice: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        // Permission check
+        const canCreate = ['admin', 'finance_manager', 'sales_manager'].includes(ctx.user.role);
+        if (!canCreate) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تحويل عروض السعر' });
+        }
+
+        // Get existing quote
+        const existing = await db.getInvoiceById(input.id);
+        if (!existing || !existing.invoice) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'عرض السعر غير موجود' });
+        }
+
+        if (existing.invoice.type !== 'quote') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'هذا المستند ليس عرض سعر' });
+        }
+
+        const newInvoiceNumber = generateUniqueNumber('INV');
+
+        // Update to Invoice
+        await db.updateInvoice(input.id, {
+          type: 'invoice',
+          invoiceNumber: newInvoiceNumber,
+          // Keep existing dates and data, just change type and number
+        });
+
+        // Create Accounting Sale Record
+        const saleNumber = generateUniqueNumber('SAL');
+        await db.createSale({
+          saleNumber,
+          clientId: existing.invoice.clientId || 0, // Should have client
+          projectId: existing.invoice.projectId,
+          description: `Converted from Quote #${existing.invoice.invoiceNumber} -> Invoice #${newInvoiceNumber}`,
+          amount: existing.invoice.total,
+          paymentMethod: 'bank_transfer',
+          saleDate: existing.invoice.issueDate,
+          status: 'pending',
+          invoiceId: input.id,
+          createdBy: ctx.user.id
+        });
+
+        await logAudit(ctx.user.id, 'CONVERT_QUOTE', 'invoice', input.id, `Converted Quote ${existing.invoice.invoiceNumber} to Invoice ${newInvoiceNumber}`, ctx);
+
+        return { success: true, newInvoiceNumber };
+      }),
   }),
 
   // ============= CHANGE ORDERS =============
