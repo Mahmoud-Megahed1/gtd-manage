@@ -227,6 +227,7 @@ export default function Projects() {
                   id: editProject.id,
                   name: editProject.name,
                   status: editProject.status,
+                  projectType: editProject.projectType,
                   budget: editProject.budget,
                   description: editProject.description,
                   startDate: editProject.startDate ? new Date(editProject.startDate) : undefined,
@@ -247,16 +248,16 @@ export default function Projects() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>نوع المشروع</Label>
-                  <Input
-                    value={
-                      editProject.projectType === 'design' ? 'تصميم' :
-                        editProject.projectType === 'execution' ? 'تنفيذ' :
-                          editProject.projectType === 'design_execution' ? 'تصميم وتنفيذ' :
-                            editProject.projectType === 'supervision' ? 'إشراف' : editProject.projectType
-                    }
-                    disabled
-                    className="bg-muted"
-                  />
+                  <select
+                    className="w-full border rounded px-3 py-2"
+                    value={editProject.projectType}
+                    onChange={(e) => setEditProject({ ...editProject, projectType: e.target.value })}
+                  >
+                    <option value="design">تصميم</option>
+                    <option value="execution">تنفيذ</option>
+                    <option value="design_execution">تصميم وتنفيذ</option>
+                    <option value="supervision">إشراف</option>
+                  </select>
                 </div>
                 <div>
                   <Label>مدير المشروع</Label>
