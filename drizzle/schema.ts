@@ -332,6 +332,7 @@ export const projectTasks = mysqlTable("projectTasks", {
 	id: int().autoincrement().notNull(),
 	projectId: int().notNull(),
 	name: varchar({ length: 255 }).notNull(),
+	taskType: mysqlEnum(['task', 'phase']).default('task').notNull(),
 	description: text(),
 	startDate: timestamp({ mode: 'date' }),
 	endDate: timestamp({ mode: 'date' }),

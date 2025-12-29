@@ -49,7 +49,8 @@ export const tasksRouter = router({
       from: z.date().optional(),
       to: z.date().optional(),
       status: z.enum(["planned", "in_progress", "done", "cancelled"]).optional(),
-      assignedTo: z.number().optional()
+      assignedTo: z.number().optional(),
+      taskType: z.enum(["task", "phase"]).optional()
     }).optional())
     .query(async ({ input, ctx }) => {
       const role = ctx.user.role;
@@ -63,6 +64,7 @@ export const tasksRouter = router({
         let tasks = demo.list("projectTasks") as any[];
         if (input?.projectId) tasks = tasks.filter((t: any) => t.projectId === input.projectId);
         if (input?.status) tasks = tasks.filter((t: any) => t.status === input.status);
+        if (input?.taskType) tasks = tasks.filter((t: any) => t.taskType === input.taskType);
 
         // For designers: show tasks assigned to them OR unassigned tasks
         if (isDesigner && !isAdminOrManager) {
@@ -78,6 +80,7 @@ export const tasksRouter = router({
       if (input?.from) whereClauses.push(gte(projectTasks.createdAt, input.from));
       if (input?.to) whereClauses.push(lte(projectTasks.createdAt, input.to));
       if (input?.status) whereClauses.push(eq(projectTasks.status, input.status));
+      if (input?.taskType) whereClauses.push(eq(projectTasks.taskType, input.taskType));
 
       // For designers: show tasks assigned to them OR unassigned tasks
       // Admins/managers see all tasks regardless of assignment
@@ -107,7 +110,8 @@ export const tasksRouter = router({
       estimateHours: z.number().min(0).optional(),
       progress: z.number().min(0).max(100).optional(),
       parentId: z.number().optional(),
-      status: z.enum(["planned", "in_progress", "done", "cancelled"]).default("planned")
+      status: z.enum(["planned", "in_progress", "done", "cancelled"]).default("planned"),
+      taskType: z.enum(["task", "phase"]).default("task")
     }))
     .mutation(async ({ input, ctx }) => {
       await ensureTasksPerm(ctx);
@@ -129,6 +133,7 @@ export const tasksRouter = router({
           endDate: input.endDate ?? null,
           assignedTo: input.assignedTo ?? null,
           status: input.status,
+          taskType: input.taskType,
           priority: input.priority ?? "medium",
           estimateHours: input.estimateHours ?? null,
           progress: input.progress ?? 0,
@@ -146,6 +151,7 @@ export const tasksRouter = router({
         endDate: input.endDate ?? null,
         assignedTo: input.assignedTo ?? null,
         status: input.status,
+        taskType: input.taskType,
         priority: input.priority ?? "medium",
         estimateHours: input.estimateHours ?? null,
         progress: input.progress ?? 0,
@@ -183,7 +189,8 @@ export const tasksRouter = router({
       priority: z.enum(["low", "medium", "high", "critical"]).optional(),
       estimateHours: z.number().min(0).optional(),
       progress: z.number().min(0).max(100).optional(),
-      parentId: z.number().optional()
+      parentId: z.number().optional(),
+      taskType: z.enum(["task", "phase"]).optional()
     }))
     .mutation(async ({ input, ctx }) => {
       await ensureTasksPerm(ctx);
@@ -201,6 +208,7 @@ export const tasksRouter = router({
         if (input.estimateHours !== undefined) updates.estimateHours = input.estimateHours;
         if (input.progress !== undefined) updates.progress = input.progress;
         if (input.parentId !== undefined) updates.parentId = input.parentId;
+        if (input.taskType !== undefined) updates.taskType = input.taskType;
         demo.update("projectTasks", input.id, updates);
         return { success: true };
       }
@@ -215,6 +223,7 @@ export const tasksRouter = router({
       if (input.estimateHours !== undefined) updates.estimateHours = input.estimateHours;
       if (input.progress !== undefined) updates.progress = input.progress;
       if (input.parentId !== undefined) updates.parentId = input.parentId;
+      if (input.taskType !== undefined) updates.taskType = input.taskType;
       // Fetch current task to detect changes for notifications
       const current = await conn.select().from(projectTasks).where(eq(projectTasks.id, input.id)).limit(1);
       await conn.update(projectTasks).set(updates).where(eq(projectTasks.id, input.id));

@@ -1,0 +1,2 @@
+ALTER TABLE `expenses` MODIFY COLUMN `status` enum('active','processing','completed','cancelled') NOT NULL DEFAULT 'active';--> statement-breakpoint
+ALTER TABLE `projectTasks` ADD `taskType` enum('task','phase') DEFAULT 'task' NOT NULL;
