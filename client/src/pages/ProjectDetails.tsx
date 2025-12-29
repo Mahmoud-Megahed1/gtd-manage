@@ -358,9 +358,10 @@ export default function ProjectDetails() {
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0) +
     (projectPurchases || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-  // Revenue from Sales (Invoices)
-  const totalRevenue = (sales || []).reduce((sum, sale) => sum + (sale.status !== 'cancelled' ? sale.amount : 0), 0);
-  const paidRevenue = (sales || []).filter(s => s.status === 'completed').reduce((sum, sale) => sum + sale.amount, 0);
+
+  // Calculate directly from Invoices (as requested to fix calculation errors)
+  const totalInvoicesAmount = (projectInvoices || []).reduce((sum: number, inv: any) => sum + (inv.status !== 'cancelled' ? Number(inv.total || 0) : 0), 0);
+  const paidInvoicesAmount = (projectInvoices || []).filter((inv: any) => inv.status === 'paid').reduce((sum: number, inv: any) => sum + Number(inv.total || 0), 0);
 
   if (isLoading) {
     return (
@@ -480,7 +481,7 @@ export default function ProjectDetails() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">إجمالي الفواتير</p>
-                    <p className="text-2xl font-bold">{totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{totalInvoicesAmount.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">ريال</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -511,8 +512,8 @@ export default function ProjectDetails() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">المدفوع</p>
-                    <p className="text-2xl font-bold">{paidRevenue.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">من {totalRevenue.toLocaleString()} ريال</p>
+                    <p className="text-2xl font-bold">{paidInvoicesAmount.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">من {totalInvoicesAmount.toLocaleString()} ريال</p>
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
                     <CheckCircle2 className="w-6 h-6 text-green-500" />
@@ -611,7 +612,7 @@ export default function ProjectDetails() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">المدفوع من العميل (الفواتير):</span>
-                      <span className="font-bold text-green-500">{paidRevenue.toLocaleString()} ريال</span>
+                      <span className="font-bold text-green-500">{paidInvoicesAmount.toLocaleString()} ريال</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">المصروفات الفعلية:</span>
@@ -620,9 +621,9 @@ export default function ProjectDetails() {
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">صافي الربح:</span>
-                        <span className={`font-bold text-lg ${(paidRevenue - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
+                        <span className={`font-bold text-lg ${(paidInvoicesAmount - totalExpenses) >= 0 ? "text-green-500" : "text-red-500"
                           }`}>
-                          {(paidRevenue - totalExpenses).toLocaleString()} ريال
+                          {(paidInvoicesAmount - totalExpenses).toLocaleString()} ريال
                         </span>
                       </div>
                     </div>
