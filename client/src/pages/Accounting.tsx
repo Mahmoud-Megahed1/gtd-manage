@@ -51,7 +51,7 @@ export default function Accounting() {
   // Removed installments section per requirement
   const { data: salesList, isLoading: loadingSales, refetch: refetchSales } = trpc.accounting.sales.list.useQuery();
   const { data: purchasesList, isLoading: loadingPurchases, refetch: refetchPurchases } = trpc.accounting.purchases.list.useQuery();
-  const { data: invoicesList, isLoading: loadingInvoices } = trpc.invoices.list.useQuery();
+  const { data: invoicesList, isLoading: loadingInvoices } = trpc.invoices.list.useQuery({});
   const { data: overallFinancials, refetch: refetchFinancials } = trpc.accounting.reports.overallFinancials.useQuery();
   const { data: projects } = trpc.projects.list.useQuery();
   const utils = trpc.useUtils();
@@ -704,9 +704,9 @@ export default function Accounting() {
                           </TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                                invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                  invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
+                              invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
                               }`}>
                               {invoice.status === 'paid' ? 'مدفوعة' :
                                 invoice.status === 'sent' ? 'مرسلة' :
