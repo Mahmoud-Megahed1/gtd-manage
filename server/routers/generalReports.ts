@@ -661,30 +661,11 @@ export const generalReportsRouter = router({
             const instTotal = Number(instResult[0]?.total || 0);
             const instPaid = Number(instResult[0]?.paid || 0);
 
-            // 2. Invoices (Mirroring accounting.ts logic + Date filter)
-            const invConditions = [
-                gte(invoices.issueDate, from),
-                lte(invoices.issueDate, to),
-                eq(invoices.type, 'invoice'),
-                ne(invoices.status, 'cancelled')
-            ];
-            if (input.projectId) invConditions.push(eq(invoices.projectId, input.projectId));
-
-            const invResult = await conn.select({
-                total: sum(invoices.total),
-                paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
-            }).from(invoices)
-                .where(and(...invConditions));
-
-            const invoicesTotal = Number(invResult[0]?.total || 0);
-            const invoicesPaid = Number(invResult[0]?.paid || 0);
-
-            // 3. Manual Sales (Completed ONLY, not linked to invoices)
+            // 2. Sales (Completed - includes Invoices and Manual Sales)
             const salesConditions = [
                 gte(sales.saleDate, from),
                 lte(sales.saleDate, to),
-                eq(sales.status, 'completed'),
-                isNull(sales.invoiceId)
+                eq(sales.status, 'completed')
             ];
             if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
 
@@ -693,11 +674,11 @@ export const generalReportsRouter = router({
             }).from(sales)
                 .where(and(...salesConditions));
 
-            const manualSalesTotal = Number(salesResult[0]?.total || 0);
+            const salesTotal = Number(salesResult[0]?.total || 0);
 
-            // Total Revenue = Installments + Invoices + Manual Sales
-            const totalSales = instTotal + invoicesTotal + manualSalesTotal;
-            const paidSales = instPaid + invoicesPaid + manualSalesTotal;
+            // Total Revenue = Installments + Sales
+            const totalSales = instTotal + salesTotal;
+            const paidSales = instPaid + salesTotal;
 
             return {
                 totalExpenses, // Now includes purchases
@@ -878,44 +859,31 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
-                    // Expenses - filter by expenseDate
+                const [expResult, instResult, purchResult, salesResult] = await Promise.all([
+                    // Expenses
                     conn.select({ total: sum(expenses.amount) })
                         .from(expenses)
                         .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
 
-                    // Invoices (Mirroring accounting.ts logic + Date filter)
-                    conn.select({
-                        total: sum(invoices.total),
-                        paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
-                    }).from(invoices)
-                        .where(and(
-                            gte(invoices.issueDate, from),
-                            lte(invoices.issueDate, to),
-                            eq(invoices.type, 'invoice'),
-                            ne(invoices.status, 'cancelled')
-                        )),
-
-                    // Installments (All for total, Paid for paid - mirroring accounting.ts)
+                    // Installments
                     conn.select({
                         total: sum(installments.amount),
                         paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
                     }).from(installments)
                         .where(and(gte(installments.dueDate, from), lte(installments.dueDate, to))),
 
-                    // Purchases - filter by purchaseDate
+                    // Purchases
                     conn.select({ total: sum(purchases.amount) })
                         .from(purchases)
                         .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
 
-                    // Manual Sales (Completed ONLY, not linked to invoices)
+                    // Sales (Completed)
                     conn.select({ total: sum(sales.amount) })
                         .from(sales)
                         .where(and(
                             gte(sales.saleDate, from),
                             lte(sales.saleDate, to),
-                            eq(sales.status, 'completed'),
-                            isNull(sales.invoiceId)
+                            eq(sales.status, 'completed')
                         )),
                 ]);
 
@@ -923,16 +891,13 @@ export const generalReportsRouter = router({
                 const totalPurchases = Number(purchResult[0]?.total || 0);
                 const totalExpenses = totalOperatingExpenses + totalPurchases;
 
-                const invoicesTotal = Number(invResult[0]?.total || 0);
-                const invoicesPaid = Number(invResult[0]?.paid || 0);
-
                 const instRevenue = Number(instResult[0]?.total || 0);
                 const instPaid = Number(instResult[0]?.paid || 0);
 
-                const manualSalesTotal = Number(manualSalesResult[0]?.total || 0);
+                const salesTotal = Number(salesResult[0]?.total || 0);
 
-                const totalRevenue = instRevenue + invoicesTotal + manualSalesTotal;
-                const paidRevenue = instPaid + invoicesPaid + manualSalesTotal;
+                const totalRevenue = instRevenue + salesTotal;
+                const paidRevenue = instPaid + salesTotal;
 
                 financials = {
                     totalRevenue,
