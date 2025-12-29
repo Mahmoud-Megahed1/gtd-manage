@@ -60,6 +60,7 @@ export const reportsRouter = router({
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
       if (input.projectId) invWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
       if (input.invoiceStatus) invWhere.push(sql`${invoices.status} = ${input.invoiceStatus}`);
+      invWhere.push(sql`${invoices.type} = 'invoice'`);
       const invSum = await conn.select({
         total: sql<number>`SUM(${invoices.total})`,
         count: sql<number>`COUNT(${invoices.id})`
@@ -71,6 +72,7 @@ export const reportsRouter = router({
       const paidInvWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), sql`${invoices.status} = 'paid'`];
       if (input.clientId) paidInvWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
       if (input.projectId) paidInvWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
+      paidInvWhere.push(sql`${invoices.type} = 'invoice'`);
       const paidInvSum = await conn.select({
         total: sql<number>`SUM(${invoices.total})`,
         count: sql<number>`COUNT(${invoices.id})`
@@ -170,6 +172,7 @@ export const reportsRouter = router({
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
       if (input.projectId) invWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
       if (input.invoiceStatus) invWhere.push(sql`${invoices.status} = ${input.invoiceStatus}`);
+      invWhere.push(sql`${invoices.type} = 'invoice'`);
       const invRows = await conn.select().from(invoices).where(and(...invWhere));
       const expWhere = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
       if (input.projectId) expWhere.push(sql`${expenses.projectId} = ${input.projectId}`);
@@ -261,6 +264,7 @@ export const reportsRouter = router({
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to)];
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
       if (input.projectId) invWhere.push(sql`${invoices.projectId} = ${input.projectId}`);
+      invWhere.push(sql`${invoices.type} = 'invoice'`);
       const invRows = await conn.select().from(invoices).where(and(...invWhere));
       invRows.forEach((r: any) => {
         const d = new Date(r.issueDate);

@@ -51,7 +51,7 @@ export default function Accounting() {
   // Removed installments section per requirement
   const { data: salesList, isLoading: loadingSales, refetch: refetchSales } = trpc.accounting.sales.list.useQuery();
   const { data: purchasesList, isLoading: loadingPurchases, refetch: refetchPurchases } = trpc.accounting.purchases.list.useQuery();
-  const { data: invoicesList, isLoading: loadingInvoices } = trpc.invoices.list.useQuery({});
+  const { data: invoicesList, isLoading: loadingInvoices } = trpc.invoices.list.useQuery({ type: 'invoice' });
   const { data: overallFinancials, refetch: refetchFinancials } = trpc.accounting.reports.overallFinancials.useQuery();
   const { data: projects } = trpc.projects.list.useQuery();
   const utils = trpc.useUtils();

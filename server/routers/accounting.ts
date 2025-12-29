@@ -871,7 +871,7 @@ export const accountingRouter = router({
         if (!db) {
           const expensesRows = demo.list("expenses");
           const instRows = demo.list("installments");
-          const invoicesRows = demo.list("invoices").filter((r: any) => r.status !== "cancelled");
+          const invoicesRows = demo.list("invoices").filter((r: any) => r.status !== "cancelled" && r.type === "invoice");
           const purchasesRows = demo.list("purchases").filter((r: any) => (r.status || "completed") === "completed");
           const totalOperationalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const totalPurchases = purchasesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
@@ -904,7 +904,7 @@ export const accountingRouter = router({
         const invRes = await db.select({
           total: sum(invoices.total),
           paid: sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.total} else 0 end)`
-        }).from(invoices).where(ne(invoices.status, 'cancelled'));
+        }).from(invoices).where(and(ne(invoices.status, 'cancelled'), eq(invoices.type, 'invoice')));
 
         const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
         const totalPurchases = Number(purchasesRes[0]?.total || 0);
