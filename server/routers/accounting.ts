@@ -900,28 +900,22 @@ export const accountingRouter = router({
           paid: sql<number>`sum(case when ${installments.status} = 'paid' then ${installments.amount} else 0 end)`
         }).from(installments);
 
-        // Use invoices for revenue calculation
-        const invRes = await db.select({
-          total: sum(invoices.total),
-          paid: sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.total} else 0 end)`
-        }).from(invoices).where(and(ne(invoices.status, 'cancelled'), eq(invoices.type, 'invoice')));
-
-        // Manual sales (completed only, not linked to invoices)
-        const manualSalesRes = await db.select({
+        // Sales (ALL completed - includes both Invoice-linked and Manual Sales)
+        const salesRes = await db.select({
           total: sum(sales.amount)
-        }).from(sales).where(and(
-          eq(sales.status, 'completed'),
-          isNull(sales.invoiceId)
-        ));
+        }).from(sales).where(eq(sales.status, 'completed'));
 
         const totalOperationalExpenses = Number(expensesResult[0]?.total || 0);
         const totalPurchases = Number(purchasesRes[0]?.total || 0);
         const totalExpenses = totalOperationalExpenses + totalPurchases;
 
-        const manualSalesTotal = Number(manualSalesRes[0]?.total || 0);
+        const salesTotal = Number(salesRes[0]?.total || 0);
+        const instTotal = Number(instRes[0]?.total || 0);
+        const instPaid = Number(instRes[0]?.paid || 0);
 
-        const totalRevenue = Number(instRes[0]?.total || 0) + Number(invRes[0]?.total || 0) + manualSalesTotal;
-        const paidRevenue = Number(instRes[0]?.paid || 0) + Number(invRes[0]?.paid || 0) + manualSalesTotal;
+        // Revenue = Sales (completed) + Installments
+        const totalRevenue = instTotal + salesTotal;
+        const paidRevenue = instPaid + salesTotal;
 
         return {
           totalExpenses,
