@@ -17,6 +17,15 @@ import { Plus, Layers, GanttChartSquare, CheckCircle2, Trash2 } from "lucide-rea
 import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface ProjectPhasesContentProps {
     projectId: number;
@@ -118,36 +127,72 @@ export default function ProjectPhasesContent({ projectId }: ProjectPhasesContent
                         >
                             <h4 className="font-semibold mb-3 flex items-center gap-2">
                                 <Layers className="w-4 h-4" />
-                                إضافة مرحلة جديدة
+                                إعداد مرحلة جديدة
                             </h4>
-                            <div className="grid gap-3 md:grid-cols-2">
-                                <Input
-                                    placeholder="اسم المرحلة *"
-                                    value={newPhase.name}
-                                    onChange={(e) => setNewPhase({ ...newPhase, name: e.target.value })}
-                                    required
-                                />
-                                <Input
-                                    placeholder="الوصف (اختياري)"
-                                    value={newPhase.description}
-                                    onChange={(e) => setNewPhase({ ...newPhase, description: e.target.value })}
-                                />
-                                <Input
-                                    type="date"
-                                    placeholder="تاريخ البداية"
-                                    value={newPhase.startDate}
-                                    onChange={(e) => setNewPhase({ ...newPhase, startDate: e.target.value })}
-                                />
-                                <Input
-                                    type="date"
-                                    placeholder="تاريخ النهاية"
-                                    value={newPhase.endDate}
-                                    onChange={(e) => setNewPhase({ ...newPhase, endDate: e.target.value })}
-                                />
+                            <div className="space-y-4">
+                                {/* Common Phases Selection (Toggle List) */}
+                                <div>
+                                    <Label className="text-sm">اختر مرحلة نموذجية أو اكتب اسماً جديداً</Label>
+                                    <Select
+                                        onValueChange={(v) => setNewPhase({ ...newPhase, name: v })}
+                                        value={["مرحلة التخطيط", "مرحلة التصميم", "مرحلة التنفيذ", "مرحلة التشطيبات", "مرحلة التسليم"].includes(newPhase.name) ? newPhase.name : ""}
+                                    >
+                                        <SelectTrigger className="w-full mt-1">
+                                            <SelectValue placeholder="-- اختر مرحلة جاهزة --" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="مرحلة التخطيط">مرحلة التخطيط</SelectItem>
+                                            <SelectItem value="مرحلة التصميم">مرحلة التصميم</SelectItem>
+                                            <SelectItem value="مرحلة التنفيذ">مرحلة التنفيذ</SelectItem>
+                                            <SelectItem value="مرحلة التشطيبات">مرحلة التشطيبات</SelectItem>
+                                            <SelectItem value="مرحلة التسليم">مرحلة التسليم</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div>
+                                        <Label className="text-sm">اسم المرحلة</Label>
+                                        <Input
+                                            placeholder="اسم المرحلة *"
+                                            value={newPhase.name}
+                                            onChange={(e) => setNewPhase({ ...newPhase, name: e.target.value })}
+                                            required
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm">الوصف (اختياري)</Label>
+                                        <Input
+                                            placeholder="الوصف"
+                                            value={newPhase.description}
+                                            onChange={(e) => setNewPhase({ ...newPhase, description: e.target.value })}
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm">تاريخ البداية</Label>
+                                        <Input
+                                            type="date"
+                                            value={newPhase.startDate}
+                                            onChange={(e) => setNewPhase({ ...newPhase, startDate: e.target.value })}
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-sm">تاريخ النهاية</Label>
+                                        <Input
+                                            type="date"
+                                            value={newPhase.endDate}
+                                            onChange={(e) => setNewPhase({ ...newPhase, endDate: e.target.value })}
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <Button type="submit" className="mt-3" disabled={createTask.isPending}>
+                            <Button type="submit" className="mt-4" disabled={createTask.isPending}>
                                 <Plus className="w-4 h-4 ml-2" />
-                                إضافة مرحلة
+                                إضافة المرحلة
                             </Button>
                         </form>
                     )}
@@ -190,8 +235,18 @@ export default function ProjectPhasesContent({ projectId }: ProjectPhasesContent
                                                         {isCompleted ? 'مكتملة' : 'جارية'}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-center">
-                                                    <span className="text-sm font-medium">{phase.progress || 0}%</span>
+                                                <TableCell className="min-w-[120px]">
+                                                    {canCreateTasks ? (
+                                                        <Slider
+                                                            defaultValue={[Number(phase.progress || 0)]}
+                                                            max={100}
+                                                            step={5}
+                                                            onValueChange={(vals) => updateTask.mutate({ id: phase.id, progress: vals[0] })}
+                                                            className="py-2"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm font-medium">{phase.progress || 0}%</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-1 justify-end">
