@@ -55,6 +55,7 @@ export default function ProjectDetails() {
 
   const utils = trpc.useUtils();
   const { data: projectData, isLoading } = trpc.projects.getDetails.useQuery({ id: projectId });
+  const project = projectData?.project;
 
   // Permissions for buttons/tabs
   const { user } = useAuth();
@@ -70,7 +71,6 @@ export default function ProjectDetails() {
   // Permission check for financial data
   // Moved up to use hook
 
-  const project = projectData?.project;
   const boq = projectData?.boqItems || [];
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
