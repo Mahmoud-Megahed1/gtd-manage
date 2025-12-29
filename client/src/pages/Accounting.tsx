@@ -56,7 +56,7 @@ export default function Accounting() {
   const { data: projects } = trpc.projects.list.useQuery();
   const utils = trpc.useUtils();
   const summary = {
-    totalRevenue: overallFinancials?.paidRevenue || 0,
+    totalRevenue: overallFinancials?.totalRevenue || 0,
     totalExpenses: overallFinancials?.totalExpenses || 0,
     totalOperationalExpenses: overallFinancials?.totalOperationalExpenses || 0,
     totalPurchases: overallFinancials?.totalPurchases || 0
