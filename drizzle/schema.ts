@@ -372,7 +372,7 @@ export const purchases = mysqlTable("purchases", {
 	projectId: int(),
 	description: text().notNull(),
 	amount: int().notNull(),
-	paymentMethod: mysqlEnum(['cash', 'bank_transfer', 'check', 'credit']).default('cash').notNull(),
+	paymentMethod: mysqlEnum(['cash', 'bank_transfer', 'check', 'credit', 'tamara', 'mispay', 'visa', 'mada', 'stcpay', 'pos']).default('cash').notNull(),
 	purchaseDate: timestamp({ mode: 'date' }).notNull(),
 	status: mysqlEnum(['pending', 'completed', 'cancelled']).default('pending').notNull(),
 	category: varchar({ length: 100 }),

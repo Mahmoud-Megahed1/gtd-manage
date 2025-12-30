@@ -952,8 +952,14 @@ export default function Accounting() {
                               onChange={(e) => updatePurchase.mutate({ id: purchase.id, paymentMethod: e.target.value as any })}
                               className="border rounded p-1 text-sm"
                             >
-                              <option value="cash">نقدي</option>
+                              <option value="tamara">تمارا (تقسيط)</option>
+                              <option value="mispay">MISpay (تقسيط)</option>
+                              <option value="visa">فيزا (تقسيط)</option>
+                              <option value="mada">مدى</option>
+                              <option value="stcpay">STCpay</option>
                               <option value="bank_transfer">تحويل بنكي</option>
+                              <option value="pos">شبكة</option>
+                              <option value="cash">نقدي</option>
                               <option value="check">شيك</option>
                               <option value="credit">آجل</option>
                             </select>

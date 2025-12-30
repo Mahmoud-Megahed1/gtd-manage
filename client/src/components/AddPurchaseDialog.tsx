@@ -58,7 +58,7 @@ export function AddPurchaseDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.supplierName || !formData.amount) {
       toast.error("يرجى ملء الحقول المطلوبة");
       return;
@@ -69,7 +69,7 @@ export function AddPurchaseDialog() {
       description: formData.description,
       projectId: formData.projectId && formData.projectId !== "none" ? parseInt(formData.projectId) : undefined,
       amount: parseFloat(formData.amount),
-      paymentMethod: formData.paymentMethod as "cash" | "check" | "bank_transfer" | "credit",
+      paymentMethod: formData.paymentMethod as any,
       purchaseDate: formData.purchaseDate,
     });
   };
@@ -154,8 +154,14 @@ export function AddPurchaseDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">نقداً</SelectItem>
+                  <SelectItem value="tamara">تمارا (تقسيط)</SelectItem>
+                  <SelectItem value="mispay">MISpay (تقسيط)</SelectItem>
+                  <SelectItem value="visa">فيزا (تقسيط)</SelectItem>
+                  <SelectItem value="mada">مدى</SelectItem>
+                  <SelectItem value="stcpay">STCpay</SelectItem>
                   <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                  <SelectItem value="pos">شبكة</SelectItem>
+                  <SelectItem value="cash">نقدي</SelectItem>
                   <SelectItem value="check">شيك</SelectItem>
                   <SelectItem value="credit">آجل</SelectItem>
                 </SelectContent>
