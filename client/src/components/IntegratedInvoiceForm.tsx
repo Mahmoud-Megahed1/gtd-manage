@@ -647,6 +647,27 @@ export default function IntegratedInvoiceForm() {
                     </div>
                 </section>
 
+                {/* Stamp Toggle - In-Form */}
+                <section className="no-print" style={{ marginTop: '15px', padding: '10px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                            type="checkbox"
+                            id="showStampToggle"
+                            checked={showStamp}
+                            onChange={(e) => setShowStamp(e.target.checked)}
+                            style={{ width: '20px', height: '20px' }}
+                        />
+                        <label htmlFor="showStampToggle" style={{ fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+                            إضافة الختم والتوقيع في أسفل الفاتورة
+                        </label>
+                    </div>
+                    {showStamp && !savedStamp?.settingValue && (
+                        <p style={{ color: 'red', marginTop: '5px', fontSize: '12px' }}>
+                            ملاحظة: لم يتم إعداد صورة الختم في الإعدادات. سيظهر مكان فارغ للختم.
+                        </p>
+                    )}
+                </section>
+
                 <footer className="invoice-footer print-only-section">
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
