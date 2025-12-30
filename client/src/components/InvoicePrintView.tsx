@@ -59,6 +59,9 @@ interface InvoicePrintViewProps {
     modificationTerms: string;
     additionalWorkTerms: string;
     customTerms: string[];
+    // Stamp
+    showStamp?: boolean;
+    stampUrl?: string | null;
 }
 
 export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
@@ -248,6 +251,36 @@ export const InvoicePrintView: React.FC<InvoicePrintViewProps> = (props) => {
                     </ul>
                 </div>
             </section>
+
+            {/* Signature & Stamp Section */}
+            {props.showStamp && (
+                <section style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px' }}>
+                        <div style={{ textAlign: 'center', width: '200px' }}>
+                            <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>الختم والتوقيع</p>
+                            <div style={{
+                                height: '120px',
+                                border: '1px dashed #ccc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative'
+                            }}>
+                                {props.stampUrl ? (
+                                    <img
+                                        src={props.stampUrl}
+                                        alt="Stamp"
+                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                    />
+                                ) : (
+                                    <span style={{ color: '#999', fontSize: '12px' }}>مكان الختم</span>
+                                )}
+                            </div>
+                            <p style={{ marginTop: '5px', fontSize: '12px' }}>المدير العام / المدير المالي</p>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <footer className="invoice-footer">
 
