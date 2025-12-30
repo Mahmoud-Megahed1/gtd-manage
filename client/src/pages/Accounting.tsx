@@ -119,7 +119,7 @@ export default function Accounting() {
   const chartRef = useRef<any>(null);
   const [invSel, setInvSel] = useState<string[]>(["paid", "sent"]);
   const [purSel, setPurSel] = useState<string[]>(["completed", "pending"]);
-  const [expSel, setExpSel] = useState<string[]>(["active"]);
+  const [expSel, setExpSel] = useState<string[]>(["active", "processing", "completed"]);
   const [instSel, setInstSel] = useState<string[]>(["pending", "paid"]);
   const { data: breakdown, isLoading: bdLoading, refetch: bdRefetch } = trpc.reports.timeseriesBreakdown.useQuery(
     {
@@ -255,7 +255,7 @@ export default function Accounting() {
           <h1>التقارير</h1>
           <div class="grid">
             <div class="card"><div>إجمالي الفواتير</div><h2>${reportData?.invoicesTotal ?? 0}</h2></div>
-            <div class="card"><div>إجمالي التكاليف التشغيلية</div><h2>${reportData?.installmentsTotal ?? 0}</h2></div>
+            <div class="card"><div>إجمالي المشتريات</div><h2>${reportData?.purchasesTotal ?? 0}</h2></div>
             <div class="card"><div>إجمالي المصروفات</div><h2>${reportData?.expensesTotal ?? 0}</h2></div>
             <div class="card"><div>الصافي</div><h2>${reportData?.net ?? 0}</h2></div>
           </div>
@@ -1218,7 +1218,7 @@ export default function Accounting() {
                   <div>
                     <div className="text-sm mb-2">حالات المصروفات</div>
                     <div className="flex flex-col gap-2">
-                      {["processing", "completed", "cancelled"].map(s => (
+                      {["active", "processing", "completed", "cancelled"].map(s => (
                         <label key={s} className="flex items-center gap-2 text-sm">
                           <Checkbox
                             checked={expSel.includes(s)}

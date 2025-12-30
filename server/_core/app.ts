@@ -275,8 +275,8 @@ export function createApp() {
         from, to, granularity: "month",
         clientId, projectId, invoiceStatus, purchaseStatus, expenseStatus, installmentStatus
       } as any);
-      const rows: string[][] = [["التاريخ", "الفواتير", "التكاليف التشغيلية", "المصروفات", "الصافي"]];
-      (ts || []).forEach((r: any) => rows.push([r.dateKey, String(r.invoices), String(r.installments), String(r.expenses), String(r.net)]));
+      const rows: string[][] = [["التاريخ", "الفواتير", "المشتريات", "المصروفات", "الصافي"]];
+      (ts || []).forEach((r: any) => rows.push([r.dateKey, String(r.invoices), String(r.purchases || 0), String(r.expenses), String(r.net)]));
       const content = rows.map(r => r.join(",")).join("\n");
       const bomContent = "\uFEFF" + content;
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -366,15 +366,15 @@ export function createApp() {
           <h1>التقارير</h1>
           <div class="grid">
             <div class="card"><div>إجمالي الفواتير</div><h2>${summary?.invoicesTotal ?? 0}</h2></div>
-            <div class="card"><div>إجمالي التكاليف التشغيلية</div><h2>${summary?.installmentsTotal ?? 0}</h2></div>
+            <div class="card"><div>إجمالي المشتريات</div><h2>${summary?.purchasesTotal ?? 0}</h2></div>
             <div class="card"><div>إجمالي المصروفات</div><h2>${summary?.expensesTotal ?? 0}</h2></div>
             <div class="card"><div>الصافي</div><h2>${summary?.net ?? 0}</h2></div>
           </div>
           <h2>البيانات الزمنية</h2>
           <table>
-            <thead><tr><th>التاريخ</th><th>الفواتير</th><th>التكاليف التشغيلية</th><th>المصروفات</th><th>الصافي</th></tr></thead>
+            <thead><tr><th>التاريخ</th><th>الفواتير</th><th>المشتريات</th><th>المصروفات</th><th>الصافي</th></tr></thead>
             <tbody>
-              ${(ts || []).map((r: any) => '<tr><td>' + r.dateKey + '</td><td>' + r.invoices + '</td><td>' + r.installments + '</td><td>' + r.expenses + '</td><td>' + r.net + '</td></tr>').join("")}
+              ${(ts || []).map((r: any) => '<tr><td>' + r.dateKey + '</td><td>' + r.invoices + '</td><td>' + (r.purchases || 0) + '</td><td>' + r.expenses + '</td><td>' + r.net + '</td></tr>').join("")}
             </tbody>
           </table>
           <script>

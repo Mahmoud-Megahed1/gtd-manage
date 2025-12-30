@@ -16,7 +16,7 @@ export const reportsRouter = router({
       invoiceStatus: z.enum(["draft", "sent", "paid", "cancelled"]).optional(),
       purchaseStatus: z.enum(["pending", "completed", "cancelled"]).optional(),
       installmentStatus: z.enum(["pending", "paid", "overdue", "cancelled"]).optional(),
-      expenseStatus: z.enum(["active", "cancelled"]).optional(),
+      expenseStatus: z.enum(["active", "processing", "completed", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
       if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
@@ -119,7 +119,7 @@ export const reportsRouter = router({
       invoiceStatus: z.enum(["draft", "sent", "paid", "cancelled"]).optional(),
       purchaseStatus: z.enum(["pending", "completed", "cancelled"]).optional(),
       installmentStatus: z.enum(["pending", "paid", "overdue", "cancelled"]).optional(),
-      expenseStatus: z.enum(["active", "cancelled"]).optional(),
+      expenseStatus: z.enum(["active", "processing", "completed", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
       if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
@@ -226,7 +226,7 @@ export const reportsRouter = router({
       projectId: z.number().optional(),
       invoiceStatuses: z.array(z.enum(["draft", "sent", "paid", "cancelled"])).optional(),
       purchaseStatuses: z.array(z.enum(["pending", "completed", "cancelled"])).optional(),
-      expenseStatuses: z.array(z.enum(["active", "cancelled"])).optional(),
+      expenseStatuses: z.array(z.enum(["active", "processing", "completed", "cancelled"])).optional(),
       installmentStatuses: z.array(z.enum(["pending", "paid", "overdue", "cancelled"])).optional(),
     }))
     .query(async ({ input, ctx }) => {
@@ -250,7 +250,7 @@ export const reportsRouter = router({
       }
       const invoiceStatuses = input.invoiceStatuses ?? ["draft", "sent", "paid", "cancelled"];
       const purchaseStatuses = input.purchaseStatuses ?? ["pending", "completed", "cancelled"];
-      const expenseStatuses = (input as any).expenseStatuses ?? ["active", "cancelled"];
+      const expenseStatuses = (input as any).expenseStatuses ?? ["active", "processing", "completed", "cancelled"];
       const installmentStatuses = (input as any).installmentStatuses ?? ["pending", "paid", "overdue", "cancelled"];
       const initInv: Record<string, number> = Object.fromEntries(invoiceStatuses.map(s => [s, 0]));
       const initPur: Record<string, number> = Object.fromEntries(purchaseStatuses.map(s => [s, 0]));
