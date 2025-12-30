@@ -253,41 +253,48 @@ export const generateInvoiceHtml = (invoice: any) => {
                 <section>
                     <h2>بيانات العميل</h2>
                     <div class="form-row">
+                        ${clientName ? `
                         <div class="form-group">
                             <label>اسم العميل</label>
                             <span class="value-box">${clientName}</span>
-                        </div>
+                        </div>` : ''}
+                        ${clientPhone ? `
                         <div class="form-group">
                             <label>رقم الجوال</label>
                             <span class="value-box" style="text-align: right; direction: ltr;">${clientPhone}</span>
-                        </div>
+                        </div>` : ''}
+                        ${clientCity ? `
                         <div class="form-group">
                             <label>المدينة \\ الحي</label>
                             <span class="value-box">${clientCity}</span>
-                        </div>
+                        </div>` : ''}
                     </div>
                 </section>
 
                 <section>
                     <h2>بيانات المشروع</h2>
                     <div class="form-row">
+                        ${projectNature || otherProjectNature ? `
                         <div class="form-group">
                             <label>طبيعة المشروع</label>
-                            <span class="value-box">${projectNature}${projectNature === 'other' ? ' - ' + otherProjectNature : ''}</span>
-                        </div>
+                            <span class="value-box">${projectNature}${projectNature === 'other' || projectNature === 'أخرى' ? (otherProjectNature ? ' - ' + otherProjectNature : '') : ''}</span>
+                        </div>` : ''}
+                        ${siteNature || otherSiteNature ? `
                         <div class="form-group">
                             <label>طبيعة الموقع</label>
-                            <span class="value-box">${siteNature}${siteNature === 'other' ? ' - ' + otherSiteNature : ''}</span>
-                        </div>
+                            <span class="value-box">${siteNature}${siteNature === 'other' || siteNature === 'أخرى' ? (otherSiteNature ? ' - ' + otherSiteNature : '') : ''}</span>
+                        </div>` : ''}
 
+                        ${designReq || otherDesignReq ? `
                         <div class="form-group">
                             <label>التصميم المطلوب</label>
-                            <span class="value-box">${designReq}${designReq === 'other' ? ' - ' + otherDesignReq : ''}</span>
-                        </div>
+                            <span class="value-box">${designReq}${designReq === 'other' || designReq === 'أخرى' ? (otherDesignReq ? ' - ' + otherDesignReq : '') : ''}</span>
+                        </div>` : ''}
+                        ${style || otherStyle ? `
                         <div class="form-group">
                             <label>طراز التصميم</label>
-                            <span class="value-box">${style}${style === 'other' ? ' - ' + otherStyle : ''}</span>
-                        </div>
+                            <span class="value-box">${style}${style === 'other' || style === 'أخرى' ? (otherStyle ? ' - ' + otherStyle : '') : ''}</span>
+                        </div>` : ''}
                     </div>
                     ${formData.notes ? `
                     <div class="form-row">
@@ -297,12 +304,12 @@ export const generateInvoiceHtml = (invoice: any) => {
                         </div>
                     </div>` : ''}
 
-                    ${(projectNature === 'تصميم' || projectNature === 'تنفيذ' || projectNature === 'other') && designServices.length > 0 ? `
+                    ${((projectNature === 'تصميم' || projectNature === 'تنفيذ' || projectNature === 'other') && designServices.length > 0) ? `
                         <h3>خدمات التصميم المقدمة:</h3>
                         ${renderServiceList(designServices)}
                     ` : ''}
 
-                    ${(projectNature === 'تنفيذ' || projectNature === 'other') && executionServices.length > 0 ? `
+                    ${((projectNature === 'تنفيذ' || projectNature === 'other') && executionServices.length > 0) ? `
                         <h3>خدمات التنفيذ المقدمة:</h3>
                         ${renderServiceList(executionServices)}
                     ` : ''}
@@ -371,27 +378,28 @@ export const generateInvoiceHtml = (invoice: any) => {
                     </div>
                 </section>
 
+                ${paymentKeys.some(key => paymentMethods[key]) ? `
                 <section style="margin-top: 10px; border-top: 2px solid #ccc; padding-top: 10px;">
                      <h3>وسائل الدفع المتاحة:</h3>
                      <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                         ${paymentKeys.map(key => {
-        const isChecked = paymentMethods[key];
-        return `
-                                 <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; border: 1px solid #ddd; padding: 4px 10px; border-radius: 4px; background-color: ${isChecked ? '#f8f9fa' : 'transparent'}; opacity: ${isChecked ? '1' : '0.6'};">
-                                     <span style="font-family: 'Segoe UI Symbol', sans-serif; font-size: 14px; color: ${isChecked ? 'green' : '#999'};">${isChecked ? '☑' : '☐'}</span>
-                                     <span style="font-weight: ${isChecked ? 'bold' : 'normal'};">${paymentMethodLabels[key]}</span>
+                         ${paymentKeys.filter(key => paymentMethods[key]).map(key => `
+                                 <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; border: 1px solid #ddd; padding: 4px 10px; border-radius: 4px; background-color: #f8f9fa; opacity: 1;">
+                                     <span style="font-family: 'Segoe UI Symbol', sans-serif; font-size: 14px; color: green;">☑</span>
+                                     <span style="font-weight: bold;">${paymentMethodLabels[key]}</span>
                                  </div>
-                             `;
-    }).join('')}
+                             `).join('')}
                      </div>
                 </section>
+                ` : ''}
 
+                ${terms && terms.length > 0 ? `
                 <section style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
                     <h3>الشروط والأحكام:</h3>
                     <ul class="terms-ul">
                         ${terms.map((t: string) => `<li>${t}</li>`).join('')}
                     </ul>
                 </section>
+                ` : ''}
 
                 ${images && images.length > 0 ? `
                 <section style="margin-top: 10px; border-top: 2px solid #ccc; padding-top: 10px;">
