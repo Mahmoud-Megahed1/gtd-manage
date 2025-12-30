@@ -1117,31 +1117,6 @@ export default function Fatore() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>ختم وتوقيع الفاتورة</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    id="showStamp"
-                                    className="w-4 h-4"
-                                    checked={showStamp}
-                                    onChange={(e) => setShowStamp(e.target.checked)}
-                                />
-                                <label htmlFor="showStamp" className="text-sm font-medium cursor-pointer">
-                                    إضافة الختم والتوقيع في أسفل الفاتورة
-                                </label>
-                            </div>
-                            {showStamp && !savedStamp?.settingValue && (
-                                <p className="text-red-500 text-xs mt-2">
-                                    تنبيه: لم يتم تعيين صورة الختم في الإعدادات. سيظهر مكان فارغ ومكان للتوقيع.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
                             <CardTitle>مرفقات ومخططات</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -1170,6 +1145,31 @@ export default function Fatore() {
                                         </div>
                                     ))}
                                 </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>ختم وتوقيع الفاتورة</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="showStamp"
+                                    className="w-4 h-4"
+                                    checked={showStamp}
+                                    onChange={(e) => setShowStamp(e.target.checked)}
+                                />
+                                <label htmlFor="showStamp" className="text-sm font-medium cursor-pointer">
+                                    إضافة الختم والتوقيع في أسفل الفاتورة
+                                </label>
+                            </div>
+                            {showStamp && !savedStamp?.settingValue && (
+                                <p className="text-red-500 text-xs mt-2">
+                                    تنبيه: لم يتم تعيين صورة الختم في الإعدادات. سيظهر مكان فارغ ومكان للتوقيع.
+                                </p>
                             )}
                         </CardContent>
                     </Card>
