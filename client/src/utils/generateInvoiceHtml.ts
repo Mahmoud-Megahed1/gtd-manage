@@ -371,14 +371,7 @@ export const generateInvoiceHtml = (invoice: any) => {
                     </div>
                 </section>
 
-                <section style="margin-top: 10px; border-top: 2px solid #ccc; padding-top: 5px;">
-                    <h3>الشروط والأحكام:</h3>
-                    <ul class="terms-ul">
-                        ${terms.map((t: string) => `<li>${t}</li>`).join('')}
-                    </ul>
-                </section>
-
-                <section style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                <section style="margin-top: 10px; border-top: 2px solid #ccc; padding-top: 10px;">
                      <h3>وسائل الدفع المتاحة:</h3>
                      <div style="display: flex; flex-wrap: wrap; gap: 15px;">
                          ${paymentKeys.map(key => {
@@ -391,6 +384,13 @@ export const generateInvoiceHtml = (invoice: any) => {
                              `;
     }).join('')}
                      </div>
+                </section>
+
+                <section style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                    <h3>الشروط والأحكام:</h3>
+                    <ul class="terms-ul">
+                        ${terms.map((t: string) => `<li>${t}</li>`).join('')}
+                    </ul>
                 </section>
 
                 ${images && images.length > 0 ? `
