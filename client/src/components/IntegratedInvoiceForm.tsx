@@ -685,15 +685,7 @@ export default function IntegratedInvoiceForm() {
 
 
             <div className="invoice-action-bar no-print">
-                <label className="flex items-center gap-2 text-white ml-4 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showStamp}
-                        onChange={(e) => setShowStamp(e.target.checked)}
-                        style={{ width: '18px', height: '18px' }}
-                    />
-                    <span>إظهار الختم والتوقيع</span>
-                </label>
+
                 <button className="invoice-btn" onClick={() => handleSave(false)}>
                     <i className="fas fa-save"></i> حفظ
                 </button>
