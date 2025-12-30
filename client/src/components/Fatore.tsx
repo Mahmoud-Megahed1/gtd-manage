@@ -103,6 +103,9 @@ export default function Fatore() {
 
     // Tax Settings
     const [taxEnabled, setTaxEnabled] = useState(true);
+    // Stamp Settings
+    const [showStamp, setShowStamp] = useState(false);
+    const { data: savedStamp } = trpc.settings.get.useQuery({ key: "companyStampUrl" });
 
     // Image Uploads
     const [images, setImages] = useState<string[]>([]);
@@ -216,6 +219,7 @@ export default function Fatore() {
 
                     if (data.customTerms) setCustomTerms(data.customTerms);
                     if (data.taxEnabled !== undefined) setTaxEnabled(data.taxEnabled);
+                    if (data.showStamp !== undefined) setShowStamp(data.showStamp);
                     if (data.images) setImages(data.images);
                 } catch (e) {
                     console.error("Failed to parse formData", e);
@@ -326,6 +330,8 @@ export default function Fatore() {
                 ...customTerms
             ].filter(t => t && t.trim() !== ''),
             enableTax: taxEnabled,
+            showStamp,
+            stampUrl: savedStamp?.settingValue,
             images: images
         };
     };
@@ -1106,6 +1112,31 @@ export default function Fatore() {
                                     </Button>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>ختم وتوقيع الفاتورة</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="showStamp"
+                                    className="w-4 h-4"
+                                    checked={showStamp}
+                                    onChange={(e) => setShowStamp(e.target.checked)}
+                                />
+                                <label htmlFor="showStamp" className="text-sm font-medium cursor-pointer">
+                                    إضافة الختم والتوقيع في أسفل الفاتورة
+                                </label>
+                            </div>
+                            {showStamp && !savedStamp?.settingValue && (
+                                <p className="text-red-500 text-xs mt-2">
+                                    تنبيه: لم يتم تعيين صورة الختم في الإعدادات. سيظهر مكان فارغ ومكان للتوقيع.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
 

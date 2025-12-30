@@ -406,6 +406,23 @@ export const generateInvoiceHtml = (invoice: any) => {
                 </section>
                 ` : ''}
 
+                ${formData.showStamp ? `
+                <section style="margin-top: 20px; page-break-inside: avoid;">
+                    <div style="display: flex; justify-content: flex-end; padding-left: 40px;">
+                        <div style="text-align: center; width: 200px;">
+                            <p style="font-weight: bold; margin-bottom: 10px;">الختم والتوقيع</p>
+                            <div style="border: 1px dashed #ccc; padding: 10px; height: 120px; display: flex; align-items: center; justify-content: center;">
+                                ${formData.stampUrl ?
+                `<img src="${formData.stampUrl}" alt="Company Stamp" style="max-height: 100px; max-width: 100%; object-fit: contain;" />` :
+                `<span style="color: #999; font-size: 12px;">مكان الختم</span>`
+            }
+                            </div>
+                            <p style="margin-top: 5px; font-size: 11px;">المدير العام / المدير المالي</p>
+                        </div>
+                    </div>
+                </section>
+                ` : ''}
+
                 <footer>
 
                     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
