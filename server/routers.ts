@@ -2746,24 +2746,14 @@ export const appRouter = router({
     projectsByStatus: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
-      // Debug logging
-      console.log('[Dashboard] Total projects:', projects.length);
-      console.log('[Dashboard] Project statuses:', projects.map(p => ({ id: p.id, status: p.status, type: p.projectType })));
-      // Active projects (in_progress) counted by type
-      // Final states (delivered, cancelled) counted by status
-      const active = projects.filter(p => p.status === 'in_progress');
-      console.log('[Dashboard] Active projects:', active.length);
-      const result = {
-        design: active.filter(p => p.projectType === 'design').length,
-        execution: active.filter(p => p.projectType === 'execution').length,
-        design_execution: active.filter(p => p.projectType === 'design_execution').length,
-        supervision: active.filter(p => p.projectType === 'supervision').length,
-        in_progress: 0, // Not used - active projects are counted by type above
-        delivered: projects.filter(p => p.status === 'delivered').length,
+      return {
+        design: projects.filter(p => p.status === 'design').length,
+        execution: projects.filter(p => p.status === 'execution').length,
+        in_progress: projects.filter(p => p.status === 'in_progress').length,
+        delivery: projects.filter(p => p.status === 'delivery').length,
+        completed: projects.filter(p => p.status === 'completed').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
       };
-      console.log('[Dashboard] Result:', result);
-      return result;
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');

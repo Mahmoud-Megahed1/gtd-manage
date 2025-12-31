@@ -1,50 +1,39 @@
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
-// CACHE_BUST_VERSION: 2024-12-31-v2
-console.log('[ProjectsChart] v2.1 loaded');
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface ProjectsChartProps {
   data: {
     design: number;
     execution: number;
-    design_execution: number;
-    supervision: number;
     in_progress: number;
-    delivered: number;
+    delivery: number;
+    completed: number;
     cancelled: number;
   };
 }
 
 export default function ProjectsChart({ data }: ProjectsChartProps) {
-  // Filter out zero values for cleaner chart
   const chartData = {
-    labels: ['تصميم', 'تنفيذ', 'تصميم وتنفيذ', 'إشراف', 'تم التسليم', 'ملغي'],
+    labels: ['تصميم', 'تنفيذ', 'قيد التنفيذ', 'تسليم', 'مكتمل', 'ملغي'],
     datasets: [
       {
         label: 'عدد المشاريع',
-        data: [
-          data.design,
-          data.execution,
-          data.design_execution,
-          data.supervision,
-          data.delivered,
-          data.cancelled
-        ],
+        data: [data.design, data.execution, data.in_progress || 0, data.delivery, data.completed, data.cancelled],
         backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',   // blue - تصميم
-          'rgba(249, 115, 22, 0.8)',   // orange - تنفيذ
-          'rgba(168, 85, 247, 0.8)',   // purple - تصميم وتنفيذ
-          'rgba(234, 179, 8, 0.8)',    // yellow - إشراف
-          'rgba(16, 185, 129, 0.8)',   // green - تم التسليم
-          'rgba(239, 68, 68, 0.8)',    // red - ملغي
+          'rgba(59, 130, 246, 0.8)',   // blue
+          'rgba(212, 175, 55, 0.8)',    // gold
+          'rgba(249, 115, 22, 0.8)',    // orange (new for in_progress)
+          'rgba(168, 85, 247, 0.8)',    // purple
+          'rgba(16, 185, 129, 0.8)',    // green
+          'rgba(239, 68, 68, 0.8)',     // red
         ],
         borderColor: [
           'rgba(59, 130, 246, 1)',
-          'rgba(249, 115, 22, 1)',
+          'rgba(212, 175, 55, 1)',
+          'rgba(249, 115, 22, 1)',      // orange border
           'rgba(168, 85, 247, 1)',
-          'rgba(234, 179, 8, 1)',
           'rgba(16, 185, 129, 1)',
           'rgba(239, 68, 68, 1)',
         ],
