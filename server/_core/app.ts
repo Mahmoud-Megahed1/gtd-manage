@@ -294,42 +294,43 @@ export function createApp() {
       const to = req.query.to ? new Date(String(req.query.to)) : new Date();
       const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
       const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;
+
       const inv = Array.isArray(req.query.invoiceStatuses) ? (req.query.invoiceStatuses as string[]) : (req.query.invoiceStatuses ? [String(req.query.invoiceStatuses)] : ["draft", "sent", "paid", "cancelled"]);
       const pur = Array.isArray(req.query.purchaseStatuses) ? (req.query.purchaseStatuses as string[]) : (req.query.purchaseStatuses ? [String(req.query.purchaseStatuses)] : ["pending", "completed", "cancelled"]);
       const exp = Array.isArray(req.query.expenseStatuses) ? (req.query.expenseStatuses as string[]) : (req.query.expenseStatuses ? [String(req.query.expenseStatuses)] : ["active", "cancelled"]);
       const inst = Array.isArray(req.query.installmentStatuses) ? (req.query.installmentStatuses as string[]) : (req.query.installmentStatuses ? [String(req.query.installmentStatuses)] : ["pending", "paid", "overdue", "cancelled"]);
-      const breakdown = await caller.reports.timeseriesBreakdown({
-        from, to, granularity: "month",
+
+      const breakdown = await caller.reports.breakdownDetails({
+        from, to,
         clientId, projectId,
-        invoiceStatuses: inv as any,
-        purchaseStatuses: pur as any,
-        expenseStatuses: exp as any,
-        installmentStatuses: inst as any
-      } as any);
-      const statuses: string[] = [
-        ...inv.map(s => `inv:${s}`),
-        ...pur.map(s => `pur:${s}`),
-        ...exp.map(s => `exp:${s}`),
-        ...inst.map(s => `inst:${s}`),
-      ];
-      const header = ["date", ...statuses];
-      const rows: string[][] = [header];
-      (breakdown || []).forEach((r: any) => {
-        const row: string[] = [r.dateKey];
-        statuses.forEach((h) => {
-          const [group, name] = h.split(":");
-          const map = group === "inv" ? r.invoices : group === "pur" ? r.purchases : group === "exp" ? r.expenses : r.installments || {};
-          const val = (map || {})[name] || 0;
-          row.push(String(val));
-        });
-        rows.push(row);
+        invoiceStatuses: inv,
+        purchaseStatuses: pur,
+        expenseStatuses: exp,
+        installmentStatuses: inst
       });
+
+      const header = ["التاريخ", "النوع", "الرقم المرجعي", "الطرف الثاني", "الوصف", "المبلغ", "الحالة"];
+      const rows: string[][] = [header];
+
+      (breakdown || []).forEach((r: any) => {
+        rows.push([
+          r.date.toISOString().slice(0, 10),
+          r.type,
+          r.number,
+          r.party,
+          `"${(r.description || '').replace(/"/g, '""')}"`, // Escape quotes
+          String(r.amount),
+          r.status
+        ]);
+      });
+
       const content = rows.map(r => r.join(",")).join("\n");
       const bomContent = "\uFEFF" + content;
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="reports-breakdown-${Date.now()}.csv"`);
       res.status(200).send(bomContent);
-    } catch {
+    } catch (e: any) {
+      console.error(e);
       res.status(500).send("failed to export breakdown csv");
     }
   });

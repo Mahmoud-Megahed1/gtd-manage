@@ -2,8 +2,8 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import * as db from "../db";
-import { and, gte, lte, sql } from "drizzle-orm";
-import { invoices, expenses, installments, purchases, sales } from "../../drizzle/schema";
+import { and, gte, lte, sql, eq, desc, isNull, inArray } from "drizzle-orm";
+import { invoices, expenses, installments, purchases, sales, clients } from "../../drizzle/schema";
 import * as demo from "../_core/demoStore";
 
 export const reportsRouter = router({
@@ -326,5 +326,145 @@ export const reportsRouter = router({
           const sumInst = Object.values(r.installments).reduce((a, b) => a + b, 0);
           return sumInv !== 0 || sumPur !== 0 || sumExp !== 0 || sumInst !== 0;
         });
-    })
+    }),
+
+  breakdownDetails: protectedProcedure
+    .input(z.object({
+      from: z.date(),
+      to: z.date(),
+      clientId: z.number().optional(),
+      projectId: z.number().optional(),
+      invoiceStatuses: z.array(z.string()).optional(),
+      purchaseStatuses: z.array(z.string()).optional(),
+      expenseStatuses: z.array(z.string()).optional(),
+      installmentStatuses: z.array(z.string()).optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+      const conn = await db.getDb();
+      const from = input.from;
+      const to = input.to;
+      const results: Array<{ date: Date; type: string; number: string; party: string; description: string; amount: number; status: string; projectId: number | null }> = [];
+
+      if (!conn) return [];
+
+      // 1. Invoices
+      const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), eq(invoices.type, 'invoice')];
+      if (input.clientId) invWhere.push(eq(invoices.clientId, input.clientId));
+      if (input.projectId) invWhere.push(eq(invoices.projectId, input.projectId));
+      if (input.invoiceStatuses && input.invoiceStatuses.length > 0) {
+        invWhere.push(inArray(invoices.status, input.invoiceStatuses as any));
+      }
+
+      const invRows = await conn.select({
+        issueDate: invoices.issueDate,
+        invoiceNumber: invoices.invoiceNumber,
+        total: invoices.total,
+        status: invoices.status,
+        projectId: invoices.projectId,
+        notes: invoices.notes,
+        clientName: clients.name
+      })
+        .from(invoices)
+        .leftJoin(clients, eq(invoices.clientId, clients.id))
+        .where(and(...invWhere));
+
+      invRows.forEach((r: any) => {
+        if (input.invoiceStatuses && !input.invoiceStatuses.includes(r.status || '')) return;
+        results.push({
+          date: new Date(r.issueDate),
+          type: 'فاتورة',
+          number: r.invoiceNumber,
+          party: r.clientName || 'عميل محذوف',
+          description: r.notes || '-',
+          amount: Number(r.total || 0),
+          status: r.status || '-',
+          projectId: r.projectId
+        });
+      });
+
+      // 2. Purchases
+      const purWhere = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
+      if (input.projectId) purWhere.push(eq(purchases.projectId, input.projectId));
+      const purRows = await conn.select().from(purchases).where(and(...purWhere));
+
+      purRows.forEach((r: any) => {
+        if (input.purchaseStatuses && !input.purchaseStatuses.includes(r.status || '')) return;
+        results.push({
+          date: new Date(r.purchaseDate),
+          type: 'فاتورة شراء',
+          number: r.purchaseNumber,
+          party: r.supplierName,
+          description: r.description,
+          amount: Number(r.amount || 0),
+          status: r.status || '-',
+          projectId: r.projectId
+        });
+      });
+
+      // 3. Expenses
+      const expWhere = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
+      if (input.projectId) expWhere.push(eq(expenses.projectId, input.projectId));
+      const expRows = await conn.select().from(expenses).where(and(...expWhere));
+
+      expRows.forEach((r: any) => {
+        if (input.expenseStatuses && !input.expenseStatuses.includes(r.status || '')) return;
+        results.push({
+          date: new Date(r.expenseDate),
+          type: 'مصروف',
+          number: '-',
+          party: '-',
+          description: `${r.category}: ${r.description}`,
+          amount: Number(r.amount || 0),
+          status: r.status || '-',
+          projectId: r.projectId
+        });
+      });
+
+      // 4. Installments
+      const instWhere = [gte(installments.dueDate, from), lte(installments.dueDate, to)]; // Use dueDate or createdAt? Plan says select dueDate, but timeseries uses createdAt. Usage of dueDate makes more sense for "Upcoming/Paid".
+      // Let's use dueDate as primary date for installments listing
+      if (input.projectId) instWhere.push(eq(installments.projectId, input.projectId));
+      const instRows = await conn.select().from(installments).where(and(...instWhere));
+
+      instRows.forEach((r: any) => {
+        if (input.installmentStatuses && !input.installmentStatuses.includes(r.status || '')) return;
+        results.push({
+          date: new Date(r.dueDate),
+          type: 'قسط',
+          number: `Inst-${r.installmentNumber}`,
+          party: '-',
+          description: r.description || '-',
+          amount: Number(r.amount || 0),
+          status: r.status || '-',
+          projectId: r.projectId
+        });
+      });
+
+      // 5. Manual Sales
+      const salesWhere = [gte(sales.saleDate, from), lte(sales.saleDate, to), isNull(sales.invoiceId)]; // Only manual sales
+      if (input.projectId) salesWhere.push(eq(sales.projectId, input.projectId));
+      const salesRows = await conn.select().from(sales).where(and(...salesWhere));
+
+      salesRows.forEach((r: any) => {
+        // Sales don't have explicit status filter input in current UI, assuming 'completed' or all if needed.
+        // But usually we only care about completed sales.
+        if (r.status !== 'completed') return;
+        results.push({
+          date: new Date(r.saleDate),
+          type: 'بيع يدوي',
+          number: r.saleNumber,
+          party: '-', // Sales don't link to client table directly always, check schema. Schema says clientId is required.
+          description: r.description,
+          amount: Number(r.amount || 0),
+          status: r.status || '-',
+          projectId: r.projectId
+        });
+      });
+
+      // Sort by date desc
+      return results.sort((a, b) => b.date.getTime() - a.date.getTime());
+    }),
 });
