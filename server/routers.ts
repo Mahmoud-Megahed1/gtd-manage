@@ -134,12 +134,12 @@ function getDetailedPermissions(role: string): DetailedPermissions {
 
     // إدارة المشاريع
     department_manager: {
-      hr: { ...ownPerms, view: true },
-      projects: fullPerms,
-      tasks: fullPerms,
+      hr: ownPerms, // Restricted to own data only
+      projects: { ...fullPerms, delete: false }, // No delete
+      tasks: { ...fullPerms, delete: false }, // No delete
       accounting: nonePerms,
       clients: readonlyPerms,
-      forms: fullPerms,
+      forms: { ...fullPerms, delete: false }, // No delete
       invoices: readonlyPerms,
       reports: { ...readonlyPerms, create: true },
     },
