@@ -784,16 +784,22 @@ export default function GeneralReports() {
                                                 <CardTitle>العملاء حسب المدينة</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <Pie
-                                                    data={{
-                                                        labels: Object.keys(clientsData.clientsByCity),
-                                                        datasets: [{
-                                                            data: Object.values(clientsData.clientsByCity),
-                                                            backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-                                                        }]
-                                                    }}
-                                                    options={{ plugins: { legend: { position: 'bottom' } } }}
-                                                />
+                                                <div className="h-[300px] w-full">
+                                                    <Pie
+                                                        data={{
+                                                            labels: Object.keys(clientsData.clientsByCity),
+                                                            datasets: [{
+                                                                data: Object.values(clientsData.clientsByCity),
+                                                                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+                                                            }]
+                                                        }}
+                                                        options={{
+                                                            responsive: true,
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { position: 'bottom' } }
+                                                        }}
+                                                    />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     )}
@@ -831,26 +837,30 @@ export default function GeneralReports() {
                                                 <CardTitle>المشاريع حسب الحالة</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <Bar
-                                                    data={{
-                                                        labels: Object.keys(projectsData.projectsByStatus).map(s => {
-                                                            const labels: Record<string, string> = {
-                                                                design: 'تصميم', execution: 'تنفيذ', delivery: 'تسليم',
-                                                                completed: 'مكتمل', cancelled: 'ملغي'
-                                                            };
-                                                            return labels[s] || s;
-                                                        }),
-                                                        datasets: [{
-                                                            label: 'عدد المشاريع',
-                                                            data: Object.values(projectsData.projectsByStatus),
-                                                            backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#10b981', '#ef4444'],
-                                                        }]
-                                                    }}
-                                                    options={{
-                                                        plugins: { legend: { display: false } },
-                                                        scales: { y: { beginAtZero: true } }
-                                                    }}
-                                                />
+                                                <div className="h-[300px] w-full">
+                                                    <Bar
+                                                        data={{
+                                                            labels: Object.keys(projectsData.projectsByStatus).map(s => {
+                                                                const labels: Record<string, string> = {
+                                                                    design: 'تصميم', execution: 'تنفيذ', delivery: 'تسليم',
+                                                                    completed: 'مكتمل', cancelled: 'ملغي'
+                                                                };
+                                                                return labels[s] || s;
+                                                            }),
+                                                            datasets: [{
+                                                                label: 'عدد المشاريع',
+                                                                data: Object.values(projectsData.projectsByStatus),
+                                                                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#10b981', '#ef4444'],
+                                                            }]
+                                                        }}
+                                                        options={{
+                                                            responsive: true,
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { display: false } },
+                                                            scales: { y: { beginAtZero: true } }
+                                                        }}
+                                                    />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     )}
@@ -886,21 +896,27 @@ export default function GeneralReports() {
                                                 <CardTitle>المهام حسب الحالة</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <Pie
-                                                    data={{
-                                                        labels: Object.keys(tasksData.tasksByStatus).map(s => {
-                                                            const labels: Record<string, string> = {
-                                                                planned: 'مخطط', in_progress: 'قيد التنفيذ', done: 'مكتمل', cancelled: 'ملغي'
-                                                            };
-                                                            return labels[s] || s;
-                                                        }),
-                                                        datasets: [{
-                                                            data: Object.values(tasksData.tasksByStatus),
-                                                            backgroundColor: ['#9ca3af', '#3b82f6', '#22c55e', '#ef4444'],
-                                                        }]
-                                                    }}
-                                                    options={{ plugins: { legend: { position: 'bottom' } } }}
-                                                />
+                                                <div className="h-[300px] w-full">
+                                                    <Pie
+                                                        data={{
+                                                            labels: Object.keys(tasksData.tasksByStatus).map(s => {
+                                                                const labels: Record<string, string> = {
+                                                                    planned: 'مخطط', in_progress: 'قيد التنفيذ', done: 'مكتمل', cancelled: 'ملغي'
+                                                                };
+                                                                return labels[s] || s;
+                                                            }),
+                                                            datasets: [{
+                                                                data: Object.values(tasksData.tasksByStatus),
+                                                                backgroundColor: ['#9ca3af', '#3b82f6', '#22c55e', '#ef4444'],
+                                                            }]
+                                                        }}
+                                                        options={{
+                                                            responsive: true,
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { position: 'bottom' } }
+                                                        }}
+                                                    />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     )}
@@ -988,16 +1004,22 @@ export default function GeneralReports() {
                                                 <CardTitle>المصروفات حسب الفئة</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <Pie
-                                                    data={{
-                                                        labels: Object.keys(accountingData.expensesByCategory),
-                                                        datasets: [{
-                                                            data: Object.values(accountingData.expensesByCategory),
-                                                            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6', '#06b6d4'],
-                                                        }]
-                                                    }}
-                                                    options={{ plugins: { legend: { position: 'bottom' } } }}
-                                                />
+                                                <div className="h-[300px] w-full">
+                                                    <Pie
+                                                        data={{
+                                                            labels: Object.keys(accountingData.expensesByCategory),
+                                                            datasets: [{
+                                                                data: Object.values(accountingData.expensesByCategory),
+                                                                backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6', '#06b6d4'],
+                                                            }]
+                                                        }}
+                                                        options={{
+                                                            responsive: true,
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { position: 'bottom' } }
+                                                        }}
+                                                    />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     )}
@@ -1029,21 +1051,25 @@ export default function GeneralReports() {
                                                 <CardTitle>الموظفين حسب القسم</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <Bar
-                                                    data={{
-                                                        labels: Object.keys(hrData.employeesByDepartment),
-                                                        datasets: [{
-                                                            label: 'عدد الموظفين',
-                                                            data: Object.values(hrData.employeesByDepartment),
-                                                            backgroundColor: '#3b82f6',
-                                                        }]
-                                                    }}
-                                                    options={{
-                                                        indexAxis: 'y',
-                                                        plugins: { legend: { display: false } },
-                                                        scales: { x: { beginAtZero: true } }
-                                                    }}
-                                                />
+                                                <div className="h-[300px] w-full">
+                                                    <Bar
+                                                        data={{
+                                                            labels: Object.keys(hrData.employeesByDepartment),
+                                                            datasets: [{
+                                                                label: 'عدد الموظفين',
+                                                                data: Object.values(hrData.employeesByDepartment),
+                                                                backgroundColor: '#3b82f6',
+                                                            }]
+                                                        }}
+                                                        options={{
+                                                            responsive: true,
+                                                            maintainAspectRatio: false,
+                                                            indexAxis: 'y',
+                                                            plugins: { legend: { display: false } },
+                                                            scales: { x: { beginAtZero: true } }
+                                                        }}
+                                                    />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     )}

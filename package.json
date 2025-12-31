@@ -11,6 +11,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "deploy:ftp": "tsx scripts/deploy-ftp.ts",
     "deploy:ftp:env": "tsx scripts/deploy-ftp-env.ts",
+    "deploy:linux": "tsx scripts/deploy-linux.ts",
     "remote:ssh:start": "tsx scripts/ssh-run.ts",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
