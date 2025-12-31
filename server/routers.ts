@@ -2746,10 +2746,14 @@ export const appRouter = router({
     projectsByStatus: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
+      // Debug logging
+      console.log('[Dashboard] Total projects:', projects.length);
+      console.log('[Dashboard] Project statuses:', projects.map(p => ({ id: p.id, status: p.status, type: p.projectType })));
       // Active projects (in_progress) counted by type
       // Final states (delivered, cancelled) counted by status
       const active = projects.filter(p => p.status === 'in_progress');
-      return {
+      console.log('[Dashboard] Active projects:', active.length);
+      const result = {
         design: active.filter(p => p.projectType === 'design').length,
         execution: active.filter(p => p.projectType === 'execution').length,
         design_execution: active.filter(p => p.projectType === 'design_execution').length,
@@ -2758,6 +2762,8 @@ export const appRouter = router({
         delivered: projects.filter(p => p.status === 'delivered').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
       };
+      console.log('[Dashboard] Result:', result);
+      return result;
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
