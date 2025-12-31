@@ -95,7 +95,7 @@ const navItems: NavItem[] = [
   {
     title: "المحاسبة", href: "/accounting", icon: <Calculator className="w-5 h-5" />, roles: [
       "admin", "finance_manager", "accountant",
-      "project_manager", "sales_manager", "procurement_officer"
+      "sales_manager", "procurement_officer"
     ]
   },
 
