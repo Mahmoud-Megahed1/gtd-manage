@@ -89,12 +89,9 @@ export function NotificationBell() {
 
             {isOpen && (
                 <div
-                    className="fixed bg-popover border rounded-md shadow-lg z-[99999] text-xs"
+                    className="absolute top-full left-0 mt-2 w-[280px] bg-popover border rounded-md shadow-lg z-50 text-xs sm:w-80"
                     style={{
-                        top: '50px',
-                        right: '290px',
-                        width: '260px',
-                        maxHeight: '300px',
+                        maxHeight: '80vh', // Responsive height
                         direction: 'rtl'
                     }}
                 >
