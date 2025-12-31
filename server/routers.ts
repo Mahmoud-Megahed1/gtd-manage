@@ -2747,38 +2747,19 @@ export const appRouter = router({
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
 
-      // Debug logging
-      console.log('--- DASHBOARD CHARTS DEBUG ---');
-      console.log(`Total projects in DB: ${projects.length}`);
-      if (projects.length > 0) {
-        console.log('First project:', JSON.stringify(projects[0], null, 2));
-        projects.forEach(p => console.log(`ID:${p.id} Type:${p.projectType} Status:${p.status}`));
-      } else {
-        console.log('NO PROJECTS FOUND');
-      }
-
       // Filter active projects (in_progress) to check their types
-      // The schema defines status as: 'in_progress', 'delivered', 'cancelled'
-      // The schema defines projectType as: 'design', 'execution', 'design_execution', 'supervision'
-
       const activeProjects = projects.filter(p => p.status === 'in_progress');
-      console.log(`Active Projects (in_progress): ${activeProjects.length}`);
 
-      const result = {
+      return {
         design: activeProjects.filter(p => p.projectType === 'design').length,
         execution: activeProjects.filter(p => p.projectType === 'execution').length,
         design_execution: activeProjects.filter(p => p.projectType === 'design_execution').length,
         supervision: activeProjects.filter(p => p.projectType === 'supervision').length,
-        delivered: projects.filter(p => p.status === 'delivered').length,
+        // Count both 'delivered' (schema) and 'completed' (actual DB value)
+        delivered: projects.filter(p => p.status === 'delivered' || p.status === 'completed').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
-        // Keeping in_progress as total of active projects if needed, but chart uses types
         in_progress: activeProjects.length,
       };
-
-      console.log('Final Chart Data:', JSON.stringify(result, null, 2));
-      console.log('--- END DEBUG ---');
-
-      return result;
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
