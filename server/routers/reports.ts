@@ -225,7 +225,7 @@ export const reportsRouter = router({
         const v = acc[r.key] || { invoices: 0, expenses: 0, installments: 0, purchases: 0 };
         const net = v.invoices + v.installments - v.expenses - v.purchases;
         return { dateKey: r.key, invoices: v.invoices, expenses: v.expenses, installments: v.installments, purchases: v.purchases, net };
-      }).filter(r => r.invoices !== 0 || r.expenses !== 0 || r.installments !== 0 || r.purchases !== 0);
+      });
     })
   ,
   timeseriesBreakdown: protectedProcedure
@@ -318,14 +318,7 @@ export const reportsRouter = router({
           acc[key].installments[st] = (acc[key].installments[st] || 0) + Number(r.amount || 0);
         }
       });
-      return range.map(r => ({ dateKey: r.key, invoices: acc[r.key].invoices, purchases: acc[r.key].purchases, expenses: acc[r.key].expenses, installments: acc[r.key].installments }))
-        .filter(r => {
-          const sumInv = Object.values(r.invoices).reduce((a, b) => a + b, 0);
-          const sumPur = Object.values(r.purchases).reduce((a, b) => a + b, 0);
-          const sumExp = Object.values(r.expenses).reduce((a, b) => a + b, 0);
-          const sumInst = Object.values(r.installments).reduce((a, b) => a + b, 0);
-          return sumInv !== 0 || sumPur !== 0 || sumExp !== 0 || sumInst !== 0;
-        });
+      return range.map(r => ({ dateKey: r.key, invoices: acc[r.key].invoices, purchases: acc[r.key].purchases, expenses: acc[r.key].expenses, installments: acc[r.key].installments }));
     }),
 
   breakdownDetails: protectedProcedure

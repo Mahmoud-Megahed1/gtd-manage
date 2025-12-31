@@ -43,8 +43,9 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 export default function Accounting() {
   const { data: expenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.accounting.expenses.list.useQuery({});
@@ -166,9 +167,9 @@ export default function Accounting() {
       labels,
       datasets: [
         // { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
-        { label: "إجمالي الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
-        { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.2 },
+        { label: "إجمالي الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.4, fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
+        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.4, fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
+        { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.4, fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
       ],
     };
   }, [timeseries]);
@@ -189,7 +190,11 @@ export default function Accounting() {
         data: rows.map(r => ((r.invoices || {}).paid || 0) + ((r.installments || {}).paid || 0)),
         borderColor: "#16A34A",
         backgroundColor: "#16A34A40",
-        tension: 0.2
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
       });
     }
     if (instSel.includes("pending")) {
@@ -198,7 +203,11 @@ export default function Accounting() {
         data: rows.map(r => ((r.invoices || {}).sent || 0) + ((r.installments || {}).pending || 0)),
         borderColor: "#F59E0B",
         backgroundColor: "#F59E0B40",
-        tension: 0.2
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
       });
     }
     // Handle other installment statuses normally if needed, or ignore to avoid clutter
@@ -209,7 +218,11 @@ export default function Accounting() {
         data: rows.map(r => (r.installments || {})[st] || 0),
         borderColor: "#6B7280",
         backgroundColor: "#6B728040",
-        tension: 0.2
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
       });
     });
 
@@ -221,7 +234,11 @@ export default function Accounting() {
         data: rows.map(r => (r.purchases || {})[st] || 0),
         borderColor: colorsPur[st] || "#6B7280",
         backgroundColor: (colorsPur[st] || "#6B7280") + "40",
-        tension: 0.2
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
       });
     });
 
@@ -232,7 +249,11 @@ export default function Accounting() {
         data: rows.map(r => (r.expenses || {})[st] || 0),
         borderColor: colorsExp[st] || "#6B7280",
         backgroundColor: (colorsExp[st] || "#6B7280") + "40",
-        tension: 0.2
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
       });
     });
 
