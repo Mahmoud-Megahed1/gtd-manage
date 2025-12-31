@@ -815,18 +815,20 @@ export async function getDashboardStats() {
   const db = await getDb();
   if (!db) return null;
 
-  const [clientCount, projectCount, invoiceCount, formCount] = await Promise.all([
+  const [clientCount, projectCount, invoiceCount, formCount, activeProjectCount] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(clients),
     db.select({ count: sql<number>`count(*)` }).from(projects),
     db.select({ count: sql<number>`count(*)` }).from(invoices),
-    db.select({ count: sql<number>`count(*)` }).from(forms)
+    db.select({ count: sql<number>`count(*)` }).from(forms),
+    db.select({ count: sql<number>`count(*)` }).from(projects).where(eq(projects.status, 'in_progress'))
   ]);
 
   return {
     totalClients: clientCount[0]?.count || 0,
     totalProjects: projectCount[0]?.count || 0,
     totalInvoices: invoiceCount[0]?.count || 0,
-    totalForms: formCount[0]?.count || 0
+    totalForms: formCount[0]?.count || 0,
+    activeProjects: activeProjectCount[0]?.count || 0
   };
 }
 
