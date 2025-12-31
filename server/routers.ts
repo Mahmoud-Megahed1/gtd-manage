@@ -2746,15 +2746,22 @@ export const appRouter = router({
     projectsByStatus: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
-      // projectType: design, execution, design_execution, supervision
-      // status: in_progress, delivered, cancelled
+
+      // Filter active projects (in_progress) to check their types
+      // The schema defines status as: 'in_progress', 'delivered', 'cancelled'
+      // The schema defines projectType as: 'design', 'execution', 'design_execution', 'supervision'
+
+      const activeProjects = projects.filter(p => p.status === 'in_progress');
+
       return {
-        design: projects.filter(p => p.projectType === 'design').length,
-        execution: projects.filter(p => p.projectType === 'execution').length,
-        in_progress: projects.filter(p => p.status === 'in_progress').length,
-        delivery: projects.filter(p => p.status === 'delivered').length,
-        completed: 0, // No completed status in schema, using delivered instead
+        design: activeProjects.filter(p => p.projectType === 'design').length,
+        execution: activeProjects.filter(p => p.projectType === 'execution').length,
+        design_execution: activeProjects.filter(p => p.projectType === 'design_execution').length,
+        supervision: activeProjects.filter(p => p.projectType === 'supervision').length,
+        delivered: projects.filter(p => p.status === 'delivered').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
+        // Keeping in_progress as total of active projects if needed, but chart uses types
+        in_progress: activeProjects.length,
       };
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
