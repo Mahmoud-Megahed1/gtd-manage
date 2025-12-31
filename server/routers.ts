@@ -2746,13 +2746,15 @@ export const appRouter = router({
     projectsByStatus: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
-      // Count by projectType (for all active projects) and by status (for final states)
+      // Active projects (in_progress) counted by type
+      // Final states (delivered, cancelled) counted by status
+      const active = projects.filter(p => p.status === 'in_progress');
       return {
-        design: projects.filter(p => p.projectType === 'design' && p.status === 'in_progress').length,
-        execution: projects.filter(p => p.projectType === 'execution' && p.status === 'in_progress').length,
-        design_execution: projects.filter(p => p.projectType === 'design_execution' && p.status === 'in_progress').length,
-        supervision: projects.filter(p => p.projectType === 'supervision' && p.status === 'in_progress').length,
-        in_progress: projects.filter(p => p.status === 'in_progress').length,
+        design: active.filter(p => p.projectType === 'design').length,
+        execution: active.filter(p => p.projectType === 'execution').length,
+        design_execution: active.filter(p => p.projectType === 'design_execution').length,
+        supervision: active.filter(p => p.projectType === 'supervision').length,
+        in_progress: 0, // Not used - active projects are counted by type above
         delivered: projects.filter(p => p.status === 'delivered').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
       };

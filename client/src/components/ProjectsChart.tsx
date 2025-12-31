@@ -18,8 +18,9 @@ interface ProjectsChartProps {
 }
 
 export default function ProjectsChart({ data }: ProjectsChartProps) {
+  // Filter out zero values for cleaner chart
   const chartData = {
-    labels: ['تصميم', 'تنفيذ', 'تصميم وتنفيذ', 'إشراف', 'قيد التقدم', 'تم التسليم', 'ملغي'],
+    labels: ['تصميم', 'تنفيذ', 'تصميم وتنفيذ', 'إشراف', 'تم التسليم', 'ملغي'],
     datasets: [
       {
         label: 'عدد المشاريع',
@@ -28,7 +29,6 @@ export default function ProjectsChart({ data }: ProjectsChartProps) {
           data.execution,
           data.design_execution,
           data.supervision,
-          data.in_progress,
           data.delivered,
           data.cancelled
         ],
@@ -37,8 +37,7 @@ export default function ProjectsChart({ data }: ProjectsChartProps) {
           'rgba(249, 115, 22, 0.8)',   // orange - تنفيذ
           'rgba(168, 85, 247, 0.8)',   // purple - تصميم وتنفيذ
           'rgba(234, 179, 8, 0.8)',    // yellow - إشراف
-          'rgba(16, 185, 129, 0.8)',   // green - قيد التقدم
-          'rgba(6, 182, 212, 0.8)',    // cyan - تم التسليم
+          'rgba(16, 185, 129, 0.8)',   // green - تم التسليم
           'rgba(239, 68, 68, 0.8)',    // red - ملغي
         ],
         borderColor: [
@@ -47,7 +46,6 @@ export default function ProjectsChart({ data }: ProjectsChartProps) {
           'rgba(168, 85, 247, 1)',
           'rgba(234, 179, 8, 1)',
           'rgba(16, 185, 129, 1)',
-          'rgba(6, 182, 212, 1)',
           'rgba(239, 68, 68, 1)',
         ],
         borderWidth: 2,
