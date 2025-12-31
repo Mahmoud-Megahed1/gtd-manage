@@ -905,6 +905,14 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+
+        // Check strict delete permission for tasks
+        const perms = getDetailedPermissions(ctx.user.role);
+        // Only allow if role enables delete on tasks OR user is admin
+        if (!perms.tasks.delete && ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية حذف المهام' });
+        }
+
         await db.deleteProjectTask(input.id);
         await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, undefined, ctx);
         return { success: true };

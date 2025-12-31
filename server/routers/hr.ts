@@ -11,7 +11,7 @@ import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 // Admin-only procedure
 const adminProcedure = protectedProcedure
   .use(({ ctx, next }) => {
-    if (!['admin', 'hr_manager', 'department_manager'].includes(ctx.user.role)) {
+    if (!['admin', 'hr_manager'].includes(ctx.user.role)) {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
     }
     return next({ ctx });
