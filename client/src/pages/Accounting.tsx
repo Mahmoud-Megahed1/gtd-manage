@@ -47,6 +47,7 @@ import {
 } from "chart.js";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
+// Force cache bust: v1.1.1
 export default function Accounting() {
   const { data: expenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.accounting.expenses.list.useQuery({});
   // Removed installments section per requirement
