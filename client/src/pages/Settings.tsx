@@ -706,7 +706,7 @@ export default function Settings() {
                           const user = users?.find((u: any) => u.id === openPermUserId);
                           if (user) {
                             const defaults = getRoleDefaultPermissions(user.role || 'other');
-                            setPermState(defaults);
+                            setPermState(defaults as any);
                             toast.info("تم إعادة الصلاحيات للقيم الافتراضية للدور");
                           }
                         }}

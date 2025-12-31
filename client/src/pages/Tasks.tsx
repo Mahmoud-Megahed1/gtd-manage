@@ -270,151 +270,153 @@ export default function Tasks() {
             {isLoading ? (
               <div className="h-48 bg-muted rounded animate-pulse" />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>المشروع</TableHead>
-                    <TableHead>اسم المهمة</TableHead>
-                    <TableHead>الأولوية</TableHead>
-                    <TableHead>المسؤول</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>البدء</TableHead>
-                    <TableHead>الانتهاء</TableHead>
-                    <TableHead>التقدم</TableHead>
-                    <TableHead>التقدير (ساعات)</TableHead>
-                    <TableHead>تعليقات</TableHead>
-                    <TableHead>إجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(tasks || []).map((t: any) => {
-                    const projectName = (projects || []).find((p: any) => p.id === t.projectId)?.name || `#${t.projectId}`;
-                    const assignedUser = (usersList || []).find((u: any) => u.id === t.assignedTo);
-                    return (
-                      <TableRow key={t.id}>
-                        <TableCell>{projectName}</TableCell>
-                        <TableCell>
-                          <Input
-                            defaultValue={t.name}
-                            onBlur={(e) => {
-                              const name = e.target.value.trim();
-                              if (name && name !== t.name) {
-                                updateTask.mutate({ id: t.id, name });
-                              }
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={t.priority || "medium"}
-                            onValueChange={(v) => updateTask.mutate({ id: t.id, priority: v as any })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">منخفضة</SelectItem>
-                              <SelectItem value="medium">متوسطة</SelectItem>
-                              <SelectItem value="high">مرتفعة</SelectItem>
-                              <SelectItem value="critical">حرجة</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          {user?.role === "admin" ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>المشروع</TableHead>
+                      <TableHead>اسم المهمة</TableHead>
+                      <TableHead>الأولوية</TableHead>
+                      <TableHead>المسؤول</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>البدء</TableHead>
+                      <TableHead>الانتهاء</TableHead>
+                      <TableHead>التقدم</TableHead>
+                      <TableHead>التقدير (ساعات)</TableHead>
+                      <TableHead>تعليقات</TableHead>
+                      <TableHead>إجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(tasks || []).map((t: any) => {
+                      const projectName = (projects || []).find((p: any) => p.id === t.projectId)?.name || `#${t.projectId}`;
+                      const assignedUser = (usersList || []).find((u: any) => u.id === t.assignedTo);
+                      return (
+                        <TableRow key={t.id}>
+                          <TableCell>{projectName}</TableCell>
+                          <TableCell>
+                            <Input
+                              defaultValue={t.name}
+                              onBlur={(e) => {
+                                const name = e.target.value.trim();
+                                if (name && name !== t.name) {
+                                  updateTask.mutate({ id: t.id, name });
+                                }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
                             <Select
-                              value={String(t.assignedTo ?? "")}
-                              onValueChange={(v) => updateTask.mutate({ id: t.id, assignedTo: Number(v) })}
+                              value={t.priority || "medium"}
+                              onValueChange={(v) => updateTask.mutate({ id: t.id, priority: v as any })}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder={assignedUser?.name || "غير معيّن"} />
+                                <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {(usersList || []).map((u: any) => (
-                                  <SelectItem key={u.id} value={String(u.id)}>
-                                    {u.name || u.email}
-                                  </SelectItem>
-                                ))}
+                                <SelectItem value="low">منخفضة</SelectItem>
+                                <SelectItem value="medium">متوسطة</SelectItem>
+                                <SelectItem value="high">مرتفعة</SelectItem>
+                                <SelectItem value="critical">حرجة</SelectItem>
                               </SelectContent>
                             </Select>
-                          ) : (
-                            <span>{assignedUser?.name || "غير معيّن"}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={t.status}
-                            onValueChange={(v) => updateTask.mutate({ id: t.id, status: v as any })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="planned">مخططة</SelectItem>
-                              <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                              <SelectItem value="done">مكتملة</SelectItem>
-                              <SelectItem value="cancelled">ملغاة</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="date"
-                            defaultValue={t.startDate ? new Date(t.startDate).toISOString().slice(0, 10) : ""}
-                            onBlur={(e) => {
-                              const val = e.target.value;
-                              updateTask.mutate({ id: t.id, startDate: val ? new Date(val) : undefined });
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="date"
-                            defaultValue={t.endDate ? new Date(t.endDate).toISOString().slice(0, 10) : ""}
-                            onBlur={(e) => {
-                              const val = e.target.value;
-                              updateTask.mutate({ id: t.id, endDate: val ? new Date(val) : undefined });
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="min-w-[180px]">
-                          <Slider
-                            defaultValue={[Number(t.progress || 0)]}
-                            onValueChange={(vals) => updateTask.mutate({ id: t.id, progress: vals[0] })}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            defaultValue={t.estimateHours ?? ""}
-                            onBlur={(e) => {
-                              const val = e.target.value;
-                              updateTask.mutate({ id: t.id, estimateHours: val ? Number(val) : undefined });
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <CommentsCell taskId={t.id} />
-                        </TableCell>
-                        <TableCell>
-                          <Link href={`/tasks/${t.id}`}>
-                            <Button variant="secondary">تفاصيل</Button>
-                          </Link>
-                          {canDelete && (
-                            <Button
-                              variant="outline"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => deleteTask.mutate({ id: t.id })}
+                          </TableCell>
+                          <TableCell>
+                            {user?.role === "admin" ? (
+                              <Select
+                                value={String(t.assignedTo ?? "")}
+                                onValueChange={(v) => updateTask.mutate({ id: t.id, assignedTo: Number(v) })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={assignedUser?.name || "غير معيّن"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(usersList || []).map((u: any) => (
+                                    <SelectItem key={u.id} value={String(u.id)}>
+                                      {u.name || u.email}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span>{assignedUser?.name || "غير معيّن"}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={t.status}
+                              onValueChange={(v) => updateTask.mutate({ id: t.id, status: v as any })}
                             >
-                              حذف
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="planned">مخططة</SelectItem>
+                                <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                                <SelectItem value="done">مكتملة</SelectItem>
+                                <SelectItem value="cancelled">ملغاة</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              defaultValue={t.startDate ? new Date(t.startDate).toISOString().slice(0, 10) : ""}
+                              onBlur={(e) => {
+                                const val = e.target.value;
+                                updateTask.mutate({ id: t.id, startDate: val ? new Date(val) : undefined });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              defaultValue={t.endDate ? new Date(t.endDate).toISOString().slice(0, 10) : ""}
+                              onBlur={(e) => {
+                                const val = e.target.value;
+                                updateTask.mutate({ id: t.id, endDate: val ? new Date(val) : undefined });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="min-w-[180px]">
+                            <Slider
+                              defaultValue={[Number(t.progress || 0)]}
+                              onValueChange={(vals) => updateTask.mutate({ id: t.id, progress: vals[0] })}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              defaultValue={t.estimateHours ?? ""}
+                              onBlur={(e) => {
+                                const val = e.target.value;
+                                updateTask.mutate({ id: t.id, estimateHours: val ? Number(val) : undefined });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <CommentsCell taskId={t.id} />
+                          </TableCell>
+                          <TableCell>
+                            <Link href={`/tasks/${t.id}`}>
+                              <Button variant="secondary">تفاصيل</Button>
+                            </Link>
+                            {canDelete && (
+                              <Button
+                                variant="outline"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => deleteTask.mutate({ id: t.id })}
+                              >
+                                حذف
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

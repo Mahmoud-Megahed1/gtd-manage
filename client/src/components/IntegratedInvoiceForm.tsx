@@ -29,7 +29,7 @@ export default function IntegratedInvoiceForm() {
 
     const printRef = useRef<HTMLDivElement>(null);
 
-    const [docType, setDocType] = useState<"invoice" | "quote">("invoice");
+    const [docType, setDocType] = useState<"invoice" | "quote" | "payment_invoice">("invoice");
     const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Client Info

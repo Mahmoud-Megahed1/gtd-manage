@@ -269,18 +269,20 @@ export default function HR() {
                     <CardTitle>سجل الحضور</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {myAttendance && myAttendance.length > 0 ? (
-                      <div className="space-y-2">
-                        {myAttendance.slice(0, 10).map((a: any) => (
-                          <div key={a.id} className="flex justify-between p-3 border rounded">
-                            <span>{new Date(a.date).toLocaleDateString('ar-SA')}</span>
-                            <Badge>{a.status === 'present' ? 'حاضر' : a.status}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">لا يوجد سجلات</p>
-                    )}
+                    <div className="overflow-x-auto">
+                      {myAttendance && myAttendance.length > 0 ? (
+                        <div className="space-y-2">
+                          {myAttendance.slice(0, 10).map((a: any) => (
+                            <div key={a.id} className="flex justify-between p-3 border rounded">
+                              <span>{new Date(a.date).toLocaleDateString('ar-SA')}</span>
+                              <Badge>{a.status === 'present' ? 'حاضر' : a.status}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">لا يوجد سجلات</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -291,25 +293,27 @@ export default function HR() {
                     <CardTitle>كشوفات الرواتب</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {myPayroll && myPayroll.length > 0 ? (
-                      <div className="space-y-2">
-                        {myPayroll.map((p: any) => (
-                          <div key={p.id} className="flex justify-between p-3 border rounded">
-                            <span>{p.month}/{p.year}</span>
-                            <div className="text-left">
-                              <span className="block font-bold text-lg">{p.netSalary?.toLocaleString()} ريال</span>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                <span>أساسي: {p.baseSalary?.toLocaleString()}</span>
-                                {p.bonuses > 0 && <span className="text-green-600 mx-2">+{p.bonuses.toLocaleString()}</span>}
-                                {p.deductions > 0 && <span className="text-red-600">-{p.deductions.toLocaleString()}</span>}
+                    <div className="overflow-x-auto">
+                      {myPayroll && myPayroll.length > 0 ? (
+                        <div className="space-y-2">
+                          {myPayroll.map((p: any) => (
+                            <div key={p.id} className="flex justify-between p-3 border rounded">
+                              <span>{p.month}/{p.year}</span>
+                              <div className="text-left">
+                                <span className="block font-bold text-lg">{p.netSalary?.toLocaleString()} ريال</span>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  <span>أساسي: {p.baseSalary?.toLocaleString()}</span>
+                                  {p.bonuses > 0 && <span className="text-green-600 mx-2">+{p.bonuses.toLocaleString()}</span>}
+                                  {p.deductions > 0 && <span className="text-red-600">-{p.deductions.toLocaleString()}</span>}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">لا يوجد كشوفات</p>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">لا يوجد كشوفات</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -321,47 +325,49 @@ export default function HR() {
                     <AddLeaveDialog />
                   </CardHeader>
                   <CardContent>
-                    {myLeaves && myLeaves.length > 0 ? (
-                      <div className="space-y-2">
-                        {myLeaves.map((l: any) => (
-                          <div key={l.id} className="flex justify-between items-center p-3 border rounded">
-                            <div>
-                              <span>{new Date(l.startDate).toLocaleDateString('ar-SA')}</span>
-                              <span className="mx-2">-</span>
-                              <span>{new Date(l.endDate).toLocaleDateString('ar-SA')}</span>
+                    <div className="overflow-x-auto">
+                      {myLeaves && myLeaves.length > 0 ? (
+                        <div className="space-y-2">
+                          {myLeaves.map((l: any) => (
+                            <div key={l.id} className="flex justify-between items-center p-3 border rounded">
+                              <div>
+                                <span>{new Date(l.startDate).toLocaleDateString('ar-SA')}</span>
+                                <span className="mx-2">-</span>
+                                <span>{new Date(l.endDate).toLocaleDateString('ar-SA')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={l.status === 'approved' ? 'default' : l.status === 'pending' ? 'secondary' : 'destructive'}>
+                                  {l.status === 'approved' ? 'موافق' : l.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+                                </Badge>
+                                {l.cancellationRequested === 1 && (
+                                  <Badge variant="outline" className="text-orange-600">طلب إلغاء معلق</Badge>
+                                )}
+                                {l.cancellationRequested === 3 && (
+                                  <Badge variant="outline" className="text-red-600">رفض الإلغاء</Badge>
+                                )}
+                                {l.status === 'approved' && !l.cancellationRequested && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      const reason = prompt("سبب طلب الإلغاء:");
+                                      if (reason) {
+                                        requestCancellation.mutate({ id: l.id, reason });
+                                      }
+                                    }}
+                                    disabled={requestCancellation.isPending}
+                                  >
+                                    طلب إلغاء
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={l.status === 'approved' ? 'default' : l.status === 'pending' ? 'secondary' : 'destructive'}>
-                                {l.status === 'approved' ? 'موافق' : l.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
-                              </Badge>
-                              {l.cancellationRequested === 1 && (
-                                <Badge variant="outline" className="text-orange-600">طلب إلغاء معلق</Badge>
-                              )}
-                              {l.cancellationRequested === 3 && (
-                                <Badge variant="outline" className="text-red-600">رفض الإلغاء</Badge>
-                              )}
-                              {l.status === 'approved' && !l.cancellationRequested && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const reason = prompt("سبب طلب الإلغاء:");
-                                    if (reason) {
-                                      requestCancellation.mutate({ id: l.id, reason });
-                                    }
-                                  }}
-                                  disabled={requestCancellation.isPending}
-                                >
-                                  طلب إلغاء
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">لا يوجد إجازات</p>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">لا يوجد إجازات</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -372,21 +378,23 @@ export default function HR() {
                     <CardTitle>تقييماتي</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {myReviews && myReviews.length > 0 ? (
-                      <div className="space-y-2">
-                        {myReviews.map((r: any) => (
-                          <div key={r.id} className="p-3 border rounded">
-                            <div className="flex justify-between">
-                              <span>{new Date(r.reviewDate).toLocaleDateString('ar-SA')}</span>
-                              <span className="font-bold">{r.rating}/5</span>
+                    <div className="overflow-x-auto">
+                      {myReviews && myReviews.length > 0 ? (
+                        <div className="space-y-2">
+                          {myReviews.map((r: any) => (
+                            <div key={r.id} className="p-3 border rounded">
+                              <div className="flex justify-between">
+                                <span>{new Date(r.reviewDate).toLocaleDateString('ar-SA')}</span>
+                                <span className="font-bold">{r.rating}/5</span>
+                              </div>
+                              {r.comments && <p className="text-sm text-muted-foreground mt-2">{r.comments}</p>}
                             </div>
-                            {r.comments && <p className="text-sm text-muted-foreground mt-2">{r.comments}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">لا يوجد تقييمات</p>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">لا يوجد تقييمات</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -425,7 +433,7 @@ export default function HR() {
                       {employees.map((emp) => (
                         <div
                           key={emp.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors gap-4 sm:gap-0"
                           onClick={() => setLocation(`/hr/employees/${emp.id}`)}
                         >
                           <div className="flex-1">
@@ -513,7 +521,7 @@ export default function HR() {
                   ) : attendanceList && attendanceList.length > 0 ? (
                     <div className="space-y-2">
                       {attendanceList.slice(0, 10).map((att) => (
-                        <div key={att.id} className="flex items-center justify-between p-3 border rounded">
+                        <div key={att.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded gap-3 sm:gap-0">
                           <div>
                             <p className="font-medium">موظف #{att.employeeId}</p>
                             <p className="text-sm text-muted-foreground">
@@ -595,7 +603,7 @@ export default function HR() {
                   ) : payrollList && payrollList.length > 0 ? (
                     <div className="space-y-2">
                       {payrollList.map((pay) => (
-                        <div key={pay.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div key={pay.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4 sm:gap-0">
                           <div className="flex-1">
                             <p className="font-medium">موظف #{pay.employeeId}</p>
                             <p className="text-sm text-muted-foreground">
@@ -709,7 +717,7 @@ export default function HR() {
                   ) : leavesList && leavesList.length > 0 ? (
                     <div className="space-y-2">
                       {leavesList.map((leave) => (
-                        <div key={leave.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div key={leave.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4 sm:gap-0">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="font-medium">موظف #{leave.employeeId}</p>
@@ -817,7 +825,7 @@ export default function HR() {
                     <div className="space-y-4">
                       {reviewsList.map((review) => (
                         <div key={review.id} className="p-4 border rounded-lg space-y-2">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
                             <p className="font-medium">{(review as any).employeeName || review.employee?.name || `موظف #${review.employeeId}`}</p>
                             <div className="flex items-center gap-2">
                               {hasFullAccess && (

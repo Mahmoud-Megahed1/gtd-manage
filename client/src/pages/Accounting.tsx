@@ -167,7 +167,7 @@ export default function Accounting() {
       datasets: [
         // { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
         { label: "إجمالي الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.2 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + (r.purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
+        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.2 },
         { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.2 },
       ],
     };
@@ -327,7 +327,7 @@ export default function Accounting() {
     onSuccess: () => {
       toast.success("تم إضافة التكلفة بنجاح");
       setShowExpenseForm(false);
-      setExpenseData({ category: "", description: "", amount: "", date: new Date().toISOString().split('T')[0] });
+      setExpenseData({ category: "", description: "", amount: "", date: new Date().toISOString().split('T')[0], projectId: "" });
       refetchExpenses();
       refetchFinancials();
     },
@@ -1163,15 +1163,18 @@ export default function Accounting() {
                 {tsLoading ? (
                   <div className="h-64 bg-muted rounded animate-pulse" />
                 ) : (
-                  <Line
-                    ref={chartRef}
-                    data={chartData}
-                    options={{
-                      responsive: true,
-                      plugins: { legend: { position: "bottom" } },
-                      scales: { y: { beginAtZero: true } }
-                    }}
-                  />
+                  <div className="h-[300px] w-full">
+                    <Line
+                      ref={chartRef}
+                      data={chartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: "bottom" } },
+                        scales: { y: { beginAtZero: true } }
+                      }}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1268,14 +1271,17 @@ export default function Accounting() {
                 {bdLoading ? (
                   <div className="h-64 bg-muted rounded animate-pulse" />
                 ) : (
-                  <Line
-                    data={breakdownData}
-                    options={{
-                      responsive: true,
-                      plugins: { legend: { position: "bottom" } },
-                      scales: { y: { beginAtZero: true } }
-                    }}
-                  />
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={breakdownData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: "bottom" } },
+                        scales: { y: { beginAtZero: true } }
+                      }}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>

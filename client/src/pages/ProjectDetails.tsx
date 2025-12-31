@@ -66,12 +66,12 @@ export default function ProjectDetails() {
   const hasFinancials = project?.projectType === 'execution' || project?.projectType === 'design_execution';
   const showFinancials = canViewFinancials && hasFinancials;
 
-  const { data: projectFiles, refetch: refetchFiles } = trpc.projects.listFiles.useQuery({ projectId });
+  const { data: projectFiles, refetch: refetchFiles } = trpc.drawings.list.useQuery({ projectId });
 
   // Permission check for financial data
   // Moved up to use hook
 
-  const boq = projectData?.boqItems || [];
+  const boq = projectData?.boq || [];
   const expenses = projectData?.expenses || [];
   const installments = projectData?.installments || [];
   const sales = projectData?.sales || [];
@@ -1100,7 +1100,7 @@ export default function ProjectDetails() {
 
           {/* مراحل المشروع - Phases Tab */}
           <TabsContent value="phases" className="mt-6">
-            <ProjectPhasesContent projectId={projectId} />
+            <ProjectPhasesContent projectId={projectId} projectType={project?.projectType || 'execution'} />
           </TabsContent>
 
 

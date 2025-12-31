@@ -723,7 +723,7 @@ export const appRouter = router({
         name: z.string().optional(),
         description: z.string().optional(),
         // status is lifecycle state (can be changed), projectType is immutable
-        status: z.enum(['design', 'execution', 'in_progress', 'delivery', 'completed', 'delivered', 'cancelled']).optional(),
+        status: z.enum(['design', 'execution', 'delivery', 'completed', 'cancelled', 'in_progress', 'delivered']).optional(),
         projectType: z.enum(['design', 'execution', 'design_execution', 'supervision']).optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
@@ -740,7 +740,7 @@ export const appRouter = router({
           throw new TRPCError({ code: 'NOT_FOUND', message: 'المشروع غير موجود' });
         }
 
-        await db.updateProject(id, data);
+        await db.updateProject(id, data as any);
 
         await logAudit(ctx.user.id, 'UPDATE_PROJECT', 'project', id, undefined, ctx);
 
@@ -1505,7 +1505,7 @@ export const appRouter = router({
             const saleNumber = generateUniqueNumber('SAL');
             await db.createSale({
               saleNumber,
-              clientId: input.clientId,
+              clientId: input.clientId || 0,
               projectId: input.projectId,
               description: `Invoice #${invoiceNumber}`,
               amount: input.total,
@@ -1536,6 +1536,7 @@ export const appRouter = router({
         invoiceNumber: z.string().optional(),
         status: z.enum(['draft', 'sent', 'paid', 'cancelled']).optional(),
         notes: z.string().optional(),
+        terms: z.string().optional(),
         formData: z.string().optional(),
         // Expanded fields for full edit
         clientId: z.number().optional(),
@@ -1592,14 +1593,17 @@ export const appRouter = router({
           }
 
           // Copy logic from create
+          const saleNumber = generateUniqueNumber('SAL');
           await db.createSale({
+            saleNumber,
             invoiceId,
             clientId,
+            createdBy: ctx.user.id,
             projectId: projectId,
             amount: total,
             saleDate: issueDate,
             description: `فاتورة رقم ${invoiceNumber}`,
-            paymentMethod: 'bank', // default
+            paymentMethod: 'bank_transfer', // default
             status: (data.status === 'paid' ? 'completed' : 'pending') as any
           });
 

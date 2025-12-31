@@ -372,7 +372,7 @@ export const generalReportsRouter = router({
             const conditions: any[] = [];
             if (input.from) conditions.push(gte(projects.createdAt, input.from));
             if (input.to) conditions.push(lte(projects.createdAt, input.to));
-            if (input.status) conditions.push(eq(projects.status, input.status));
+            if (input.status) conditions.push(eq(projects.status, input.status as any));
             if (input.clientId) conditions.push(eq(projects.clientId, input.clientId));
             if (perm.onlyAssigned) conditions.push(eq(projects.assignedTo, ctx.user.id));
 

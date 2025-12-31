@@ -73,7 +73,7 @@ export const accountingRouter = router({
 
     create: adminFinanceProcedure
       .input(z.object({
-        projectId: z.number(),
+        projectId: z.number().optional(),
         category: z.string(),
         description: z.string(),
         amount: z.number(),

@@ -577,8 +577,8 @@ export default function GeneralReports() {
                                 </div>
                                 <DialogFooter>
                                     <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>إلغاء</Button>
-                                    <Button onClick={handleSave} disabled={saveReportMutation.isLoading}>
-                                        {saveReportMutation.isLoading && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                                    <Button onClick={handleSave} disabled={saveReportMutation.isPending}>
+                                        {saveReportMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                                         حفظ
                                     </Button>
                                 </DialogFooter>
@@ -714,7 +714,7 @@ export default function GeneralReports() {
                                                     <div className="flex items-center gap-4">
                                                         <TrendingUp className="h-8 w-8 text-green-600" />
                                                         <div>
-                                                            <p className="text-2xl font-bold">{overviewData.financials.paidRevenue.toLocaleString()} ر.س</p>
+                                                            <p className="text-2xl font-bold">{(overviewData.financials?.paidRevenue ?? 0).toLocaleString()} ر.س</p>
                                                             <p className="text-muted-foreground text-sm">الإيرادات المحصلة</p>
                                                         </div>
                                                     </div>
@@ -742,8 +742,8 @@ export default function GeneralReports() {
                                                             </div>
                                                         </div>
                                                         <div className="text-left">
-                                                            <p className={`text-2xl font-bold ${overviewData.financials.profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                                {overviewData.financials.profitMargin.toFixed(1)}%
+                                                            <p className={`text-2xl font-bold ${(overviewData.financials?.profitMargin ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                                {(overviewData.financials?.profitMargin ?? 0).toFixed(1)}%
                                                             </p>
                                                             <p className="text-muted-foreground text-sm">هامش الربح</p>
                                                         </div>
@@ -941,7 +941,7 @@ export default function GeneralReports() {
                                     <Card className="lg:col-span-3">
                                         <CardContent className="pt-6">
                                             <div className="text-center">
-                                                <p className="text-3xl font-bold text-amber-600">{invoicesData.pendingAmount.toLocaleString()} ر.س</p>
+                                                <p className="text-3xl font-bold text-amber-600">{(invoicesData?.pendingAmount ?? 0).toLocaleString()} ر.س</p>
                                                 <p className="text-muted-foreground">المتبقي</p>
                                             </div>
                                         </CardContent>

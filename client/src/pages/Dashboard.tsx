@@ -143,7 +143,7 @@ export default function Dashboard() {
               <CardTitle>توزيع المشاريع حسب الحالة</CardTitle>
             </CardHeader>
             <CardContent>
-              <ProjectsChart data={projectsData || { design: 0, execution: 0, delivery: 0, completed: 0, cancelled: 0 }} />
+              <ProjectsChart data={projectsData || { design: 0, execution: 0, in_progress: 0, delivery: 0, completed: 0, cancelled: 0 }} />
             </CardContent>
           </Card>
 
