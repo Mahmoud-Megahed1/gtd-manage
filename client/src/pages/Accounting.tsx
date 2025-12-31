@@ -181,8 +181,8 @@ export default function Accounting() {
     return {
       labels,
       datasets: [
-        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#16a34a", backgroundColor: "#16a34a20", tension: 0.3, fill: true, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444420", tension: 0.3, fill: true, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
+        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#10B981", backgroundColor: "rgba(16, 185, 129, 0.1)", tension: 0.4, fill: "origin", borderWidth: 3, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderWidth: 2 },
+        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#EF4444", backgroundColor: "rgba(239, 68, 68, 0.1)", tension: 0.4, fill: "origin", borderWidth: 3, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderWidth: 2 },
       ],
     };
   }, [timeseries]);
@@ -1191,7 +1191,7 @@ export default function Accounting() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>مخطط زمني</CardTitle>
+                <CardTitle>الإيرادات والمصروفات الشهرية</CardTitle>
               </CardHeader>
               <CardContent>
                 {tsLoading ? (
@@ -1204,8 +1204,31 @@ export default function Accounting() {
                       options={{
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: "bottom" } },
-                        scales: { y: { beginAtZero: true } }
+                        plugins: {
+                          legend: {
+                            position: "top",
+                            align: "center",
+                            labels: {
+                              usePointStyle: false,
+                              boxWidth: 40,
+                              font: { family: "Tajawal", size: 14 }
+                            }
+                          }
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: (value) => `${Number(value).toLocaleString()} ر.س`,
+                              font: { family: "Tajawal" }
+                            },
+                            grid: { color: "#f3f4f6" }
+                          },
+                          x: {
+                            grid: { display: false },
+                            ticks: { font: { family: "Tajawal" } }
+                          }
+                        }
                       }}
                     />
                   </div>
@@ -1311,8 +1334,31 @@ export default function Accounting() {
                       options={{
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: "bottom" } },
-                        scales: { y: { beginAtZero: true } }
+                        plugins: {
+                          legend: {
+                            position: "top",
+                            align: "center",
+                            labels: {
+                              usePointStyle: false,
+                              boxWidth: 40,
+                              font: { family: "Tajawal", size: 14 }
+                            }
+                          }
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: (value) => `${Number(value).toLocaleString()} ر.س`,
+                              font: { family: "Tajawal" }
+                            },
+                            grid: { color: "#f3f4f6" }
+                          },
+                          x: {
+                            grid: { display: false },
+                            ticks: { font: { family: "Tajawal" } }
+                          }
+                        }
                       }}
                     />
                   </div>
