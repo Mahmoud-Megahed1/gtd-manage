@@ -2746,12 +2746,14 @@ export const appRouter = router({
     projectsByStatus: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
+      // projectType: design, execution, design_execution, supervision
+      // status: in_progress, delivered, cancelled
       return {
-        design: projects.filter(p => p.status === 'design').length,
-        execution: projects.filter(p => p.status === 'execution').length,
+        design: projects.filter(p => p.projectType === 'design').length,
+        execution: projects.filter(p => p.projectType === 'execution').length,
         in_progress: projects.filter(p => p.status === 'in_progress').length,
-        delivery: projects.filter(p => p.status === 'delivery').length,
-        completed: projects.filter(p => p.status === 'completed').length,
+        delivery: projects.filter(p => p.status === 'delivered').length,
+        completed: 0, // No completed status in schema, using delivered instead
         cancelled: projects.filter(p => p.status === 'cancelled').length,
       };
     }),
