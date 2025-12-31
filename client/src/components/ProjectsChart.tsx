@@ -1,6 +1,7 @@
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
+// CACHE_BUST_VERSION: 2024-12-31-v2
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface ProjectsChartProps {
