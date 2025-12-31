@@ -161,22 +161,35 @@ export default function Accounting() {
     instSel.forEach(s => q.append("installmentStatuses", s));
     return q.toString();
   };
+
+  // Helper function to convert dateKey like "2025-12" to Arabic month name
+  const formatDateKeyToArabic = (dateKey: string) => {
+    const arabicMonths = [
+      "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    ];
+    const parts = dateKey.split('-');
+    if (parts.length >= 2) {
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      return arabicMonths[monthIndex] || dateKey;
+    }
+    return dateKey;
+  };
+
   const chartData = useMemo(() => {
-    const labels = (timeseries || []).map(r => r.dateKey);
+    const labels = (timeseries || []).map(r => formatDateKeyToArabic(r.dateKey));
     return {
       labels,
       datasets: [
-        // { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices), borderColor: "#16a34a", backgroundColor: "#16a34a40", tension: 0.2 },
-        { label: "إجمالي الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#3b82f6", backgroundColor: "#3b82f640", tension: 0.4, fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444440", tension: 0.4, fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
-        { label: "الصافي", data: (timeseries || []).map(r => r.net), borderColor: "#9333ea", backgroundColor: "#9333ea40", tension: 0.4, fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
+        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#16a34a", backgroundColor: "#16a34a20", tension: 0.3, fill: true, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
+        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#ef4444", backgroundColor: "#ef444420", tension: 0.3, fill: true, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
       ],
     };
   }, [timeseries]);
 
   const breakdownData = useMemo(() => {
     const rows = ((breakdown || []) as any[]);
-    const labels = rows.map(r => r.dateKey);
+    const labels = rows.map(r => formatDateKeyToArabic(r.dateKey));
     const ds: any[] = [];
 
     // Revenue logic: Aggregate Invoices and Installments
