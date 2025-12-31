@@ -237,10 +237,10 @@ export default function Invoices() {
 
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 w-full max-w-md gap-1 sm:gap-0 h-auto sm:h-9">
-            <TabsTrigger value="all" className="flex-1 min-w-[80px]">الكل</TabsTrigger>
-            <TabsTrigger value="invoices" className="flex-1 min-w-[80px]">الفواتير</TabsTrigger>
-            <TabsTrigger value="quotes" className="flex-1 min-w-[80px]">عروض الأسعار</TabsTrigger>
+          <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap scrollbar-hide pb-2 h-auto">
+            <TabsTrigger value="all" className="flex-shrink-0 px-4">الكل</TabsTrigger>
+            <TabsTrigger value="invoices" className="flex-shrink-0 px-4">الفواتير</TabsTrigger>
+            <TabsTrigger value="quotes" className="flex-shrink-0 px-4">عروض الأسعار</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">

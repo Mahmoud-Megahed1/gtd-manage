@@ -66,21 +66,21 @@ export default function Forms() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">الاستمارات</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">الاستمارات</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               إدارة استمارات طلبات العملاء وتعديلاتهم وطلبات التغيير
             </p>
           </div>
         </div>
 
         <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className={`grid w-full max-w-lg`} style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
-            {canViewForms && <TabsTrigger value="requests">طلبات العملاء</TabsTrigger>}
-            {canViewForms && <TabsTrigger value="modifications">التعديلات</TabsTrigger>}
+          <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap scrollbar-hide pb-2 h-auto">
+            {canViewForms && <TabsTrigger value="requests" className="flex-shrink-0 px-4">طلبات العملاء</TabsTrigger>}
+            {canViewForms && <TabsTrigger value="modifications" className="flex-shrink-0 px-4">التعديلات</TabsTrigger>}
             {canViewChangeOrders && (
-              <TabsTrigger value="change-orders">
+              <TabsTrigger value="change-orders" className="flex-shrink-0 px-4">
                 <FileDiff className="w-4 h-4 ml-1" />
                 طلبات التغيير
               </TabsTrigger>

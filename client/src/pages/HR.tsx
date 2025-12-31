@@ -136,10 +136,10 @@ export default function HR() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">{hasFullAccess ? 'إدارة الموارد البشرية' : 'بياناتي الشخصية'}</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">{hasFullAccess ? 'إدارة الموارد البشرية' : 'بياناتي الشخصية'}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               {hasFullAccess ? 'نظام شامل لإدارة الموظفين والحضور والرواتب' : 'عرض وإدارة بياناتك الشخصية'}
             </p>
           </div>
@@ -147,7 +147,7 @@ export default function HR() {
 
         {/* Stats Cards - Admin/HR Only */}
         {hasFullAccess && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle>

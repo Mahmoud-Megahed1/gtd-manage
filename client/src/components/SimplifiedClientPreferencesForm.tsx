@@ -179,13 +179,13 @@ export default function SimplifiedClientPreferencesForm({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6 bg-white" dir="rtl">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6 bg-white" dir="rtl">
       {/* Header */}
       <div className="border-b pb-6 print:border-gray-300">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <img src="/LOGO.png" alt="Golden Touch Design" className="h-20 mb-2" />
-            <h1 className="text-2xl font-bold text-amber-600">استمارة طلبات وتفضيلات عميل</h1>
+            <img src="/LOGO.png" alt="Golden Touch Design" className="h-16 sm:h-20 mb-2" />
+            <h1 className="text-xl sm:text-2xl font-bold text-amber-600">استمارة طلبات وتفضيلات عميل</h1>
             <p className="text-sm text-gray-600">(تصميم سكني)</p>
           </div>
           <div className="print-hide">
@@ -265,7 +265,7 @@ export default function SimplifiedClientPreferencesForm({
         {currentStep === 0 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">القسم 1: بيانات العميل والمشروع</h2>
-            
+
             <div>
               <Label>الاسم الكامل</Label>
               <Input
@@ -920,11 +920,10 @@ export default function SimplifiedClientPreferencesForm({
               onValueChange={(value) => setFormData({ ...formData, budgetLevel: value })}
             >
               <Card
-                className={`p-4 cursor-pointer transition-all ${
-                  formData.budgetLevel === "minimal"
+                className={`p-4 cursor-pointer transition-all ${formData.budgetLevel === "minimal"
                     ? "border-primary border-2 bg-primary/5"
                     : "hover:border-gray-400"
-                }`}
+                  }`}
                 onClick={() => setFormData({ ...formData, budgetLevel: "minimal" })}
               >
                 <div className="flex items-start space-x-3 space-x-reverse">
@@ -942,11 +941,10 @@ export default function SimplifiedClientPreferencesForm({
               </Card>
 
               <Card
-                className={`p-4 cursor-pointer transition-all ${
-                  formData.budgetLevel === "smart"
+                className={`p-4 cursor-pointer transition-all ${formData.budgetLevel === "smart"
                     ? "border-primary border-2 bg-primary/5"
                     : "hover:border-gray-400"
-                }`}
+                  }`}
                 onClick={() => setFormData({ ...formData, budgetLevel: "smart" })}
               >
                 <div className="flex items-start space-x-3 space-x-reverse">
@@ -963,11 +961,10 @@ export default function SimplifiedClientPreferencesForm({
               </Card>
 
               <Card
-                className={`p-4 cursor-pointer transition-all ${
-                  formData.budgetLevel === "premium"
+                className={`p-4 cursor-pointer transition-all ${formData.budgetLevel === "premium"
                     ? "border-primary border-2 bg-primary/5"
                     : "hover:border-gray-400"
-                }`}
+                  }`}
                 onClick={() => setFormData({ ...formData, budgetLevel: "premium" })}
               >
                 <div className="flex items-start space-x-3 space-x-reverse">
@@ -985,11 +982,10 @@ export default function SimplifiedClientPreferencesForm({
               </Card>
 
               <Card
-                className={`p-4 cursor-pointer transition-all ${
-                  formData.budgetLevel === "luxury"
+                className={`p-4 cursor-pointer transition-all ${formData.budgetLevel === "luxury"
                     ? "border-primary border-2 bg-primary/5"
                     : "hover:border-gray-400"
-                }`}
+                  }`}
                 onClick={() => setFormData({ ...formData, budgetLevel: "luxury" })}
               >
                 <div className="flex items-start space-x-3 space-x-reverse">

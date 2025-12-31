@@ -97,15 +97,16 @@ export default function Tasks() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">{isDesigner ? 'مهامي' : 'المهام وخط الزمن'}</h1>
-            <p className="text-muted-foreground">{isDesigner ? 'عرض المهام المُسندة إليك' : 'إدارة المهام لكل مشروع وعرض مخطط جانت'}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">{isDesigner ? 'مهامي' : 'المهام وخط الزمن'}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">{isDesigner ? 'عرض المهام المُسندة إليك' : 'إدارة المهام لكل مشروع وعرض مخطط جانت'}</p>
           </div>
           {canCreate && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   const el = document.getElementById("create-task");
                   if (el) el.scrollIntoView({ behavior: "smooth" });

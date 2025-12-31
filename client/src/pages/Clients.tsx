@@ -82,22 +82,22 @@ export default function Clients() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">إدارة العملاء</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">إدارة العملاء</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               عرض وإدارة جميع عملاء الشركة
             </p>
           </div>
           {canModify && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="lg" className="gap-2">
+                <Button size="lg" className="gap-2 w-full sm:w-auto">
                   <Plus className="w-5 h-5" />
                   إضافة عميل جديد
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>إضافة عميل جديد</DialogTitle>
                 </DialogHeader>

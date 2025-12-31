@@ -84,7 +84,7 @@ export default function Clinthope() {
           win.saveHTML = async function () {
             try {
               await saveIntoSystem();
-            } catch (e) {}
+            } catch (e) { }
             return original();
           };
         }
@@ -93,11 +93,11 @@ export default function Clinthope() {
           win.prepareAndPrint = async function () {
             try {
               await saveIntoSystem();
-            } catch (e) {}
+            } catch (e) { }
             return original();
           };
         }
-      } catch {}
+      } catch { }
     });
     return () => iframe.removeEventListener("load", onLoad);
   }, []);
@@ -132,7 +132,7 @@ export default function Clinthope() {
               else opt.removeAttribute("selected");
             });
           });
-        } catch {}
+        } catch { }
         return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
       };
       if (iframeRef.current?.contentDocument) {
@@ -172,7 +172,7 @@ export default function Clinthope() {
       toast.error("تعذر جلب الصفحة وحفظها");
     }
   };
-  
+
   const handleSaveAsRequestForm = async () => {
     try {
       if (!target.clientId) {
@@ -202,7 +202,7 @@ export default function Clinthope() {
               else opt.removeAttribute("selected");
             });
           });
-        } catch {}
+        } catch { }
         return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
       };
       const doc = iframeRef.current?.contentDocument;
@@ -238,12 +238,12 @@ export default function Clinthope() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">إنشاء استمارة طلب عميل</h1>
-            <p className="text-muted-foreground">صفحة ضمنية لحفظ نسخة داخل البرنامج</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">إنشاء استمارة طلب عميل</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">صفحة ضمنية لحفظ نسخة داخل البرنامج</p>
           </div>
-          <Button variant="outline" onClick={() => setLocation("/forms")}>
+          <Button variant="outline" onClick={() => setLocation("/forms")} className="w-full sm:w-auto">
             العودة
           </Button>
         </div>
@@ -303,14 +303,14 @@ export default function Clinthope() {
                 title="Clinthope Page"
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setLocation("/forms")}>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setLocation("/forms")} className="w-full sm:w-auto">
                 العودة
               </Button>
-              <Button onClick={handleSaveFileCopy} disabled={uploadFile.isPending || !htmlLoaded}>
+              <Button onClick={handleSaveFileCopy} disabled={uploadFile.isPending || !htmlLoaded} className="w-full sm:w-auto">
                 {uploadFile.isPending ? "جاري الحفظ..." : "حفظ نسخة في البرنامج"}
               </Button>
-              <Button onClick={handleSaveAsRequestForm} disabled={createForm.isPending || !htmlLoaded}>
+              <Button onClick={handleSaveAsRequestForm} disabled={createForm.isPending || !htmlLoaded} className="w-full sm:w-auto">
                 {createForm.isPending ? "جاري الحفظ..." : "حفظ كاستمارة طلب"}
               </Button>
             </div>
