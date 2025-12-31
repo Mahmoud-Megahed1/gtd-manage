@@ -20,12 +20,13 @@ export default function Forms() {
   const search = useSearch();
   const urlParams = new URLSearchParams(search);
   const { user } = useAuth();
-  const { canView, getAllowedTabs } = usePermission();
+  const { canView, getAllowedTabs, canDelete } = usePermission();
 
   // Get allowed tabs for this user
   const allowedTabs = useMemo(() => getAllowedTabs('forms'), [getAllowedTabs]);
   const canViewForms = canView('forms');
   const canViewChangeOrders = canView('forms.change_orders');
+  const canDeleteForms = canDelete('forms');
 
   // Determine initial tab based on URL and permissions
   const urlTab = urlParams.get('tab') || 'requests';
@@ -123,18 +124,20 @@ export default function Forms() {
                         <Button variant="outline" className="flex-1" onClick={() => setLocation(`/forms/${form.id}`)}>
                           عرض التفاصيل
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('هل أنت متأكد من حذف هذه الاستمارة؟')) {
-                              deleteForm.mutate({ id: form.id });
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canDeleteForms && (
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('هل أنت متأكد من حذف هذه الاستمارة؟')) {
+                                deleteForm.mutate({ id: form.id });
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -191,18 +194,20 @@ export default function Forms() {
                         <Button variant="outline" className="flex-1" onClick={() => setLocation(`/forms/${form.id}`)}>
                           عرض التفاصيل
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('هل أنت متأكد من حذف هذه الاستمارة؟')) {
-                              deleteForm.mutate({ id: form.id });
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canDeleteForms && (
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('هل أنت متأكد من حذف هذه الاستمارة؟')) {
+                                deleteForm.mutate({ id: form.id });
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
