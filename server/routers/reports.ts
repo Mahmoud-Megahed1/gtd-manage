@@ -3,7 +3,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import * as db from "../db";
 import { and, gte, lte, sql } from "drizzle-orm";
-import { invoices, expenses, installments, purchases } from "../../drizzle/schema";
+import { invoices, expenses, installments, purchases, sales } from "../../drizzle/schema";
 import * as demo from "../_core/demoStore";
 
 export const reportsRouter = router({
@@ -98,6 +98,15 @@ export const reportsRouter = router({
       const instSum = await conn.select({ total: sql<number>`SUM(${installments.amount})` })
         .from(installments)
         .where(and(...instWhere));
+
+      // Sales (Manual)
+      const salesWhere = [gte(sales.saleDate, from), lte(sales.saleDate, to), sql`${sales.status} = 'completed'`, sql`${sales.invoiceId} IS NULL`];
+      if (input.projectId) salesWhere.push(sql`${sales.projectId} = ${input.projectId}`);
+      // if (input.clientId) salesWhere.push(sql`${sales.clientId} = ${input.clientId}`); // sales table has clientId
+      const salesSum = await conn.select({ total: sql<number>`SUM(${sales.amount})` })
+        .from(sales)
+        .where(and(...salesWhere));
+
       const invoicesTotal = Number(invSum[0]?.total ?? 0);
       const invoicesCount = Number(invSum[0]?.count ?? 0);
       const paidInvoicesTotal = Number(paidInvSum[0]?.total ?? 0);
@@ -105,9 +114,11 @@ export const reportsRouter = router({
       const purchasesTotal = Number(purSum[0]?.total ?? 0);
       const expensesTotal = Number(expSum[0]?.total ?? 0);
       const installmentsTotal = Number(instSum[0]?.total ?? 0);
-      // Net profit = paid invoices + installments - expenses - purchases
-      const net = paidInvoicesTotal + installmentsTotal - purchasesTotal - expensesTotal;
-      return { invoicesTotal, invoicesCount, paidInvoicesTotal, paidInvoicesCount, purchasesTotal, expensesTotal, installmentsTotal, net };
+      const manualSalesTotal = Number(salesSum[0]?.total ?? 0);
+
+      // Net profit = paid invoices + installments + manual sales - expenses - purchases
+      const net = paidInvoicesTotal + installmentsTotal + manualSalesTotal - purchasesTotal - expensesTotal;
+      return { invoicesTotal, invoicesCount, paidInvoicesTotal, paidInvoicesCount, purchasesTotal, expensesTotal, installmentsTotal, manualSalesTotal, net };
     }),
   timeseries: protectedProcedure
     .input(z.object({

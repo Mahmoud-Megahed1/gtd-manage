@@ -1131,7 +1131,7 @@ export default function Accounting() {
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي الإيرادات (المكتملة)</div>
-                      <div className="text-2xl font-bold text-green-600">{(Number(reportData?.paidInvoicesTotal || 0) + Number(reportData?.installmentsTotal || 0)).toLocaleString()} ر.س</div>
+                      <div className="text-2xl font-bold text-green-600">{(Number(reportData?.paidInvoicesTotal || 0) + Number(reportData?.installmentsTotal || 0) + Number(reportData?.manualSalesTotal || 0)).toLocaleString()} ر.س</div>
                     </div>
                     <div className="p-4 border rounded">
                       <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
