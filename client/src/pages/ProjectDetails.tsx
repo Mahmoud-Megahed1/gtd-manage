@@ -397,7 +397,7 @@ export default function ProjectDetails() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/projects")}>
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/projects")} className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -554,39 +554,34 @@ export default function ProjectDetails() {
         {/* Tabs */}
         <Tabs defaultValue="tasks" className="w-full">
           {/* First row of tabs: المالية - المهام الزمنية - الفريق */}
-          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-6 w-full max-w-4xl gap-1 sm:gap-0 h-auto sm:h-9 mb-2">
+          <TabsList className="w-full flex justify-start items-center overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap scrollbar-hide pb-2 h-auto text-sm bg-transparent gap-2">
             {/* Financial tab - only shows for execution or design_execution projects */}
             {showFinancials && (
-              <TabsTrigger value="financials" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
-                <DollarSign className="w-4 h-4 hidden sm:block" />
-                <span className="sm:hidden">المالية</span>
-                <span className="hidden sm:inline">المالية</span>
+              <TabsTrigger value="financials" className="flex-shrink-0 gap-2 px-4 shadow-sm border bg-card data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <DollarSign className="w-4 h-4" />
+                <span>المالية</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="tasks" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
-              <Clock className="w-4 h-4 hidden sm:block" />
-              <span className="sm:hidden">المهام</span>
-              <span className="hidden sm:inline">المهام الزمنية</span>
+            <TabsTrigger value="tasks" className="flex-shrink-0 gap-2 px-4 shadow-sm border bg-card data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Clock className="w-4 h-4" />
+              <span>المهام الزمنية</span>
             </TabsTrigger>
-            <TabsTrigger value="team" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
-              <Users className="w-4 h-4 hidden sm:block" />
+            <TabsTrigger value="team" className="flex-shrink-0 gap-2 px-4 shadow-sm border bg-card data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users className="w-4 h-4" />
               <span>الفريق</span>
             </TabsTrigger>
             {/* Second row tabs: ملفات المشروع - استمارات المشروع - مراحل المشروع */}
-            <TabsTrigger value="files" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
-              <FolderOpen className="w-4 h-4 hidden sm:block" />
-              <span className="sm:hidden">ملفات</span>
-              <span className="hidden sm:inline">ملفات المشروع</span>
+            <TabsTrigger value="files" className="flex-shrink-0 gap-2 px-4 shadow-sm border bg-card data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <FolderOpen className="w-4 h-4" />
+              <span>ملفات المشروع</span>
             </TabsTrigger>
-            <TabsTrigger value="forms" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
-              <ClipboardList className="w-4 h-4 hidden sm:block" />
-              <span className="sm:hidden">استمارات</span>
-              <span className="hidden sm:inline">استمارات المشروع</span>
+            <TabsTrigger value="forms" className="flex-shrink-0 gap-2 px-4 shadow-sm border bg-card data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <ClipboardList className="w-4 h-4" />
+              <span>استمارات المشروع</span>
             </TabsTrigger>
-            <TabsTrigger value="phases" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
-              <Layers className="w-4 h-4 hidden sm:block" />
-              <span className="sm:hidden">مراحل</span>
-              <span className="hidden sm:inline">مراحل المشروع</span>
+            <TabsTrigger value="phases" className="flex-shrink-0 gap-2 px-4 shadow-sm border bg-card data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Layers className="w-4 h-4" />
+              <span>مراحل المشروع</span>
             </TabsTrigger>
           </TabsList>
 
@@ -629,10 +624,10 @@ export default function ProjectDetails() {
                 <Card className="md:col-span-2">
                   <Tabs defaultValue="installments" className="w-full">
                     <div className="px-6 pt-6 flex justify-between items-center">
-                      <TabsList>
-                        <TabsTrigger value="installments">سجل الفواتير - الإيرادات ({projectInvoices.length})</TabsTrigger>
-                        <TabsTrigger value="purchases">المشتريات ({projectPurchases.length})</TabsTrigger>
-                        <TabsTrigger value="operatingCosts">التكاليف التشغيلية ({projectOperatingCosts.length})</TabsTrigger>
+                      <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap scrollbar-hide pb-2 h-auto text-sm">
+                        <TabsTrigger value="installments" className="flex-shrink-0">سجل الفواتير - الإيرادات ({projectInvoices.length})</TabsTrigger>
+                        <TabsTrigger value="purchases" className="flex-shrink-0">المشتريات ({projectPurchases.length})</TabsTrigger>
+                        <TabsTrigger value="operatingCosts" className="flex-shrink-0">التكاليف التشغيلية ({projectOperatingCosts.length})</TabsTrigger>
                       </TabsList>
                     </div>
 
@@ -645,7 +640,7 @@ export default function ProjectDetails() {
                             <p className="text-sm text-muted-foreground">يتم جلب هذه البيانات تلقائياً من الفواتير المربوطة بالمشروع.</p>
                           </div>
                         </div>
-                        <div className="border rounded-lg overflow-hidden">
+                        <div className="border rounded-lg overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
@@ -712,7 +707,7 @@ export default function ProjectDetails() {
                             <p className="text-sm text-muted-foreground">المشتريات المسجلة في المحاسبة والمربوطة بهذا المشروع.</p>
                           </div>
                         </div>
-                        <div className="border rounded overflow-hidden">
+                        <div className="border rounded overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
@@ -758,7 +753,7 @@ export default function ProjectDetails() {
                             <p className="text-sm text-muted-foreground">التكاليف التشغيلية المسجلة في المحاسبة والمربوطة بهذا المشروع.</p>
                           </div>
                         </div>
-                        <div className="border rounded overflow-hidden">
+                        <div className="border rounded overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>

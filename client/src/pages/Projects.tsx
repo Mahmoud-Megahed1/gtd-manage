@@ -89,24 +89,24 @@ export default function Projects() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{isOwnOnly ? 'مشاريعي' : 'إدارة المشاريع'}</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{isOwnOnly ? 'مشاريعي' : 'إدارة المشاريع'}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               {isOwnOnly ? 'المشاريع المُسندة إليك' : 'عرض وإدارة جميع مشاريع الشركة'}
             </p>
           </div>
-          {canAdd && <AddProjectDialog />}
+          {canAdd && <div className="w-full sm:w-auto"><AddProjectDialog /></div>}
         </div>
 
         {/* Tabs for Project Types */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">الكل ({projects?.length || 0})</TabsTrigger>
-            <TabsTrigger value="design">تصميم ({projects?.filter((p: any) => p.projectType === 'design').length || 0})</TabsTrigger>
-            <TabsTrigger value="execution">تنفيذ ({projects?.filter((p: any) => p.projectType === 'execution').length || 0})</TabsTrigger>
-            <TabsTrigger value="design_execution">تصميم وتنفيذ ({projects?.filter((p: any) => p.projectType === 'design_execution').length || 0})</TabsTrigger>
-            <TabsTrigger value="supervision">إشراف ({projects?.filter((p: any) => p.projectType === 'supervision').length || 0})</TabsTrigger>
+          <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden flex-nowrap whitespace-nowrap scrollbar-hide pb-2 h-auto text-sm">
+            <TabsTrigger value="all" className="flex-shrink-0 px-4">الكل ({projects?.length || 0})</TabsTrigger>
+            <TabsTrigger value="design" className="flex-shrink-0 px-4">تصميم ({projects?.filter((p: any) => p.projectType === 'design').length || 0})</TabsTrigger>
+            <TabsTrigger value="execution" className="flex-shrink-0 px-4">تنفيذ ({projects?.filter((p: any) => p.projectType === 'execution').length || 0})</TabsTrigger>
+            <TabsTrigger value="design_execution" className="flex-shrink-0 px-4">تصميم وتنفيذ ({projects?.filter((p: any) => p.projectType === 'design_execution').length || 0})</TabsTrigger>
+            <TabsTrigger value="supervision" className="flex-shrink-0 px-4">إشراف ({projects?.filter((p: any) => p.projectType === 'supervision').length || 0})</TabsTrigger>
           </TabsList>
         </Tabs>
 
