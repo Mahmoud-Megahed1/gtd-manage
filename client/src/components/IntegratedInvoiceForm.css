@@ -617,3 +617,135 @@
     display: block;
     visibility: visible;
 }
+
+/* =============================================
+   MOBILE RESPONSIVE INVOICE FORM 
+   Only affects screens <= 640px (mobile)
+   ============================================= */
+
+@media (max-width: 640px) {
+    .invoice-form-container {
+        padding: 8px !important;
+        min-height: auto !important;
+    }
+
+    .invoice-page {
+        padding: 12px !important;
+        min-height: auto !important;
+    }
+
+    /* Stack form rows vertically */
+    .invoice-form-row {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .invoice-form-group {
+        min-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Fix service list grid */
+    .service-list {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Make table scrollable */
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .invoice-table {
+        min-width: 500px !important;
+        font-size: 10px !important;
+    }
+
+    .invoice-table th,
+    .invoice-table td {
+        padding: 4px 2px !important;
+        font-size: 10px !important;
+    }
+
+    /* Fix action bar for mobile */
+    .invoice-action-bar {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 12px !important;
+        border-radius: 12px !important;
+        position: fixed !important;
+        bottom: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+    }
+
+    .invoice-btn {
+        padding: 8px 12px !important;
+        font-size: 11px !important;
+    }
+
+    /* Fix checkbox items */
+    .checkbox-group {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    .checkbox-item {
+        width: 100% !important;
+    }
+
+    /* Fix totals section */
+    .totals-section {
+        padding: 10px !important;
+    }
+
+    .total-row {
+        flex-direction: column !important;
+        gap: 5px !important;
+        text-align: center !important;
+    }
+
+    /* Fix logo and barcode */
+    .logo-placeholder {
+        height: 60px !important;
+    }
+
+    .barcode-placeholder {
+        width: 100% !important;
+        height: 80px !important;
+    }
+
+    /* Reduce heading sizes */
+    .invoice-page h1,
+    .invoice-print-view h1 {
+        font-size: 18px !important;
+    }
+
+    .invoice-page h2,
+    .invoice-print-view h2 {
+        font-size: 14px !important;
+    }
+
+    .invoice-page h3,
+    .invoice-print-view h3 {
+        font-size: 12px !important;
+    }
+
+    /* Fix inputs and selects */
+    .invoice-page input[type="text"],
+    .invoice-page input[type="number"],
+    .invoice-page input[type="date"],
+    .invoice-page input[type="tel"],
+    .invoice-page select,
+    .invoice-page textarea {
+        font-size: 14px !important;
+        padding: 8px !important;
+    }
+
+    /* Terms list */
+    .terms-ul {
+        font-size: 10px !important;
+        padding-right: 12px !important;
+    }
+}

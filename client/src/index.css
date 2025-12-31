@@ -239,3 +239,93 @@
     }
   }
 }
+
+/* =============================================
+   MOBILE RESPONSIVE FIXES
+   Only affects screens <= 640px (mobile)
+   Desktop view remains unchanged
+   ============================================= */
+
+@media (max-width: 640px) {
+
+  /* Fix overlapping tabs - allow wrapping */
+  [data-slot="tabs-list"] {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    gap: 4px !important;
+    padding: 4px !important;
+  }
+
+  [data-slot="tabs-trigger"] {
+    flex: 1 1 auto !important;
+    min-width: 45% !important;
+    font-size: 0.75rem !important;
+    padding: 6px 8px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Fix header and title spacing */
+  .space-y-6>div:first-child {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
+  }
+
+  /* Make cards stack on mobile */
+  .grid.gap-4.md\:grid-cols-5,
+  .grid.gap-4.md\:grid-cols-4,
+  .grid.gap-4.md\:grid-cols-3,
+  .grid.gap-6.md\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Fix table responsiveness */
+  .table-responsive,
+  [class*="overflow-x-auto"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  table {
+    min-width: 600px !important;
+  }
+
+  /* Reduce padding on mobile */
+  .p-6 {
+    padding: 12px !important;
+  }
+
+  .p-4 {
+    padding: 8px !important;
+  }
+
+  /* Fix button groups */
+  .flex.gap-2 {
+    flex-wrap: wrap !important;
+  }
+
+  /* Reduce title sizes on mobile */
+  h1.text-3xl {
+    font-size: 1.5rem !important;
+  }
+
+  h1.text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  /* Fix search input width */
+  input[type="text"],
+  input[type="search"] {
+    width: 100% !important;
+  }
+
+  /* Card content padding */
+  [class*="CardContent"] {
+    padding: 12px !important;
+  }
+
+  /* Fix main content padding */
+  main.lg\:mr-72 {
+    padding: 8px !important;
+  }
+}

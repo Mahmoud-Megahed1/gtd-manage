@@ -224,45 +224,50 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
-        <div className="flex items-center justify-between p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </Button>
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Logo" className="h-8" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
-            <span className="font-bold text-lg">Golden Touch</span>
-          </div>
-          <div className="w-10" />
-        </div>
-      </div>
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "translate-x-full"
-          } lg:translate-x-0`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 hidden lg:block">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="h-12" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
-              <div>
-                <h1 className="font-bold text-xl text-primary">Golden Touch v2.1</h1>
-                <p className="text-xs text-muted-foreground">نظام الإدارة المتكامل</p>
-              </div>
+      {/* Top Navigation Bar - Visible on all screens */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border h-16">
+        <div className="flex items-center justify-between px-4 h-full">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hover:bg-accent"
+            >
+              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </Button>
+            <div className="flex items-center gap-2 select-none pointer-events-none sm:pointer-events-auto">
+              <img src="/logo.png" alt="Logo" className="h-8 w-auto object-contain" onError={(e) => { const t = e.target as HTMLImageElement; if (!t.src.includes('LOGO.png')) t.src = '/LOGO.png'; }} />
+              <span className="font-bold text-lg hidden sm:inline-block">Golden Touch</span>
             </div>
           </div>
 
-          <Separator />
+          <div className="flex items-center gap-2">
+            <div className="hidden md:block w-96 mr-4">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="بحث عام..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10 h-9"
+                />
+              </div>
+            </div>
+            <NotificationBell />
+          </div>
+        </div>
+      </div>
 
-          {/* Search */}
-          <div className="p-4">
+      {/* Sidebar - Collapsible on all screens */}
+      {/* z-40 puts it below the header (z-50), so we add pt-16 tto show content below header */}
+      <aside
+        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 pt-16 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
+          }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Mobile/Tablet Search (shown inside sidebar if screen is small) */}
+          <div className="p-4 md:hidden">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -273,9 +278,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               />
             </div>
           </div>
+
+          {/* Logo Section inside Sidebar - Removed as it's now in Header */}
           {/* Theme Toggle */}
           {switchable && (
-            <div className="px-4">
+            <div className="px-4 py-4">
               <Button
                 variant="outline"
                 className="w-full justify-between"
@@ -287,8 +294,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           )}
 
+          <Separator className="md:hidden" />
+
           {/* Navigation */}
-          <ScrollArea className="flex-1 px-3 max-h-[calc(100vh-300px)] overflow-y-auto">
+          <ScrollArea className="flex-1 px-3">
             <nav className="space-y-1 py-2">
               {filteredNavItems.map((item) => {
                 // ULTRA FAILSAFE: Do not render Accounting for Department Manager
@@ -321,11 +330,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </ScrollArea>
 
           <Separator />
-
-          {/* Notifications */}
-          <div className="px-4 py-2 flex justify-end">
-            <NotificationBell />
-          </div>
 
           {/* User Profile */}
           <div className="p-4">
@@ -366,17 +370,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="lg:mr-72 pt-16 lg:pt-0">
-        <div className="p-1">
+      {/* Main Content - Full width always */}
+      <main className="pt-16 transition-all duration-300">
+        <div className="p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </main>
 
-      {/* Overlay for mobile */}
+      {/* Overlay for all screens when sidebar is open */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}

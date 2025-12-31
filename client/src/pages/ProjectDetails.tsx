@@ -395,14 +395,14 @@ export default function ProjectDetails() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <Button variant="ghost" size="icon" onClick={() => setLocation("/projects")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
-              <p className="text-muted-foreground mt-1">
+              <h1 className="text-xl sm:text-3xl font-bold text-foreground">{project.name}</h1>
+              <p className="text-muted-foreground mt-1 text-sm">
                 {project.projectNumber}
                 {client && (
                   <span className="mr-3 text-primary font-medium">• العميل: {client.name}</span>
@@ -410,24 +410,27 @@ export default function ProjectDetails() {
               </p>
             </div>
             {/* Project Type Badge (immutable) */}
-            {project.projectType && (
-              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-300">
-                {getProjectTypeLabel(project.projectType)}
+            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+              {project.projectType && (
+                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-300">
+                  {getProjectTypeLabel(project.projectType)}
+                </Badge>
+              )}
+              {/* Status Badge (lifecycle state) */}
+              <Badge className={getStatusColor(project.status)}>
+                {getStatusLabel(project.status)}
               </Badge>
-            )}
-            {/* Status Badge (lifecycle state) */}
-            <Badge className={getStatusColor(project.status)}>
-              {getStatusLabel(project.status)}
-            </Badge>
+            </div>
           </div>
 
           <Button
-            size="lg"
-            className="gap-2"
+            size="default"
+            className="gap-2 w-full sm:w-auto"
             onClick={() => setLocation(`/projects/${project.id}/report`)}
           >
             <FileText className="w-5 h-5" />
-            تقرير المشروع
+            <span className="hidden sm:inline">تقرير المشروع</span>
+            <span className="sm:hidden">التقرير</span>
           </Button>
         </div>
 
@@ -551,34 +554,39 @@ export default function ProjectDetails() {
         {/* Tabs */}
         <Tabs defaultValue="tasks" className="w-full">
           {/* First row of tabs: المالية - المهام الزمنية - الفريق */}
-          <TabsList className="grid w-full max-w-4xl grid-cols-6 mb-2">
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-6 w-full max-w-4xl gap-1 sm:gap-0 h-auto sm:h-9 mb-2">
             {/* Financial tab - only shows for execution or design_execution projects */}
             {showFinancials && (
-              <TabsTrigger value="financials" className="gap-2">
-                <DollarSign className="w-4 h-4" />
-                المالية
+              <TabsTrigger value="financials" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
+                <DollarSign className="w-4 h-4 hidden sm:block" />
+                <span className="sm:hidden">المالية</span>
+                <span className="hidden sm:inline">المالية</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="tasks" className="gap-2">
-              <Clock className="w-4 h-4" />
-              المهام الزمنية
+            <TabsTrigger value="tasks" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
+              <Clock className="w-4 h-4 hidden sm:block" />
+              <span className="sm:hidden">المهام</span>
+              <span className="hidden sm:inline">المهام الزمنية</span>
             </TabsTrigger>
-            <TabsTrigger value="team" className="gap-2">
-              <Users className="w-4 h-4" />
-              الفريق
+            <TabsTrigger value="team" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
+              <Users className="w-4 h-4 hidden sm:block" />
+              <span>الفريق</span>
             </TabsTrigger>
             {/* Second row tabs: ملفات المشروع - استمارات المشروع - مراحل المشروع */}
-            <TabsTrigger value="files" className="gap-2">
-              <FolderOpen className="w-4 h-4" />
-              ملفات المشروع
+            <TabsTrigger value="files" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
+              <FolderOpen className="w-4 h-4 hidden sm:block" />
+              <span className="sm:hidden">ملفات</span>
+              <span className="hidden sm:inline">ملفات المشروع</span>
             </TabsTrigger>
-            <TabsTrigger value="forms" className="gap-2">
-              <ClipboardList className="w-4 h-4" />
-              استمارات المشروع
+            <TabsTrigger value="forms" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
+              <ClipboardList className="w-4 h-4 hidden sm:block" />
+              <span className="sm:hidden">استمارات</span>
+              <span className="hidden sm:inline">استمارات المشروع</span>
             </TabsTrigger>
-            <TabsTrigger value="phases" className="gap-2">
-              <Layers className="w-4 h-4" />
-              مراحل المشروع
+            <TabsTrigger value="phases" className="flex-1 gap-1 text-xs sm:text-sm min-w-[60px]">
+              <Layers className="w-4 h-4 hidden sm:block" />
+              <span className="sm:hidden">مراحل</span>
+              <span className="hidden sm:inline">مراحل المشروع</span>
             </TabsTrigger>
           </TabsList>
 

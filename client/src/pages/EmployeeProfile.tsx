@@ -154,29 +154,29 @@ export default function EmployeeProfile() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/hr")}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/hr")} className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-8 h-8 text-primary" />
+            <div className="flex flex-1 sm:flex-initial items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <User className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">{user?.name || "غير محدد"}</h1>
-                <p className="text-muted-foreground mt-1">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-3xl font-bold text-foreground truncate ">{user?.name || "غير محدد"}</h1>
+                <p className="text-muted-foreground mt-1 text-sm truncate">
                   {employee.employeeNumber} • {employee.position || "غير محدد"}
                 </p>
               </div>
-              <Badge className={getStatusColor(employee.status)}>
+              <Badge className={`${getStatusColor(employee.status)} shrink-0`}>
                 {getStatusLabel(employee.status)}
               </Badge>
             </div>
           </div>
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="gap-2" onClick={initEditForm}>
+              <Button size="default" className="gap-2 w-full sm:w-auto mt-2 sm:mt-0" onClick={initEditForm}>
                 <Edit className="h-4 w-4" />
                 تعديل البيانات
               </Button>
@@ -251,7 +251,7 @@ export default function EmployeeProfile() {
         </div>
 
         {/* Info Cards */}
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-4 sm:gap-6 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -317,12 +317,12 @@ export default function EmployeeProfile() {
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-5">
-            <TabsTrigger value="info">المعلومات</TabsTrigger>
-            <TabsTrigger value="attendance">الحضور</TabsTrigger>
-            <TabsTrigger value="payroll">الرواتب</TabsTrigger>
-            <TabsTrigger value="leaves">الإجازات</TabsTrigger>
-            <TabsTrigger value="reviews">التقييمات</TabsTrigger>
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-5 w-full max-w-3xl gap-1 sm:gap-0 h-auto sm:h-9">
+            <TabsTrigger value="info" className="flex-1 text-xs sm:text-sm min-w-[60px]">المعلومات</TabsTrigger>
+            <TabsTrigger value="attendance" className="flex-1 text-xs sm:text-sm min-w-[60px]">الحضور</TabsTrigger>
+            <TabsTrigger value="payroll" className="flex-1 text-xs sm:text-sm min-w-[60px]">الرواتب</TabsTrigger>
+            <TabsTrigger value="leaves" className="flex-1 text-xs sm:text-sm min-w-[60px]">الإجازات</TabsTrigger>
+            <TabsTrigger value="reviews" className="flex-1 text-xs sm:text-sm min-w-[60px]">التقييمات</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="mt-6">

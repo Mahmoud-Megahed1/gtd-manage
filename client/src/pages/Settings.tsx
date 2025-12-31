@@ -236,39 +236,45 @@ export default function Settings() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">الإعدادات</h1>
-          <p className="text-muted-foreground">إدارة إعدادات النظام والشركة</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">الإعدادات</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">إدارة إعدادات النظام والشركة</p>
         </div>
 
         <Tabs defaultValue="company" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="company">
-              <Building2 className="w-4 h-4 ml-2" />
-              معلومات الشركة
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-7 w-full gap-1 sm:gap-0 h-auto sm:h-9">
+            <TabsTrigger value="company" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Building2 className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span className="sm:hidden">الشركة</span>
+              <span className="hidden sm:inline">معلومات الشركة</span>
             </TabsTrigger>
-            <TabsTrigger value="app">
-              <Shield className="w-4 h-4 ml-2" />
-              إعدادات التطبيق
+            <TabsTrigger value="app" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Shield className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span className="sm:hidden">التطبيق</span>
+              <span className="hidden sm:inline">إعدادات التطبيق</span>
             </TabsTrigger>
-            <TabsTrigger value="users">
-              <Users className="w-4 h-4 ml-2" />
-              المستخدمين
+            <TabsTrigger value="users" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Users className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span className="sm:hidden">المستخدمين</span>
+              <span className="hidden sm:inline">المستخدمين</span>
             </TabsTrigger>
-            <TabsTrigger value="files">
-              <Folder className="w-4 h-4 ml-2" />
-              ملفات مهمة
+            <TabsTrigger value="files" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Folder className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span className="sm:hidden">ملفات</span>
+              <span className="hidden sm:inline">ملفات مهمة</span>
             </TabsTrigger>
-            <TabsTrigger value="security">
-              <Shield className="w-4 h-4 ml-2" />
-              الأمان
+            <TabsTrigger value="security" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Shield className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span>الأمان</span>
             </TabsTrigger>
-            <TabsTrigger value="backup">
-              <Database className="w-4 h-4 ml-2" />
-              النسخ الاحتياطي
+            <TabsTrigger value="backup" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Database className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span className="sm:hidden">نسخ</span>
+              <span className="hidden sm:inline">النسخ الاحتياطي</span>
             </TabsTrigger>
-            <TabsTrigger value="approvals">
-              <Shield className="w-4 h-4 ml-2" />
-              طلبات الاعتماد
+            <TabsTrigger value="approvals" className="flex-1 text-xs sm:text-sm min-w-[70px]">
+              <Shield className="w-4 h-4 hidden sm:block sm:ml-1" />
+              <span className="sm:hidden">اعتماد</span>
+              <span className="hidden sm:inline">طلبات الاعتماد</span>
             </TabsTrigger>
           </TabsList>
 

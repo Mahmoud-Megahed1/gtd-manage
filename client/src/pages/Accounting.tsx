@@ -442,15 +442,15 @@ export default function Accounting() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">المحاسبة</h1>
-            <p className="text-muted-foreground">إدارة التكاليف والمصروفات والإيرادات</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">المحاسبة</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">إدارة التكاليف والمصروفات والإيرادات</p>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
@@ -519,11 +519,11 @@ export default function Accounting() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
-            {canViewAccounting && <TabsTrigger value="expenses">التكاليف التشغيلية</TabsTrigger>}
-            {canViewAccounting && <TabsTrigger value="sales">سجل الإيرادات</TabsTrigger>}
-            {canViewAccounting && <TabsTrigger value="purchases">المشتريات</TabsTrigger>}
-            {canViewReports && <TabsTrigger value="reports">التقارير</TabsTrigger>}
+          <TabsList className="flex flex-wrap sm:grid w-full gap-1 sm:gap-0 h-auto sm:h-9" style={{ gridTemplateColumns: `repeat(${visibleTabCount}, 1fr)` }}>
+            {canViewAccounting && <TabsTrigger value="expenses" className="flex-1 text-xs sm:text-sm min-w-[70px]">التكاليف</TabsTrigger>}
+            {canViewAccounting && <TabsTrigger value="sales" className="flex-1 text-xs sm:text-sm min-w-[70px]">الإيرادات</TabsTrigger>}
+            {canViewAccounting && <TabsTrigger value="purchases" className="flex-1 text-xs sm:text-sm min-w-[70px]">المشتريات</TabsTrigger>}
+            {canViewReports && <TabsTrigger value="reports" className="flex-1 text-xs sm:text-sm min-w-[70px]">التقارير</TabsTrigger>}
           </TabsList>
 
           {/* Expenses Tab */}

@@ -203,21 +203,22 @@ export default function Invoices() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">الفواتير والعروض</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">الفواتير والعروض</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               إدارة الفواتير وعروض الأسعار
             </p>
           </div>
           {canModify && (
             <Button
-              size="lg"
-              className="gap-2"
+              size="default"
+              className="gap-2 w-full sm:w-auto"
               onClick={() => setLocation('/fatore')}
             >
               <Plus className="w-5 h-5" />
-              فاتورة / عرض سعر جديد
+              <span className="hidden sm:inline">فاتورة / عرض سعر جديد</span>
+              <span className="sm:hidden">إضافة فاتورة</span>
             </Button>
           )}
         </div>
@@ -236,10 +237,10 @@ export default function Invoices() {
 
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="all">الكل</TabsTrigger>
-            <TabsTrigger value="invoices">الفواتير</TabsTrigger>
-            <TabsTrigger value="quotes">عروض الأسعار</TabsTrigger>
+          <TabsList className="flex flex-wrap sm:grid sm:grid-cols-3 w-full max-w-md gap-1 sm:gap-0 h-auto sm:h-9">
+            <TabsTrigger value="all" className="flex-1 min-w-[80px]">الكل</TabsTrigger>
+            <TabsTrigger value="invoices" className="flex-1 min-w-[80px]">الفواتير</TabsTrigger>
+            <TabsTrigger value="quotes" className="flex-1 min-w-[80px]">عروض الأسعار</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
