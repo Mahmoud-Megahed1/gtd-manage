@@ -262,7 +262,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar - Collapsible on all screens */}
       {/* z-40 puts it below the header (z-50), so we add pt-16 tto show content below header */}
       <aside
-        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 pt-16 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
+        className={`fixed top-0 right-0 z-40 bottom-0 w-72 bg-card border-l border-border transition-transform duration-300 pt-16 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
           }`}
       >
         <div className="flex flex-col h-full">
