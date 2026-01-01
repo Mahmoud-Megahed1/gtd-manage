@@ -187,6 +187,88 @@ export default function Accounting() {
     return q.toString();
   };
 
+  // Export flags - remove duplicates and fix CSV URLs
+  const canExportCsv = useMemo(() => (timeseries || []).length > 0, [timeseries]);
+  const canExportBreakdown = useMemo(() => (breakdown || []).length > 0, [breakdown]);
+
+  // Export PDF function - single unified version
+  const exportPdf = () => {
+    if (!chartRef.current) return;
+    
+    try {
+      const chartImage = chartRef.current.toBase64Image();
+      const printWindow = window.open('', '_blank');
+      
+      if (!printWindow) {
+        toast.error('يرجى السماح بالنوافذ المنبثقة');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+          <head>
+            <meta charset="utf-8">
+            <title>تقرير الإيرادات والمصروفات</title>
+            <style>
+              body { font-family: Cairo, 'Segoe UI', Tahoma, Arial, sans-serif; padding: 20px; direction: rtl; }
+              h1 { text-align: center; color: #1e3a5f; margin-bottom: 10px; }
+              .period { text-align: center; color: #666; margin-bottom: 30px; }
+              img { max-width: 100%; height: auto; margin: 20px 0; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px 8px; text-align: right; }
+              th { background: #1e3a5f; color: white; font-weight: 600; }
+              tbody tr:nth-child(even) { background: #f8f9fa; }
+              .highlight { background: #d4af37 !important; color: white !important; font-weight: bold; }
+              @media print {
+                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              }
+            </style>
+          </head>
+          <body>
+            <h1>تقرير الإيرادات والمصروفات</h1>
+            <p class="period">الفترة: من ${reportFrom || 'البداية'} إلى ${reportTo || 'الآن'}</p>
+            <img src="${chartImage}" alt="المخطط البياني" />
+            <table>
+              <thead>
+                <tr>
+                  <th>البند</th>
+                  <th>القيمة (ر.س)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>إجمالي الإيرادات المحصلة</td>
+                  <td>${(Number(reportData?.paidInvoicesTotal || 0) + Number(reportData?.installmentsTotal || 0) + Number(reportData?.manualSalesTotal || 0)).toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td>إجمالي المصروفات (تشغيل + مشتريات)</td>
+                  <td>${(Number(reportData?.expensesTotal ?? 0) + Number(reportData?.purchasesTotal ?? 0)).toLocaleString()}</td>
+                </tr>
+                <tr class="highlight">
+                  <td>صافي الربح</td>
+                  <td>${Number(reportData?.net ?? 0).toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      toast.error('فشل تصدير PDF');
+    }
+  };
+
   // Helper function to convert dateKey like "2025-12" to Arabic month name
   const formatDateKeyToArabic = (dateKey: string) => {
     const arabicMonths = [
@@ -243,7 +325,7 @@ export default function Accounting() {
     const labels = rows.map(r => formatDateKeyToArabic(r.dateKey));
     const ds: any[] = [];
 
-    // Revenue logic: Aggregate Invoices, Installments, and Manual Sales
+// Revenue logic: Aggregate Invoices, Installments, and Manual Sales
     // "Paid" Invoices + "Paid" Installments + "Completed" Sales = Completed Revenue
     // "Sent" Invoices + "Pending" Installments + "Pending" Sales = Processing Revenue
 
@@ -347,55 +429,6 @@ export default function Accounting() {
 
     return { labels, datasets: ds };
   }, [breakdown, invSel, purSel, expSel, instSel]);
-  const canExportCsv = useMemo(() => (timeseries || []).length > 0, [timeseries]);
-  const canExportBreakdown = useMemo(() => (breakdown || []).length > 0, [breakdown]);
-  const exportPdf = () => {
-    try {
-      const img = chartRef.current?.toBase64Image?.() || "";
-      const html = `
-        <html><head><meta charset="utf-8"><title>Reports</title>
-        <style>
-          body{font-family:system-ui,-apple-system,Segoe UI,Roboto; padding:24px}
-          .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-          .card{border:1px solid #ddd;border-radius:8px;padding:12px}
-          img{max-width:100%}
-        </style></head>
-        <body>
-          <h1>التقارير</h1>
-          <div class="grid">
-            <div class="card"><div>إجمالي الفواتير</div><h2>${reportData?.invoicesTotal ?? 0}</h2></div>
-            <div class="card"><div>إجمالي المشتريات</div><h2>${reportData?.purchasesTotal ?? 0}</h2></div>
-            <div class="card"><div>إجمالي المصروفات</div><h2>${reportData?.expensesTotal ?? 0}</h2></div>
-            <div class="card"><div>الصافي</div><h2>${reportData?.net ?? 0}</h2></div>
-          </div>
-          ${img ? `<h2>المخطط</h2><img id="chartImg" src="${img}" />` : "<div style='margin-top:16px;color:#6b7280'>لا يوجد مخطط لطباعته</div>"}
-          <script>
-            function readyToPrint(){
-              try {
-                window.focus();
-                setTimeout(function(){ window.print(); }, 150);
-              } catch {}
-            }
-            var pic = document.getElementById('chartImg');
-            if (pic) {
-              pic.onload = readyToPrint;
-              setTimeout(readyToPrint, 400);
-            } else {
-              setTimeout(readyToPrint, 150);
-            }
-          </script>
-        </body></html>`;
-      const w = window.open("", "_blank");
-      if (!w) return;
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-    } catch { }
-  };
-  const exportServerPdf = () => {
-    const qs = buildQuery();
-    window.open(`/reports.print.html?${qs}`, "_blank");
-  };
   // ========== End Advanced Reports ==========
 
   // URL tab param handling for redirect from /reports
@@ -1302,291 +1335,92 @@ export default function Accounting() {
                           plugins: {
                             legend: {
                               position: 'top' as const,
-                              rtl: true,
                               labels: {
+                                color: '#374151',
                                 font: {
-                                  family: 'Cairo, sans-serif',
-                                  size: 13,
+                                  weight: 'bold' as const,
                                 },
-                                padding: 15,
-                                usePointStyle: true,
                               },
                             },
                             tooltip: {
-                              rtl: true,
-                              titleFont: {
-                                family: 'Cairo, sans-serif',
-                                size: 14,
-                              },
-                              bodyFont: {
-                                family: 'Cairo, sans-serif',
-                                size: 13,
-                              },
-                              callbacks: {
-                                label: (context: any) => {
-                                  let label = context.dataset.label || '';
-                                  if (label && context.parsed.y !== null) {
-                                    label += ': ' + context.parsed.y.toLocaleString() + ' ر.س';
-                                  }
-                                  return label;
-                                }
-                              }
+                              backgroundColor: '#fff',
+                              titleColor: '#374151',
+                              bodyColor: '#374151',
+                              borderColor: '#ddd',
+                              borderWidth: 1,
+                              displayColors: false,
                             },
+                          },
+                          interaction: {
+                            mode: 'index' as const,
+                            intersect: false,
                           },
                           scales: {
                             x: {
                               grid: {
-                                display: false,
+                                color: '#e5e7eb',
+                                lineWidth: 1,
                               },
                               ticks: {
+                                color: '#374151',
                                 font: {
-                                  family: 'Cairo, sans-serif',
-                                  size: 12,
+                                  weight: 'medium' as const,
                                 },
                               },
                             },
                             y: {
-                              beginAtZero: true,
                               grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
+                                color: '#e5e7eb',
+                                lineWidth: 1,
                               },
                               ticks: {
+                                color: '#374151',
                                 font: {
-                                  family: 'Cairo, sans-serif',
-                                  size: 12,
+                                  weight: 'medium' as const,
                                 },
-                                callback: (value: any) => {
-                                  return value.toLocaleString() + ' ر.س';
-                                }
+                                callback: function(value) {
+                                  return value.toLocaleString() + ' ر.س'; // Add ر.س to the ticks
+                                },
                               },
                             },
                           },
                         }}
+                        style={{ 
+                          backgroundColor: '#fff', 
+                          borderRadius: '8px', 
+                          padding: '16px',
+                          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                        }}
                       />
-                    </div>
-
-                    {/* Download Buttons */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={exportPdf}
-                        disabled={!chartData.labels.length}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        تصدير PDF
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const qs = buildQuery();
-                          window.open(`/api/trpc/reports.export?${qs}`, "_blank");
-                        }}
-                        disabled={!canExportCsv}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        تصدير CSV
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const qs = buildBreakdownQuery();
-                          window.open(`/api/trpc/reports.breakdown?${qs}`, "_blank");
-                        }}
-                        disabled={!canExportBreakdown}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        تصدير التفصيل CSV
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               )}
             </div>
 
-            {/* Breakdown Table - Advanced Reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle>تفصيل شهري للإيرادات والمصروفات</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {bdLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">جاري التحميل بيانات التفصيل...</div>
-                ) : (
-                  <div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <Label htmlFor="invoiceStatuses">حالات الفواتير</Label>
-                        <Select
-                          value={invSel[0]}
-                          onValueChange={(v) => setInvSel([v])}
-                        >
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="كل الحالات" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="paid">مدفوعة</SelectItem>
-                            <SelectItem value="sent">مرسلة</SelectItem>
-                            <SelectItem value="draft">مسودة</SelectItem>
-                            <SelectItem value="cancelled">ملغاة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="purchaseStatuses">حالات المشتريات</Label>
-                        <Select
-                          value={purSel[0]}
-                          onValueChange={(v) => setPurSel([v])}
-                        >
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="كل الحالات" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="completed">مكتملة</SelectItem>
-                            <SelectItem value="pending">قيد الانتظار</SelectItem>
-                            <SelectItem value="cancelled">ملغاة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="expenseStatuses">حالات المصروفات</Label>
-                        <Select
-                          value={expSel[0]}
-                          onValueChange={(v) => setExpSel([v])}
-                        >
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="كل الحالات" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">نشطة</SelectItem>
-                            <SelectItem value="processing">قيد المعالجة</SelectItem>
-                            <SelectItem value="completed">مكتملة</SelectItem>
-                            <SelectItem value="cancelled">ملغاة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="installmentStatuses">حالات الأقساط</Label>
-                        <Select
-                          value={instSel[0]}
-                          onValueChange={(v) => setInstSel([v])}
-                        >
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="كل الحالات" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">قيد الدفع</SelectItem>
-                            <SelectItem value="paid">مدفوعة</SelectItem>
-                            <SelectItem value="cancelled">ملغاة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => {
-                          bdRefetch();
-                        }}
-                        className="flex-1"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        تحميل التفصيل
-                      </Button>
-                    </div>
-
-                    {/* Note: Breakdown data structure is {dateKey, invoices, purchases, expenses, installments} */}
-                    {/* The breakdown chart below shows the data correctly */}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Breakdown Chart */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>التفصيل حسب الحالة</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {bdLoading ? (
-                  <div className="h-64 bg-muted rounded animate-pulse" />
-                ) : (
-                  <div className="h-[350px] w-full">
-                    <Line
-                      data={breakdownData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: 'bottom' as const,
-                            rtl: true,
-                            labels: {
-                              font: {
-                                family: 'Cairo, sans-serif',
-                                size: 12,
-                              },
-                              padding: 12,
-                              usePointStyle: true,
-                            },
-                          },
-                          tooltip: {
-                            rtl: true,
-                            titleFont: {
-                              family: 'Cairo, sans-serif',
-                              size: 13,
-                            },
-                            bodyFont: {
-                              family: 'Cairo, sans-serif',
-                              size: 12,
-                            },
-                            callbacks: {
-                              label: (context: any) => {
-                                let label = context.dataset.label || '';
-                                if (label && context.parsed.y !== null) {
-                                  label += ': ' + context.parsed.y.toLocaleString() + ' ر.س';
-                                }
-                                return label;
-                              }
-                            }
-                          },
-                        },
-                        scales: {
-                          x: {
-                            grid: {
-                              display: false,
-                            },
-                            ticks: {
-                              font: {
-                                family: 'Cairo, sans-serif',
-                                size: 11,
-                              },
-                            },
-                          },
-                          y: {
-                            beginAtZero: true,
-                            grid: {
-                              color: 'rgba(0, 0, 0, 0.05)',
-                            },
-                            ticks: {
-                              font: {
-                                family: 'Cairo, sans-serif',
-                                size: 11,
-                              },
-                              callback: (value: any) => {
-                                return value.toLocaleString() + ' ر.س';
-                              }
-                            },
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </DashboardLayout>
-  );
-}
+            {/* Breakdown Tables */}
+            {!tsLoading && breakdown && breakdown.length > 0 && (
+              <div className="grid gap-4 sm:gap-6">
+                {/* Revenues Breakdown Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>تفاصيل الإيرادات</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>التاريخ</TableHead>
+                          <TableHead>المشروع</TableHead>
+                          <TableHead>الإيراد المكتمل</TableHead>
+                          <TableHead>الإيراد قيد المعالجة</TableHead>
+                          <TableHead>المصدر</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(breakdown || []).map((row, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{new Date(row.dateKey).toLocaleDateString('ar-SA')}</TableCell>
+                            <TableCell>{row.projectName || 'عام'}</TableCell>
+                            <TableCell className="text-green-600 font-semibold">
+                              {row.invoices?.paid && row.installments?.paid ? (row.invoices.paid + row.installments.paid).toLocaleString() + ' ر.س' : '-'}
