@@ -235,13 +235,12 @@ export default function Accounting() {
       return;
     }
 
-    const headers = ['التاريخ', 'الإيرادات (مكتملة)', 'الإيرادات (مرسلة)', 'الإيرادات (قيد المعالجة)', 'المشتريات', 'المصروفات'];
+    const headers = ['التاريخ', 'الإيرادات (مكتملة)', 'الإيرادات (قيد المعالجة)', 'المشتريات', 'المصروفات'];
     const rows = (breakdown as any[]).map(r => {
-      // إيرادات مكتملة = invoices.paid + sales.completed
-      const completedRevenue = ((r.invoices?.paid || 0) + (r.sales?.completed || 0));
-      // إيرادات مرسلة = invoices.sent (Matched to 'Sent' label in UI)
-      const sentRevenue = (r.invoices?.sent || 0);
-      // إيرادات قيد المعالجة = invoices.draft + sales.pending (Matched to 'Processing' label in UI)
+      // إيرادات مكتملة = invoices(paid + sent) + sales(completed) (User Request: Sent is considered Completed/Revenue)
+      const completedRevenue = ((r.invoices?.paid || 0) + (r.invoices?.sent || 0) + (r.sales?.completed || 0));
+
+      // إيرادات قيد المعالجة = invoices(draft) + sales(pending)
       const processingRevenue = ((r.invoices?.draft || 0) + (r.sales?.pending || 0));
 
       const completedPurchases = (r.purchases?.completed || 0);
@@ -250,7 +249,6 @@ export default function Accounting() {
       return [
         formatDateKeyToArabic(r.dateKey),
         completedRevenue,
-        sentRevenue,
         processingRevenue,
         completedPurchases,
         totalExpenses
