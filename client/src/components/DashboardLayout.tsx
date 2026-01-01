@@ -262,111 +262,110 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar - Collapsible on all screens */}
       {/* z-40 puts it below the header (z-50), so we add pt-16 tto show content below header */}
       <aside
-        className={`fixed top-0 right-0 z-40 bottom-0 w-72 bg-card border-l border-border transition-transform duration-300 pt-16 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
+        className={`fixed top-0 right-0 z-40 h-screen w-72 bg-card border-l border-border transition-transform duration-300 pt-16 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
           }`}
       >
-        <div className="h-full overflow-y-auto custom-scrollbar">
-          <div className="flex flex-col min-h-full">
-            {/* Mobile/Tablet Search (shown inside sidebar if screen is small) */}
-            <div className="p-4 md:hidden">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="بحث..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
+        <div className="flex flex-col h-full">
+          {/* Mobile/Tablet Search (shown inside sidebar if screen is small) */}
+          <div className="p-4 md:hidden">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="بحث..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-10"
+              />
             </div>
+          </div>
 
-            {/* Theme Toggle */}
-            {switchable && (
-              <div className="px-4 py-4">
-                <Button
-                  variant="outline"
-                  className="w-full justify-between"
-                  onClick={() => toggleTheme && toggleTheme()}
-                >
-                  <span>تبديل المظهر</span>
-                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </Button>
-              </div>
-            )}
-
-            <Separator className="md:hidden" />
-
-            {/* Navigation */}
-            <div className="flex-1 px-3 py-2">
-              <nav className="space-y-1">
-                {filteredNavItems.map((item) => {
-                  // ULTRA FAILSAFE: Do not render Accounting for Department Manager
-                  if (user?.role === 'department_manager' && item.href === '/accounting') return null;
-
-                  const isActive = location === item.href || location.startsWith(item.href + "/");
-                  return (
-                    <Link key={item.href} href={item.href}>
-                      <a
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive
-                          ? "bg-primary text-primary-foreground font-medium"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                          }`}
-                      >
-                        <div className="relative">
-                          {item.icon}
-                          {item.href === "/notifications" && (notifCount?.count ?? 0) > 0 && (
-                            <span className="absolute -top-1 -left-1 bg-red-600 text-white text-[10px] rounded-full px-1.5">
-                              {notifCount?.count}
-                            </span>
-                          )}
-                        </div>
-                        <span>{item.title}</span>
-                      </a>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-
-            <Separator />
-
-            {/* User Profile */}
-            <div className="p-4 mt-auto">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {getUserInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 text-right">
-                      <p className="font-medium text-sm">{user.name || "مستخدم"}</p>
-                      <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>حسابي</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="ml-2 w-4 h-4" />
-                    تسجيل الخروج
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Logout Button - Direct */}
+          {/* Logo Section inside Sidebar - Removed as it's now in Header */}
+          {/* Theme Toggle */}
+          {switchable && (
+            <div className="px-4 py-4">
               <Button
                 variant="outline"
-                className="w-full mt-3 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                onClick={handleLogout}
+                className="w-full justify-between"
+                onClick={() => toggleTheme && toggleTheme()}
               >
-                <LogOut className="ml-2 w-4 h-4" />
-                تسجيل الخروج
+                <span>تبديل المظهر</span>
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
             </div>
+          )}
+
+          <Separator className="md:hidden" />
+
+          {/* Navigation */}
+          <ScrollArea className="flex-1 px-3">
+            <nav className="space-y-1 py-2">
+              {filteredNavItems.map((item) => {
+                // ULTRA FAILSAFE: Do not render Accounting for Department Manager
+                if (user?.role === 'department_manager' && item.href === '/accounting') return null;
+
+                const isActive = location === item.href || location.startsWith(item.href + "/");
+                return (
+                  <Link key={item.href} href={item.href}>
+                    <a
+                      onClick={() => setSidebarOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                    >
+                      <div className="relative">
+                        {item.icon}
+                        {item.href === "/notifications" && (notifCount?.count ?? 0) > 0 && (
+                          <span className="absolute -top-1 -left-1 bg-red-600 text-white text-[10px] rounded-full px-1.5">
+                            {notifCount?.count}
+                          </span>
+                        )}
+                      </div>
+                      <span>{item.title}</span>
+                    </a>
+                  </Link>
+                );
+              })}
+            </nav>
+          </ScrollArea>
+
+          <Separator />
+
+          {/* User Profile */}
+          <div className="p-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start gap-3 h-auto p-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getUserInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 text-right">
+                    <p className="font-medium text-sm">{user.name || "مستخدم"}</p>
+                    <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>حسابي</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="ml-2 w-4 h-4" />
+                  تسجيل الخروج
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Logout Button - Direct */}
+            <Button
+              variant="outline"
+              className="w-full mt-3 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+              onClick={handleLogout}
+            >
+              <LogOut className="ml-2 w-4 h-4" />
+              تسجيل الخروج
+            </Button>
           </div>
         </div>
       </aside>
