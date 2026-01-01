@@ -182,31 +182,32 @@ export default function Accounting() {
     return {
       labels,
       datasets: [
-        { 
-          label: "الإيرادات", 
-          data: (timeseries || []).map(r => r.invoices + r.installments + ((r as any).sales || 0)), 
-          borderColor: "#10B981", 
-          backgroundColor: "rgba(16, 185, 129, 0.1)", 
-          tension: 0.4, 
-          fill: "origin", 
-          borderWidth: 3, 
-          pointRadius: 4, 
-          pointHoverRadius: 6, 
-          pointBackgroundColor: "#fff", 
-          pointBorderWidth: 2 
+        {
+          label: "الإيرادات",
+          // Revenue = Invoices (paid) + Installments (paid) + Sales (completed)
+          data: (timeseries || []).map(r => (r.invoices || 0) + (r.installments || 0) + ((r as any).sales || 0)),
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          tension: 0.4,
+          fill: "origin",
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "#fff",
+          pointBorderWidth: 2
         },
-        { 
-          label: "المصروفات", 
-          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), 
-          borderColor: "#EF4444", 
-          backgroundColor: "rgba(239, 68, 68, 0.1)", 
-          tension: 0.4, 
-          fill: "origin", 
-          borderWidth: 3, 
-          pointRadius: 4, 
-          pointHoverRadius: 6, 
-          pointBackgroundColor: "#fff", 
-          pointBorderWidth: 2 
+        {
+          label: "المصروفات",
+          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)),
+          borderColor: "#EF4444",
+          backgroundColor: "rgba(239, 68, 68, 0.1)",
+          tension: 0.4,
+          fill: "origin",
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "#fff",
+          pointBorderWidth: 2
         },
       ],
     };
@@ -222,7 +223,7 @@ export default function Accounting() {
     // "Pending" Installments + "Sent" Invoices = Processing Revenue
 
     // We will use instSel to drive the Revenue display as per user request to map "Installments" to "Revenue"
-    if (instSel.includes("paid")) {
+    if (instSel.includes("paid") || invSel.includes("paid")) {
       ds.push({
         label: "إيرادات مكتملة",
         data: rows.map(r => ((r.invoices || {}).paid || 0) + ((r.installments || {}).paid || 0)),

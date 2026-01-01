@@ -53,15 +53,26 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
         },
         project_manager: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            clients: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
             projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
             tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+        },
+        department_manager: {
+            clients: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
         },
         designer: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -140,18 +151,7 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
             overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
         },
-        // مدير قسم - صلاحيات مشابهة لمدير المشاريع
-        department_manager: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-        },
+
         // منسق مشاريع - يشوف المشاريع والمهام المسندة إليه
         project_coordinator: {
             clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
@@ -884,17 +884,17 @@ export const generalReportsRouter = router({
                         .from(expenses)
                         .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)))
 
-                        // Invoices (Mirroring accounting.ts logic + Date filter)
-                        , conn.select({
-                            total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
-                            paid: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END), 0)`
-                        }).from(invoices)
-                            .where(and(
-                                gte(invoices.issueDate, from),
-                                lte(invoices.issueDate, to),
-                                eq(invoices.type, 'invoice'),
-                                ne(invoices.status, 'cancelled')
-                            )),
+                    // Invoices (Mirroring accounting.ts logic + Date filter)
+                    , conn.select({
+                        total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
+                        paid: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END), 0)`
+                    }).from(invoices)
+                        .where(and(
+                            gte(invoices.issueDate, from),
+                            lte(invoices.issueDate, to),
+                            eq(invoices.type, 'invoice'),
+                            ne(invoices.status, 'cancelled')
+                        )),
 
                     // Installments (All for total, Paid for paid - mirroring accounting.ts)
                     conn.select({
@@ -908,15 +908,15 @@ export const generalReportsRouter = router({
                         .from(purchases)
                         .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)))
 
-                        // Manual Sales (Completed ONLY, not linked to invoices)
-                        , conn.select({ total: sql<number>`COALESCE(SUM(${sales.amount}), 0)` })
-                            .from(sales)
-                            .where(and(
-                                gte(sales.saleDate, from),
-                                lte(sales.saleDate, to),
-                                eq(sales.status, 'completed'),
-                                isNull(sales.invoiceId)
-                            )),
+                    // Manual Sales (Completed ONLY, not linked to invoices)
+                    , conn.select({ total: sql<number>`COALESCE(SUM(${sales.amount}), 0)` })
+                        .from(sales)
+                        .where(and(
+                            gte(sales.saleDate, from),
+                            lte(sales.saleDate, to),
+                            eq(sales.status, 'completed'),
+                            isNull(sales.invoiceId)
+                        )),
                 ]);
 
                 const totalOperatingExpenses = Number(expResult[0]?.total || 0);
