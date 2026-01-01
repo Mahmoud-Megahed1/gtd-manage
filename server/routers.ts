@@ -2807,8 +2807,34 @@ export const appRouter = router({
           return { month: months[m], revenue: 0, expenses: 0 };
         });
       }
-      const invRows = await conn.select().from(invoices).where(gte(invoices.createdAt, start));
-      const expRows = await conn.select().from(expenses).where(gte(expenses.createdAt, start));
+
+      const { isNull } = await import('drizzle-orm');
+
+      // 1. Revenue from Paid Invoices (uses issueDate, status='paid')
+      const invoiceRows = await conn.select().from(invoices).where(
+        and(
+          gte(invoices.issueDate, start),
+          eq(invoices.status, 'paid')
+        )
+      );
+
+      // 2. Revenue from Manual Sales (Sales without Invoice link)
+      const manualSaleRows = await conn.select().from(sales).where(
+        and(
+          gte(sales.saleDate, start),
+          eq(sales.status, 'completed'),
+          isNull(sales.invoiceId)
+        )
+      );
+
+      // 3. Expenses (uses expenseDate, excludes cancelled)
+      const expRows = await conn.select().from(expenses).where(
+        and(
+          gte(expenses.expenseDate, start),
+          ne(expenses.status, 'cancelled')
+        )
+      );
+
       const acc: Record<string, { revenue: number; expenses: number }> = {};
       Array.from({ length: 6 }).forEach((_, idx) => {
         const d = new Date(start);
@@ -2816,16 +2842,28 @@ export const appRouter = router({
         const key = `${d.getFullYear()}-${d.getMonth()}`;
         acc[key] = { revenue: 0, expenses: 0 };
       });
-      invRows.forEach((r: any) => {
-        const d = new Date(r.createdAt);
+
+      // Sum Invoice Revenue
+      invoiceRows.forEach((r: any) => {
+        const d = new Date(r.issueDate);
         const key = `${d.getFullYear()}-${d.getMonth()}`;
         if (acc[key]) acc[key].revenue += Number(r.total || 0);
       });
+
+      // Sum Manual Sales Revenue
+      manualSaleRows.forEach((r: any) => {
+        const d = new Date(r.saleDate);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (acc[key]) acc[key].revenue += Number(r.amount || 0);
+      });
+
+      // Sum Expenses
       expRows.forEach((r: any) => {
-        const d = new Date(r.createdAt);
+        const d = new Date(r.expenseDate);
         const key = `${d.getFullYear()}-${d.getMonth()}`;
         if (acc[key]) acc[key].expenses += Number(r.amount || 0);
       });
+
       return Array.from({ length: 6 }).map((_, idx) => {
         const d = new Date(start);
         d.setMonth(start.getMonth() + idx);
