@@ -110,16 +110,14 @@ const navItems: NavItem[] = [
     ]
   },
 
-  // التقارير - Reports (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️+, project_manager👁️+, planning_engineer👁️, sales_manager👁️+, procurement_officer👁️, qa_qc👁️)
-  {
-    title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, roles: [
-      "admin", "finance_manager", "accountant", "department_manager", "project_manager",
-      "planning_engineer", "sales_manager", "procurement_officer", "qa_qc"
-    ]
+  // مساعد AI - AI Assistant (Available for all users - permissions will be enforced in backend)
+  { 
+    title: "مساعد AI", 
+    href: "/ai-assistant", 
+    icon: <Sparkles className="w-5 h-5 text-indigo-500" />,
+    // No roles specified = available for all authenticated users
+    // Backend enforces role-specific capabilities (see ai.chat in routers.ts)
   },
-
-  // مساعد AI - AI Assistant (New!)
-  { title: "مساعد AI", href: "/ai-assistant", icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
 
   // الإشعارات - Notifications (all users)
   { title: "الإشعارات", href: "/notifications", icon: <Bell className="w-5 h-5" /> },
