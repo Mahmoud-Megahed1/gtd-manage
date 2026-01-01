@@ -40,7 +40,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
         borderColor: 'rgba(16, 185, 129, 1)',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,
-        tension: 0.4,
+        tension: 0.1,
         pointRadius: 4,
         pointHoverRadius: 6,
       },
@@ -50,7 +50,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
         borderColor: 'rgba(239, 68, 68, 1)',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         fill: true,
-        tension: 0.4,
+        tension: 0.1,
         pointRadius: 4,
         pointHoverRadius: 6,
       },
@@ -81,7 +81,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
           family: 'Cairo, sans-serif',
         },
         callbacks: {
-          label: function(context: any) {
+          label: function (context: any) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
@@ -101,7 +101,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
           font: {
             family: 'Cairo, sans-serif',
           },
-          callback: function(value: any) {
+          callback: function (value: any) {
             return value.toLocaleString() + ' ر.س';
           }
         },

@@ -26,7 +26,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc";
 import { Plus, Download, TrendingUp, TrendingDown } from "lucide-react";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { AddSaleDialog } from "@/components/AddSaleDialog";
 import { AddPurchaseDialog } from "@/components/AddPurchaseDialog";
@@ -49,6 +49,18 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 // Force cache bust: v1.1.1
 export default function Accounting() {
+  const { canView } = usePermission();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!canView('accounting')) {
+      setLocation('/');
+    }
+  }, [canView, setLocation]);
+
+  if (!canView('accounting')) {
+    return null;
+  }
   const { data: expenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.accounting.expenses.list.useQuery({});
   // Removed installments section per requirement
   const { data: salesList, isLoading: loadingSales, refetch: refetchSales } = trpc.accounting.sales.list.useQuery();
