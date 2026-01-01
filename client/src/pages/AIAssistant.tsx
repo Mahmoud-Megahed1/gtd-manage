@@ -211,14 +211,10 @@ export default function AIAssistant() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               المحادثة الذكية
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              إعدادات الصفحة
             </TabsTrigger>
             {user?.role === 'admin' && (
               <TabsTrigger value="admin" className="flex items-center gap-2">
@@ -311,57 +307,6 @@ export default function AIAssistant() {
                   <p className="text-xs text-muted-foreground mt-2 text-center">
                     الردود يتم إنشاؤها بواسطة الذكاء الاصطناعي وقد تحتمل الخطأ. يرجى مراجعة المعلومات المهمة.
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Settings Tab (Legacy) */}
-          <TabsContent value="settings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>صفحة Gemini الخارجية (تضمين)</CardTitle>
-                <CardDescription>
-                  يمكنك هنا تضمين صفحة Gemini الخارجية، ولكن نوصي باستخدام المحادثة الذكية المباشرة في التبويب السابق.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      رابط الصفحة <span className="text-destructive">*</span>
-                    </label>
-                    <Input
-                      value={pageUrl}
-                      onChange={(e) => setPageUrl(e.target.value)}
-                      placeholder="https://gemini.google.com/..."
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button
-                    onClick={handleSaveSettings}
-                    disabled={isSaving || !pageUrl}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 ml-2" />
-                    )}
-                    حفظ الإعدادات
-                  </Button>
-
-                  {geminiPage?.pageUrl && (
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(geminiPage.pageUrl, '_blank')}
-                    >
-                      <Globe className="h-4 w-4 ml-2" />
-                      فتح في نافذة جديدة
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>

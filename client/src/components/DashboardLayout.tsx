@@ -162,6 +162,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // Force hide Accounting for department_manager (Hard override)
     if (user?.role === 'department_manager' && item.href === '/accounting') return false;
 
+    // Admin sees everything (Safety Override)
+    if (user?.role === 'admin') return true;
+
     // First check: role-based access (primary)
     const byRole = !item.roles || (user && item.roles.includes(user.role));
 
@@ -181,6 +184,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       "/hr": "hr",
       "/audit-logs": "audit",
       "/settings": "settings",
+      "/ai-assistant": "ai_assistant", // Added specific permission key
     };
     const permKey = keyMap[item.href];
 
