@@ -4,6 +4,8 @@
 */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getAppSetting } from '../db'; // Correct path to server/db
+import { decrypt } from './crypto';
 
 // Model type options
 export type GeminiModelType = 'flash' | 'pro' | 'exp';
@@ -23,15 +25,28 @@ export const MODEL_DISPLAY_NAMES: Record<GeminiModelType, string> = {
 };
 
 /**
- * Get the Gemini API key from environment
+ * Get the Gemini API key from DB or environment
  * @throws Error if key is not configured
  */
-function getApiKey(): string {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        throw new Error('GEMINI_API_KEY is not configured in .env');
+async function getApiKey(): Promise<string> {
+    // 1. Check DB for encrypted key (Admin overrides)
+    try {
+        const encryptedKey = await getAppSetting('GEMINI_API_KEY');
+        if (encryptedKey) {
+            return decrypt(encryptedKey);
+        }
+    } catch (error) {
+        console.error('Failed to retrieve/decrypt API key from DB:', error);
+        // Fallback to env
     }
-    return apiKey;
+
+    // 2. Check Environment Variable
+    const envKey = process.env.GEMINI_API_KEY;
+    if (envKey) {
+        return envKey;
+    }
+
+    throw new Error('GEMINI_API_KEY is not configured in DB or .env');
 }
 
 /**
@@ -55,7 +70,7 @@ export async function invokeGemini(params: {
 }): Promise<string> {
     const { prompt, modelType = 'flash', systemPrompt, conversationHistory = [] } = params;
 
-    const apiKey = getApiKey();
+    const apiKey = await getApiKey();
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const modelName = MODEL_NAMES[modelType];
@@ -107,6 +122,15 @@ export async function invokeGemini(params: {
 /**
  * Check if Gemini API key is configured
  */
-export function isGeminiConfigured(): boolean {
-    return Boolean(process.env.GEMINI_API_KEY);
+export async function isGeminiConfigured(): Promise<boolean> {
+    try {
+        // Check DB
+        const dbKey = await getAppSetting('GEMINI_API_KEY');
+        if (dbKey) return true;
+
+        // Check Env
+        return Boolean(process.env.GEMINI_API_KEY);
+    } catch {
+        return false;
+    }
 }

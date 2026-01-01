@@ -3053,11 +3053,30 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    // Set Gemini API Key (Admin Only)
+    setApiKey: protectedProcedure
+      .input(z.object({
+        apiKey: z.string().min(1),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admins can set API keys' });
+        }
+
+        const { encrypt } = await import('./_core/crypto');
+        const encryptedKey = encrypt(input.apiKey);
+
+        await db.setAppSetting('GEMINI_API_KEY', encryptedKey, ctx.user.id);
+
+        await logAudit(ctx.user.id, 'SET_AI_KEY', 'appSettings', undefined, 'Updated Gemini API Key', ctx);
+        return { success: true };
+      }),
+
     // Check if Gemini API is configured
     isConfigured: protectedProcedure
       .query(async () => {
         const { isGeminiConfigured } = await import('./_core/gemini');
-        return { configured: isGeminiConfigured() };
+        return { configured: await isGeminiConfigured() };
       }),
 
     // Chat with Gemini AI (Proxy endpoint)

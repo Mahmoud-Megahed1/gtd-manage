@@ -18,7 +18,10 @@ import {
   X,
   UserCog,
   Bell,
-  BarChart3
+  UserCog,
+  Bell,
+  BarChart3,
+  Bot // Added Bot icon
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -106,6 +109,17 @@ const navItems: NavItem[] = [
       "planning_engineer", "sales_manager", "procurement_officer", "qa_qc"
     ]
   },
+
+  // التقارير - Reports (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️+, project_manager👁️+, planning_engineer👁️, sales_manager👁️+, procurement_officer👁️, qa_qc👁️)
+  {
+    title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, roles: [
+      "admin", "finance_manager", "accountant", "department_manager", "project_manager",
+      "planning_engineer", "sales_manager", "procurement_officer", "qa_qc"
+    ]
+  },
+
+  // مساعد AI - AI Assistant (New!)
+  { title: "مساعد AI", href: "/ai-assistant", icon: <Bot className="w-5 h-5" /> },
 
   // الإشعارات - Notifications (all users)
   { title: "الإشعارات", href: "/notifications", icon: <Bell className="w-5 h-5" /> },

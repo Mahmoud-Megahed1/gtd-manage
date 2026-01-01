@@ -28,11 +28,12 @@ import {
 type Message = { role: "user" | "assistant"; content: string };
 
 export default function AIAssistant() {
-  useAuth({ redirectOnUnauthenticated: true });
+  const { user } = useAuth({ redirectOnUnauthenticated: true });
 
   // Settings state
   const [pageUrl, setPageUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [adminKey, setAdminKey] = useState(""); // Admin API Key input
   const [isSaving, setIsSaving] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
 
@@ -79,6 +80,17 @@ export default function AIAssistant() {
     },
   });
 
+  const setKeyMutation = trpc.ai.setApiKey.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث مفتاح API بنجاح");
+      setAdminKey("");
+      configRefetch(); // Refetch config status
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل تحديث المفتاح");
+    },
+  });
+
   // Initialize form with saved data
   useEffect(() => {
     if (geminiPage?.pageUrl) {
@@ -94,32 +106,18 @@ export default function AIAssistant() {
   }, [geminiPage]);
 
   const handleSaveSettings = async () => {
-    if (!pageUrl) {
-      toast.error("يرجى إدخال رابط الصفحة");
-      return;
-    }
-
-    // Validate URL
     try {
-      new URL(pageUrl);
-    } catch {
-      toast.error("الرابط غير صالح");
-      return;
-    }
-
-    if (!pageUrl.startsWith('https://')) {
-      toast.error("يجب أن يكون الرابط آمناً (HTTPS)");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
+      if (!pageUrl) {
+        toast.error("الرجاء إدخال رابط الصفحة");
+        return;
+      }
+      setIsSaving(true);
       await savePageMutation.mutateAsync({
         pageUrl,
         apiKey: apiKey || undefined,
       });
-      setActiveTab("gemini");
-    } finally {
+      setIsSaving(false);
+    } catch {
       setIsSaving(false);
     }
   };
@@ -137,7 +135,7 @@ export default function AIAssistant() {
   };
 
   // Check if Gemini is configured (API key exists)
-  const { data: config } = trpc.ai.isConfigured.useQuery();
+  const { data: config, refetch: configRefetch } = trpc.ai.isConfigured.useQuery();
 
   // Chat mutation
   const chatMutation = trpc.ai.chat.useMutation({
@@ -170,6 +168,11 @@ export default function AIAssistant() {
       modelType: selectedModel,
       conversationHistory: messages.map(m => ({ role: m.role, content: m.content }))
     });
+  };
+
+  const handleUpdateAdminKey = async () => {
+    if (!adminKey) return;
+    await setKeyMutation.mutateAsync({ apiKey: adminKey });
   };
 
   if (isLoading) {
@@ -208,15 +211,21 @@ export default function AIAssistant() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3">
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               المحادثة الذكية
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              إعدادات الصفحة (Legacy)
+              إعدادات الصفحة
             </TabsTrigger>
+            {user?.role === 'admin' && (
+              <TabsTrigger value="admin" className="flex items-center gap-2">
+                <Settings className="h-4 w-4 text-red-500" />
+                إعدادات المسؤول
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Chat Tab */}
@@ -252,8 +261,8 @@ export default function AIAssistant() {
                     <div key={idx} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user"
-                            ? "bg-primary text-primary-foreground rounded-tl-none"
-                            : "bg-white border text-slate-800 rounded-tr-none"
+                          ? "bg-primary text-primary-foreground rounded-tl-none"
+                          : "bg-white border text-slate-800 rounded-tr-none"
                           }`}
                       >
                         {m.content}
@@ -357,6 +366,57 @@ export default function AIAssistant() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ADMIN CONFIG TAB */}
+          {user?.role === 'admin' && (
+            <TabsContent value="admin" className="space-y-4">
+              <Card className="border-red-200">
+                <CardHeader>
+                  <CardTitle className="text-red-700">إعدادات المسؤول (API Key)</CardTitle>
+                  <CardDescription>
+                    إعداد مفتاح Gemini API. هذا المفتاح سيُستخدم لجميع موظفي الشركة.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-red-50 p-4 rounded-lg text-sm text-red-800 border-r-4 border-red-500 mb-4">
+                    <p className="font-bold mb-1">تنبيه أمني:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>هذا المفتاح يتم تشفيره وحفظه في قاعدة البيانات.</li>
+                      <li>يتم استخدامه بدلاً من المفتاح الموجود في ملف .env (إذا وجد).</li>
+                      <li>لا يمكن استرجاع المفتاح بعد الحفظ (لأسباب أمنية)، يمكن فقط استبداله.</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Gemini API Key الجديد
+                    </label>
+                    <Input
+                      value={adminKey}
+                      onChange={(e) => setAdminKey(e.target.value)}
+                      placeholder='AIzaSy...'
+                      type="password"
+                      className="max-w-xl"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleUpdateAdminKey}
+                    disabled={setKeyMutation.isPending || !adminKey}
+                    variant="destructive"
+                  >
+                    {setKeyMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 ml-2" />
+                    )}
+                    تحديث المفتاح (تشفير وحفظ)
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
         </Tabs>
       </div>
     </DashboardLayout>

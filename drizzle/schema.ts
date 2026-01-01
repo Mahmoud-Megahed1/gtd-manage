@@ -669,3 +669,13 @@ export const savedReports = mysqlTable("savedReports", {
 
 export type SavedReport = typeof savedReports.$inferSelect;
 export type InsertSavedReport = typeof savedReports.$inferInsert;
+
+export const appSettings = mysqlTable("appSettings", {
+	key: varchar({ length: 100 }).primaryKey(),
+	value: text().notNull(), // Encrypted value
+	updatedBy: int(),
+	updatedAt: timestamp({ mode: 'date' }).defaultNow().notNull(),
+});
+
+export type AppSetting = typeof appSettings.$inferSelect;
+export type InsertAppSetting = typeof appSettings.$inferInsert;

@@ -14,7 +14,8 @@ import {
   auditLogs, InsertAuditLog,
   companySettings, InsertCompanySetting,
   attachments, InsertAttachment,
-  sales, InsertSale
+  sales, InsertSale,
+  appSettings // Added appSettings
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import * as demo from './_core/demoStore';
@@ -807,6 +808,29 @@ export async function globalSearch(query: string) {
     invoices: invoiceResults,
     forms: formResults
   };
+}
+
+// ============= APP SETTINGS (Admin Config) =============
+
+export async function getAppSetting(key: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
+  return result[0]?.value || null;
+}
+
+export async function setAppSetting(key: string, value: string, updatedBy?: number) {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(appSettings).values({
+    key,
+    value,
+    updatedBy,
+    updatedAt: new Date()
+  }).onDuplicateKeyUpdate({
+    set: { value, updatedBy, updatedAt: new Date() }
+  });
 }
 
 // ============= STATISTICS =============
