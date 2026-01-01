@@ -235,16 +235,21 @@ export default function Accounting() {
       return;
     }
 
-    const headers = ['التاريخ', 'فواتير مدفوعة', 'فواتير مرسلة', 'أقساط مدفوعة', 'أقساط معلقة', 'مشتريات مكتملة', 'مصروفات فعالة'];
-    const rows = (breakdown as any[]).map(r => [
-      formatDateKeyToArabic(r.dateKey),
-      (r.invoices?.paid || 0),
-      (r.invoices?.sent || 0),
-      (r.installments?.paid || 0),
-      (r.installments?.pending || 0),
-      (r.purchases?.completed || 0),
-      (r.expenses?.active || 0)
-    ]);
+    const headers = ['التاريخ', 'الإيرادات (المحصلة)', 'الإيرادات (المعلقة)', 'المشتريات', 'المصروفات'];
+    const rows = (breakdown as any[]).map(r => {
+      const completedRevenue = ((r.invoices?.paid || 0) + (r.installments?.paid || 0) + (r.sales?.completed || 0));
+      const processingRevenue = ((r.invoices?.sent || 0) + (r.installments?.pending || 0) + (r.sales?.pending || 0));
+      const completedPurchases = (r.purchases?.completed || 0);
+      const totalExpenses = (r.expenses?.completed || 0) + (r.expenses?.active || 0) + (r.expenses?.processing || 0);
+
+      return [
+        formatDateKeyToArabic(r.dateKey),
+        completedRevenue,
+        processingRevenue,
+        completedPurchases,
+        totalExpenses
+      ];
+    });
 
     const csvContent = '\uFEFF' + [headers, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -258,6 +263,7 @@ export default function Accounting() {
     URL.revokeObjectURL(url);
     toast.success('تم تصدير التفصيل بنجاح');
   };
+
 
   const chartData = useMemo(() => {
     const labels = (timeseries || []).map(r => formatDateKeyToArabic(r.dateKey));
@@ -1324,18 +1330,7 @@ export default function Accounting() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="sm:col-span-2">
-                    <Button
-                      onClick={() => {
-                        tsRefetch();
-                        refetchReportData();
-                      }}
-                      className="w-full"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      تحميل التقرير
-                    </Button>
-                  </div>
+
                 </div>
               </CardContent>
             </Card>
@@ -1534,15 +1529,10 @@ export default function Accounting() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => {
-                          bdRefetch();
-                        }}
-                        className="flex-1"
-                      >
+                    <div className="flex gap-2 justify-end mt-4">
+                      <Button onClick={exportBreakdownCsv} variant="outline" disabled={!canExportBreakdown}>
                         <Download className="w-4 h-4 mr-2" />
-                        تحميل التفصيل
+                        تصدير التفصيل CSV
                       </Button>
                     </div>
 
