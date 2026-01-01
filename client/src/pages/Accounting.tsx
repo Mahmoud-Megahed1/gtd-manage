@@ -1,5 +1,5 @@
 /*
- © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co.]
+ © 2025 - Property of [Mohammed Ahmed / Golden Touch Design co. ]
  Unauthorized use or reproduction is prohibited.
 */
 import DashboardLayout from "@/components/DashboardLayout";
@@ -534,7 +534,7 @@ export default function Accounting() {
       refetchFinancials();
       refetchReportData();
     },
-    onError: () => toast.error("تعذر تحديث الفاتورة"),
+    onError: () => toast.error("تعذر تعديل الفاتورة"),
   });
 
   const handleSubmitExpense = (e: React.FormEvent) => {
@@ -831,7 +831,7 @@ export default function Accounting() {
                                   invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-red-100 text-red-800'
                                 }`}
-                            >
+                          >
                               <option value="draft">قيد المعالجة</option>
                               <option value="sent">مرسلة</option>
                               <option value="paid">مكتملة (مدفوعة)</option>
@@ -849,6 +849,7 @@ export default function Accounting() {
                           </TableCell>
                         </TableRow>
                       ))}
+
                     </TableBody>
                   </Table>
                 ) : (
@@ -979,6 +980,7 @@ export default function Accounting() {
                           </TableCell>
                         </TableRow>
                       ))}
+
                     </TableBody>
                   </Table>
                 ) : (
@@ -1375,11 +1377,25 @@ export default function Accounting() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => window.open(`/reports.export.csv?${buildQuery()}`, "_blank")}
+                        onClick={() => {
+                          const qs = buildQuery();
+                          window.open(`/api/trpc/reports.export?${qs}`, "_blank");
+                        }}
                         disabled={!canExportCsv}
                       >
                         <Download className="w-4 h-4 mr-2" />
                         تصدير CSV
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const qs = buildBreakdownQuery();
+                          window.open(`/api/trpc/reports.breakdown?${qs}`, "_blank");
+                        }}
+                        disabled={!canExportBreakdown}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        تصدير التفصيل CSV
                       </Button>
                     </div>
                   </CardContent>
