@@ -62,7 +62,7 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
     accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
     // Project roles
-    project_manager: { projects: 'own', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'own', clients: 'readonly' },
+    project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', clients: 'readonly' },
     department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full', invoices: 'readonly', clients: 'readonly', reports: 'readonly' },
     site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
@@ -145,13 +145,11 @@ function getDetailedPermissions(role: string): DetailedPermissions {
     },
     project_manager: {
       hr: ownPerms,
-      // Projects: Own/Assigned only, Create/Edit OK, View Financials OK, No Delete
-      projects: { ...ownPerms, create: true, edit: true, viewFinancials: true },
-      // Tasks: No delete
-      tasks: { ...fullPerms, delete: false },
+      projects: fullPerms,
+      tasks: fullPerms,
       accounting: { ...readonlyPerms, viewFinancials: true },
       clients: readonlyPerms,
-      forms: { ...ownPerms, create: true, edit: true }, // Forms scoped to own projects
+      forms: fullPerms,
       invoices: nonePerms,
       reports: { ...readonlyPerms, create: true },
     },
@@ -1793,29 +1791,7 @@ export const appRouter = router({
   forms: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'forms');
-      const permLevel = getPermissionLevel(ctx.user.role, 'forms');
-
-      const allForms = await db.getAllForms();
-
-      // If full access, return everything
-      if (ctx.user.role === 'admin' || permLevel === 'full') {
-        return allForms;
-      }
-
-      // If own access, filter by assigned projects
-      if (permLevel === 'own') {
-        const myProjects = await db.getProjectsForAssignee(ctx.user.id);
-        const myProjectIds = myProjects.map((p: any) => p.id);
-
-        return (allForms as any[]).filter((f: any) =>
-          // Allow if form is linked to an assigned project
-          (f.projectId && myProjectIds.includes(f.projectId)) ||
-          // Allow if user created the form
-          f.createdBy === ctx.user.id
-        );
-      }
-
-      return [];
+      return await db.getAllForms();
     }),
 
     getById: protectedProcedure
