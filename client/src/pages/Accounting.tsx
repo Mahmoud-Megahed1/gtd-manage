@@ -237,8 +237,10 @@ export default function Accounting() {
 
     const headers = ['التاريخ', 'الإيرادات (المحصلة)', 'الإيرادات (المعلقة)', 'المشتريات', 'المصروفات'];
     const rows = (breakdown as any[]).map(r => {
-      const completedRevenue = ((r.invoices?.paid || 0) + (r.installments?.paid || 0) + (r.sales?.completed || 0));
-      const processingRevenue = ((r.invoices?.sent || 0) + (r.installments?.pending || 0) + (r.sales?.pending || 0));
+      // إيرادات مكتملة = invoices.paid + sales.completed (matching Revenue Tab)
+      const completedRevenue = ((r.invoices?.paid || 0) + (r.sales?.completed || 0));
+      // إيرادات معلقة (قيد المعالجة) = invoices (sent+draft) + sales (pending) (matching Revenue Tab)
+      const processingRevenue = ((r.invoices?.sent || 0) + (r.invoices?.draft || 0) + (r.sales?.pending || 0));
       const completedPurchases = (r.purchases?.completed || 0);
       const totalExpenses = (r.expenses?.completed || 0) + (r.expenses?.active || 0) + (r.expenses?.processing || 0);
 
