@@ -14,8 +14,8 @@ import { tasksRouter } from "./routers/tasks";
 import { approvalsRouter } from "./routers/approvals";
 import { notificationsRouter } from "./routers/notifications";
 import { generalReportsRouter } from "./routers/generalReports";
-import { invoices, expenses } from "../drizzle/schema";
-import { gte, eq, desc } from "drizzle-orm";
+import { invoices, expenses, sales } from "../drizzle/schema";
+import { gte, eq, desc, ne, and } from "drizzle-orm";
 
 // Helper to generate unique numbers
 function generateUniqueNumber(prefix: string): string {
@@ -2822,8 +2822,24 @@ export const appRouter = router({
           return { month: months[m], revenue: 0, expenses: 0 };
         });
       }
-      const invRows = await conn.select().from(invoices).where(gte(invoices.createdAt, start));
-      const expRows = await conn.select().from(expenses).where(gte(expenses.createdAt, start));
+
+      // Revenue from Sales (Completed only => Realized Revenue)
+      // This includes both paid invoices and manual sales
+      const saleRows = await conn.select().from(sales).where(
+        and(
+          gte(sales.saleDate, start),
+          eq(sales.status, 'completed')
+        )
+      );
+
+      // Expenses (Exclude cancelled)
+      const expRows = await conn.select().from(expenses).where(
+        and(
+          gte(expenses.expenseDate, start), // Use expenseDate, not createdAt
+          ne(expenses.status, 'cancelled')
+        )
+      );
+
       const acc: Record<string, { revenue: number; expenses: number }> = {};
       Array.from({ length: 6 }).forEach((_, idx) => {
         const d = new Date(start);
@@ -2831,16 +2847,19 @@ export const appRouter = router({
         const key = `${d.getFullYear()}-${d.getMonth()}`;
         acc[key] = { revenue: 0, expenses: 0 };
       });
-      invRows.forEach((r: any) => {
-        const d = new Date(r.createdAt);
+
+      saleRows.forEach((r: any) => {
+        const d = new Date(r.saleDate);
         const key = `${d.getFullYear()}-${d.getMonth()}`;
-        if (acc[key]) acc[key].revenue += Number(r.total || 0);
+        if (acc[key]) acc[key].revenue += Number(r.amount || 0);
       });
+
       expRows.forEach((r: any) => {
-        const d = new Date(r.createdAt);
+        const d = new Date(r.expenseDate);
         const key = `${d.getFullYear()}-${d.getMonth()}`;
         if (acc[key]) acc[key].expenses += Number(r.amount || 0);
       });
+
       return Array.from({ length: 6 }).map((_, idx) => {
         const d = new Date(start);
         d.setMonth(start.getMonth() + idx);
