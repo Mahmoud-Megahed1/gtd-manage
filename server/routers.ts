@@ -62,19 +62,7 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
     accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
     // Project roles
-    project_manager: {
-      // Projects: View All, Create, Edit. NO DELETE.
-      projects: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
-      // Tasks: View All, Create, Edit. NO DELETE.
-      tasks: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
-      dashboard: 'full',
-      hr: 'own',
-      // Forms: View All, Create, Edit. NO DELETE.
-      forms: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
-      // Accounting: Hide sidebar (view: false) but allow Project Financials tab (viewFinancials: true)
-      accounting: { view: false, viewOwn: false, viewFinancials: true, create: false, edit: false, delete: false, approve: false, submit: false },
-      clients: 'readonly'
-    },
+    project_manager: { projects: 'own', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'own', clients: 'readonly' },
     department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full', invoices: 'readonly', clients: 'readonly', reports: 'readonly' },
     site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
@@ -157,15 +145,13 @@ function getDetailedPermissions(role: string): DetailedPermissions {
     },
     project_manager: {
       hr: ownPerms,
-      // Projects: View All (except delete)
-      projects: { ...fullPerms, delete: false },
-      // Tasks: View All (except delete)
+      // Projects: Own/Assigned only, Create/Edit OK, View Financials OK, No Delete
+      projects: { ...ownPerms, create: true, edit: true, viewFinancials: true },
+      // Tasks: No delete
       tasks: { ...fullPerms, delete: false },
-      // Accounting: Hide sidebar
-      accounting: { ...nonePerms, viewFinancials: true },
+      accounting: { ...readonlyPerms, viewFinancials: true },
       clients: readonlyPerms,
-      // Forms: View All (except delete)
-      forms: { ...fullPerms, delete: false },
+      forms: { ...ownPerms, create: true, edit: true }, // Forms scoped to own projects
       invoices: nonePerms,
       reports: { ...readonlyPerms, create: true },
     },
@@ -1829,8 +1815,7 @@ export const appRouter = router({
         );
       }
 
-      // Default: Return all forms (covers 'full', admin, and custom objects)
-      return allForms;
+      return [];
     }),
 
     getById: protectedProcedure
