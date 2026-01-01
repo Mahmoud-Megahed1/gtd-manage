@@ -143,7 +143,7 @@ export default function Accounting() {
     }
   );
   const chartRef = useRef<any>(null);
-  const [invSel, setInvSel] = useState<string[]>(["paid", "sent"]);
+  const [invSel, setInvSel] = useState<string[]>(["paid", "sent", "draft"]);
   const [purSel, setPurSel] = useState<string[]>(["completed", "pending"]);
   const [expSel, setExpSel] = useState<string[]>(["active", "processing", "completed"]);
   const [instSel, setInstSel] = useState<string[]>(["pending", "paid"]);
