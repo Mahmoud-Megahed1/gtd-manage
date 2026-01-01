@@ -892,8 +892,8 @@ export const accountingRouter = router({
             profitMargin: paidRevenue > 0 ? ((paidRevenue - totalExpenses) / paidRevenue) * 100 : 0
           };
         }
-
-        const expensesResult = await db.select({ total: sum(expenses.amount) }).from(expenses).where(inArray(expenses.status, ['active', 'completed']));
+        // Expenses - include all non-cancelled expenses
+        const expensesResult = await db.select({ total: sum(expenses.amount) }).from(expenses).where(ne(expenses.status, 'cancelled'));
         const purchasesRes = await db.select({ total: sum(purchases.amount) }).from(purchases).where(eq(purchases.status, 'completed'));
         const instRes = await db.select({
           total: sum(installments.amount),
