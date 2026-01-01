@@ -3,7 +3,6 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
-  PointElement,
   LineElement,
   Title,
   Tooltip,
