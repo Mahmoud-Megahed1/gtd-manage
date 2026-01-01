@@ -161,8 +161,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       projects: { ...fullPerms, delete: false },
       // Tasks: View All (except delete)
       tasks: { ...fullPerms, delete: false },
-      // Accounting: Hide sidebar (handled by frontend Nav) but allow View for Reports/Financials
-      accounting: { ...readonlyPerms, viewFinancials: true },
+      // Accounting: Hide sidebar
+      accounting: { ...nonePerms, viewFinancials: true },
       clients: readonlyPerms,
       // Forms: View All (except delete)
       forms: { ...fullPerms, delete: false },
@@ -339,7 +339,7 @@ async function ensurePerm(ctx: any, sectionKey: string) {
     department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms', 'generalReports'],
 
     // === إدارة المشاريع ===
-    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports', 'accounting'],
+    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports'],
     project_coordinator: ['projects', 'projectTasks', 'dashboard'],
 
     // === المهندسين والفنيين ===
