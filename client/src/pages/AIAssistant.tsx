@@ -41,7 +41,9 @@ export default function AIAssistant() {
     { role: "assistant", content: "مرحباً! أنا مساعد الذكاء الاصطناعي. كيف يمكنني مساعدتك؟" },
   ]);
   const [input, setInput] = useState("");
-  const [activeTab, setActiveTab] = useState("settings");
+  const [selectedModel, setSelectedModel] = useState<"flash" | "pro" | "exp">("flash");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("chat");
 
   // Fetch saved Gemini page settings
   const { data: geminiPage, isLoading, refetch } = trpc.ai.getGeminiPage.useQuery();
@@ -134,18 +136,40 @@ export default function AIAssistant() {
     setIframeKey(prev => prev + 1);
   };
 
+  // Check if Gemini is configured (API key exists)
+  const { data: config } = trpc.ai.isConfigured.useQuery();
+
+  // Chat mutation
+  const chatMutation = trpc.ai.chat.useMutation({
+    onSuccess: (data) => {
+      setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+      setIsChatLoading(false);
+    },
+    onError: (error) => {
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: `عذراً، حدث خطأ: ${error.message}`
+      }]);
+      setIsChatLoading(false);
+    }
+  });
+
   const sendMessage = async () => {
     const prompt = input.trim();
-    if (!prompt) return;
-    setMessages((m) => [...m, { role: "user", content: prompt }]);
+    if (!prompt || isChatLoading) return;
+
+    // Add user message
+    const newMessages = [...messages, { role: "user" as const, content: prompt }];
+    setMessages(newMessages);
     setInput("");
-    try {
-      // For now, just show a placeholder response
-      // This can be extended to use the actual API
-      setMessages((m) => [...m, { role: "assistant", content: "هذه الميزة قيد التطوير. سيتم ربطها بنظام AI قريباً." }]);
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "تعذّر الاتصال بواجهة الـ API." }]);
-    }
+    setIsChatLoading(true);
+
+    // Call backend
+    chatMutation.mutate({
+      message: prompt,
+      modelType: selectedModel,
+      conversationHistory: messages.map(m => ({ role: m.role, content: m.content }))
+    });
   };
 
   if (isLoading) {
@@ -164,54 +188,132 @@ export default function AIAssistant() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">مساعد AI</h1>
-            <p className="text-muted-foreground">محادثة ذكية للوصول إلى بيانات النظام ومساعدتك</p>
+            <p className="text-muted-foreground">مساعد ذكي مدعوم بـ Google Gemini</p>
           </div>
 
-          {/* Status indicator */}
-          {geminiPage?.pageUrl && (
-            <div className="flex items-center gap-2">
-              {geminiPage.isHidden ? (
-                <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <EyeOff className="h-4 w-4" />
-                  الصفحة مخفية
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  الصفحة نشطة
-                </span>
-              )}
-            </div>
-          )}
+          {/* Configuration Status */}
+          <div className="flex items-center gap-2">
+            {config?.configured ? (
+              <span className="flex items-center gap-1 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                <CheckCircle className="h-4 w-4" />
+                متصل بالخدمة
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                <AlertCircle className="h-4 w-4" />
+                غير متصل (يتطلب إعداد المفتاح)
+              </span>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              الإعدادات
-            </TabsTrigger>
-            <TabsTrigger
-              value="gemini"
-              className="flex items-center gap-2"
-              disabled={!geminiPage?.pageUrl || geminiPage?.isHidden}
-            >
-              <Globe className="h-4 w-4" />
-              صفحة Gemini
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              المحادثة
+              المحادثة الذكية
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              إعدادات الصفحة (Legacy)
             </TabsTrigger>
           </TabsList>
 
-          {/* Settings Tab */}
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>محادثة مع Gemini</CardTitle>
+                    <CardDescription>
+                      اسأل عن أي شيء يخص العمل أو اطلب المساعدة في المهام
+                    </CardDescription>
+                  </div>
+
+                  {/* Model Selector */}
+                  <select
+                    className="p-2 border rounded-md text-sm bg-background w-[280px]"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value as any)}
+                    disabled={isChatLoading}
+                  >
+                    <option value="flash">⚡ Gemini 1.5 Flash (سريع - للمهام اليومية)</option>
+                    <option value="pro">🧠 Gemini 1.5 Pro (ذكي - للتحليل العميق)</option>
+                    <option value="exp">🚀 Gemini 2.0 Exp (تجريبي - الأحدث)</option>
+                  </select>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                {/* Messages Area */}
+                <div className="h-[60vh] overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                  {messages.map((m, idx) => (
+                    <div key={idx} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user"
+                            ? "bg-primary text-primary-foreground rounded-tl-none"
+                            : "bg-white border text-slate-800 rounded-tr-none"
+                          }`}
+                      >
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border px-4 py-3 rounded-2xl rounded-tr-none shadow-sm flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground animate-pulse">جاري الكتابة...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input Area */}
+                <div className="p-4 border-t bg-background">
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="اكتب رسالتك هنا..."
+                      className="min-h-[50px] resize-none focus-visible:ring-1"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                      disabled={isChatLoading}
+                    />
+                    <Button
+                      onClick={sendMessage}
+                      disabled={!input.trim() || isChatLoading}
+                      className="h-auto px-6"
+                    >
+                      {isChatLoading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        "إرسال"
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    الردود يتم إنشاؤها بواسطة الذكاء الاصطناعي وقد تحتمل الخطأ. يرجى مراجعة المعلومات المهمة.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab (Legacy) */}
           <TabsContent value="settings" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>إعدادات صفحة Gemini</CardTitle>
+                <CardTitle>صفحة Gemini الخارجية (تضمين)</CardTitle>
                 <CardDescription>
-                  أدخل رابط صفحة Gemini الخارجية ومفتاح API (اختياري) لعرضها داخل النظام
+                  يمكنك هنا تضمين صفحة Gemini الخارجية، ولكن نوصي باستخدام المحادثة الذكية المباشرة في التبويب السابق.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -226,24 +328,6 @@ export default function AIAssistant() {
                       placeholder="https://gemini.google.com/..."
                       dir="ltr"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      يجب أن يكون الرابط آمناً (HTTPS)
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      مفتاح API (اختياري)
-                    </label>
-                    <Input
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="أدخل المفتاح للتحقق"
-                      type="password"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      سيتم تشفير المفتاح للأمان
-                    </p>
                   </div>
                 </div>
 
@@ -263,99 +347,12 @@ export default function AIAssistant() {
                   {geminiPage?.pageUrl && (
                     <Button
                       variant="outline"
-                      onClick={handleToggleVisibility}
-                      disabled={hidePageMutation.isPending || showPageMutation.isPending}
+                      onClick={() => window.open(geminiPage.pageUrl, '_blank')}
                     >
-                      {geminiPage.isHidden ? (
-                        <>
-                          <Eye className="h-4 w-4 ml-2" />
-                          إظهار الصفحة
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="h-4 w-4 ml-2" />
-                          إخفاء الصفحة
-                        </>
-                      )}
+                      <Globe className="h-4 w-4 ml-2" />
+                      فتح في نافذة جديدة
                     </Button>
                   )}
-                </div>
-
-                {/* Saved Page Info */}
-                {geminiPage && (
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">معلومات الصفحة المحفوظة</h4>
-                    <div className="text-sm space-y-1 text-muted-foreground">
-                      <p>الرابط: <code className="bg-background px-1 rounded">{geminiPage.pageUrl}</code></p>
-                      <p>مفتاح API: {geminiPage.hasApiKey ? "✓ محفوظ" : "✗ غير محدد"}</p>
-                      <p>الحالة: {geminiPage.isHidden ? "مخفية" : "مرئية"}</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Gemini Page Tab */}
-          <TabsContent value="gemini">
-            {geminiPage?.pageUrl && !geminiPage.isHidden ? (
-              <GeminiPage
-                key={iframeKey}
-                pageUrl={geminiPage.pageUrl}
-                onRefresh={handleRefreshIframe}
-              />
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center h-[60vh] text-center">
-                  <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">لا توجد صفحة نشطة</h3>
-                  <p className="text-muted-foreground mb-4">
-                    قم بإضافة رابط صفحة Gemini في تبويب الإعدادات لعرضها هنا
-                  </p>
-                  <Button onClick={() => setActiveTab("settings")}>
-                    <Settings className="h-4 w-4 ml-2" />
-                    الذهاب للإعدادات
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Chat Tab */}
-          <TabsContent value="chat">
-            <Card>
-              <CardHeader>
-                <CardTitle>المحادثة</CardTitle>
-                <CardDescription>
-                  تواصل مع مساعد الذكاء الاصطناعي للحصول على مساعدة
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="border rounded-lg p-4 h-[50vh] overflow-auto bg-accent/50">
-                  {messages.map((m, idx) => (
-                    <div key={idx} className={`mb-3 ${m.role === "user" ? "text-right" : "text-left"}`}>
-                      <span className={`inline-block px-3 py-2 rounded-lg max-w-[80%] ${m.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
-                        }`}>
-                        {m.content}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="اكتب رسالتك..."
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
-                  />
-                  <Button onClick={sendMessage}>إرسال</Button>
                 </div>
               </CardContent>
             </Card>

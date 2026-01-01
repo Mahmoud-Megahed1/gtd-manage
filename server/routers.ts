@@ -3052,6 +3052,70 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'SHOW_GEMINI_PAGE', 'aiGeminiPage', undefined, 'Shown Gemini page', ctx);
         return { success: true };
       }),
+
+    // Check if Gemini API is configured
+    isConfigured: protectedProcedure
+      .query(async () => {
+        const { isGeminiConfigured } = await import('./_core/gemini');
+        return { configured: isGeminiConfigured() };
+      }),
+
+    // Chat with Gemini AI (Proxy endpoint)
+    chat: protectedProcedure
+      .input(z.object({
+        message: z.string().min(1),
+        modelType: z.enum(['flash', 'pro', 'exp']).default('flash'),
+        conversationHistory: z.array(z.object({
+          role: z.enum(['user', 'assistant']),
+          content: z.string()
+        })).optional()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { invokeGemini } = await import('./_core/gemini');
+        const { anonymizer } = await import('./_core/anonymizer');
+
+        // Build system prompt with user context
+        const systemPrompt = `أنت مساعد ذكي لشركة تصميم داخلي (Golden Touch Design).
+تساعد الموظفين في مهامهم اليومية.
+المستخدم الحالي: ${ctx.user.name || 'موظف'} (${ctx.user.role})
+أجب باللغة العربية بشكل مختصر ومفيد.
+لا تشارك معلومات حساسة أو سرية.`;
+
+        // Apply Data Anonymization for non-admins
+        let promptToSend = input.message;
+        const isAdmin = ctx.user.role === 'admin';
+
+        if (!isAdmin) {
+          // Mask sensitive data (phones, IDs, etc.)
+          promptToSend = anonymizer.mask(input.message);
+
+          // Log if masking occurred
+          if (promptToSend !== input.message) {
+            console.log(`🔒 Data Anonymized for user ${ctx.user.id}`);
+          }
+        }
+
+        try {
+          const answer = await invokeGemini({
+            prompt: promptToSend,
+            modelType: input.modelType,
+            systemPrompt,
+            conversationHistory: input.conversationHistory
+          });
+
+          // Log AI usage for audit
+          await logAudit(ctx.user.id, 'AI_CHAT', 'ai', undefined,
+            `Model: ${input.modelType}, Prompt length: ${input.message.length}, Anonymized: ${!isAdmin}`, ctx);
+
+          return { answer };
+        } catch (error: any) {
+          console.error('AI Chat Error:', error);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: error.message || 'فشل الاتصال بالذكاء الاصطناعي'
+          });
+        }
+      }),
   }),
 
   // ============= GENERAL REPORTS =============
