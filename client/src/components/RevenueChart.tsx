@@ -3,19 +3,19 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -37,22 +37,18 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
       {
         label: 'الإيرادات',
         data: monthlyData.map(d => d.revenue),
-        borderColor: 'rgba(16, 185, 129, 1)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        fill: true,
-        tension: 0.1,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
+        barThickness: 20,
+        borderRadius: 4,
       },
       {
         label: 'المصروفات',
         data: monthlyData.map(d => d.expenses),
-        borderColor: 'rgba(239, 68, 68, 1)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.1,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        hoverBackgroundColor: 'rgba(239, 68, 68, 1)',
+        barThickness: 20,
+        borderRadius: 4,
       },
     ],
   };
@@ -124,7 +120,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
 
   return (
     <div className="h-[300px]">
-      <Line data={chartData} options={options} />
+      <Bar data={chartData} options={options} />
     </div>
   );
 }
