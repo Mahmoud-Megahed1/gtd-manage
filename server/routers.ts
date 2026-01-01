@@ -2813,7 +2813,8 @@ export const appRouter = router({
       const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
       const now = new Date();
       const start = new Date(now);
-      start.setMonth(now.getMonth() - 5);
+      // Show last 6 COMPLETED months (exclude current incomplete month)
+      start.setMonth(now.getMonth() - 6);
       start.setDate(1);
       const conn = await db.getDb();
       if (!conn) {
