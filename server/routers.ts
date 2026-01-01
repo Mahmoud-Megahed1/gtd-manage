@@ -2823,19 +2823,29 @@ export const appRouter = router({
         });
       }
 
-      // Revenue from Sales (Completed only => Realized Revenue)
-      // This includes both paid invoices and manual sales
-      const saleRows = await conn.select().from(sales).where(
+      const { isNull } = await import('drizzle-orm');
+
+      // 1. Revenue from Paid Invoices (Historical + New)
+      const invoiceRows = await conn.select().from(invoices).where(
         and(
-          gte(sales.saleDate, start),
-          eq(sales.status, 'completed')
+          gte(invoices.issueDate, start),
+          eq(invoices.status, 'paid')
         )
       );
 
-      // Expenses (Exclude cancelled)
+      // 2. Revenue from Manual Sales (Sales without Invoice link)
+      const manualSaleRows = await conn.select().from(sales).where(
+        and(
+          gte(sales.saleDate, start),
+          eq(sales.status, 'completed'),
+          isNull(sales.invoiceId) // Only non-invoice sales to avoid double counting
+        )
+      );
+
+      // 3. Expenses (Exclude cancelled)
       const expRows = await conn.select().from(expenses).where(
         and(
-          gte(expenses.expenseDate, start), // Use expenseDate, not createdAt
+          gte(expenses.expenseDate, start),
           ne(expenses.status, 'cancelled')
         )
       );
@@ -2848,12 +2858,21 @@ export const appRouter = router({
         acc[key] = { revenue: 0, expenses: 0 };
       });
 
-      saleRows.forEach((r: any) => {
+      // Sum Invoice Revenue
+      invoiceRows.forEach((r: any) => {
+        const d = new Date(r.issueDate);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (acc[key]) acc[key].revenue += Number(r.total || 0);
+      });
+
+      // Sum Manual Sales Revenue
+      manualSaleRows.forEach((r: any) => {
         const d = new Date(r.saleDate);
         const key = `${d.getFullYear()}-${d.getMonth()}`;
         if (acc[key]) acc[key].revenue += Number(r.amount || 0);
       });
 
+      // Sum Expenses
       expRows.forEach((r: any) => {
         const d = new Date(r.expenseDate);
         const key = `${d.getFullYear()}-${d.getMonth()}`;
