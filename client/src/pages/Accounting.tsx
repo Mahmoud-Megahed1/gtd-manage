@@ -340,7 +340,7 @@ export default function Accounting() {
   const search = useSearch();
   const [, setLocationFn] = useLocation();
   const urlParams = new URLSearchParams(search);
-  const { canView, getAllowedTabs } = usePermission();
+  const { getAllowedTabs } = usePermission();
 
   // Permission checks for tabs
   const canViewAccounting = canView('accounting');
