@@ -208,7 +208,7 @@ export default function Accounting() {
       datasets: [
         {
           label: "الإيرادات",
-          data: (timeseries || []).map(r => r.invoices + r.installments),
+          data: (timeseries || []).map(r => r.invoices || 0),  // Already combined: invoices + installments + sales
           borderColor: "#10B981",
           backgroundColor: "rgba(16, 185, 129, 0.1)",
           tension: 0.4,
@@ -222,7 +222,7 @@ export default function Accounting() {
         },
         {
           label: "المصروفات",
-          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)),
+          data: (timeseries || []).map(r => r.expenses || 0),  // Already combined: expenses + purchases
           borderColor: "#EF4444",
           backgroundColor: "rgba(239, 68, 68, 0.1)",
           tension: 0.4,
@@ -831,7 +831,7 @@ export default function Accounting() {
                                   invoice.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-red-100 text-red-800'
                                 }`}
-                          >
+                            >
                               <option value="draft">قيد المعالجة</option>
                               <option value="sent">مرسلة</option>
                               <option value="paid">مكتملة (مدفوعة)</option>
