@@ -22,7 +22,7 @@ export const reportsRouter = router({
       if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager', 'project_manager', 'department_manager'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
-      
+
       const conn = await db.getDb();
       if (!conn) {
         const from = input.from ?? new Date(0);
@@ -32,19 +32,19 @@ export const reportsRouter = router({
           if (!dt) return false;
           return dt >= from && dt <= to;
         };
-        
+
         // Invoices - filter by type='invoice' and exclude cancelled
-        let invRows = demo.list("invoices").filter((r: any) => 
-          r.type === 'invoice' && 
+        let invRows = demo.list("invoices").filter((r: any) =>
+          r.type === 'invoice' &&
           r.status !== 'cancelled' &&
           within(r.issueDate)
         );
         if (input.invoiceStatus) invRows = invRows.filter((r: any) => r.status === input.invoiceStatus);
         if (input.clientId) invRows = invRows.filter((r: any) => r.clientId === input.clientId);
         if (input.projectId) invRows = invRows.filter((r: any) => r.projectId === input.projectId);
-        
+
         const paidInvRows = invRows.filter((r: any) => r.status === 'paid');
-        
+
         // Purchases - filter by status (default: completed)
         let purRows = demo.list("purchases").filter((r: any) => within(r.purchaseDate));
         if (input.purchaseStatus) {
@@ -53,7 +53,7 @@ export const reportsRouter = router({
           purRows = purRows.filter((r: any) => r.status === 'completed');
         }
         if (input.projectId) purRows = purRows.filter((r: any) => r.projectId === input.projectId);
-        
+
         // Expenses - filter by status (default: active, processing, completed - exclude cancelled)
         let expRows = demo.list("expenses").filter((r: any) => within(r.expenseDate));
         if (input.expenseStatus) {
@@ -62,22 +62,22 @@ export const reportsRouter = router({
           expRows = expRows.filter((r: any) => !r.status || r.status !== 'cancelled');
         }
         if (input.projectId) expRows = expRows.filter((r: any) => r.projectId === input.projectId);
-        
+
         // Installments - calculate total and paid separately
         let instRows = demo.list("installments").filter((r: any) => within(r.dueDate || r.createdAt));
         if (input.installmentStatus) instRows = instRows.filter((r: any) => r.status === input.installmentStatus);
         if (input.projectId) instRows = instRows.filter((r: any) => r.projectId === input.projectId);
-        
+
         const paidInstRows = instRows.filter((r: any) => r.status === 'paid');
-        
+
         // Manual Sales - completed only, not linked to invoices
-        let salesRows = demo.list("sales").filter((r: any) => 
-          within(r.saleDate) && 
-          r.status === 'completed' && 
+        let salesRows = demo.list("sales").filter((r: any) =>
+          within(r.saleDate) &&
+          r.status === 'completed' &&
           !r.invoiceId
         );
         if (input.projectId) salesRows = salesRows.filter((r: any) => r.projectId === input.projectId);
-        
+
         const invoicesTotal = invRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
         const paidInvoicesTotal = paidInvRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
         const purchasesTotal = purRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
@@ -85,10 +85,10 @@ export const reportsRouter = router({
         const installmentsTotal = instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
         const paidInstallmentsTotal = paidInstRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
         const manualSalesTotal = salesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-        
+
         // Net = paid invoices + paid installments + manual sales - purchases - expenses
         const net = paidInvoicesTotal + paidInstallmentsTotal + manualSalesTotal - purchasesTotal - expensesTotal;
-        
+
         return {
           invoicesTotal,
           invoicesCount: invRows.length,
@@ -101,13 +101,13 @@ export const reportsRouter = router({
           net,
         };
       }
-      
+
       const from = input.from ?? new Date(0);
       const to = input.to ?? new Date();
-      
+
       // All invoices (for total value display)
       const invWhere = [
-        gte(invoices.issueDate, from), 
+        gte(invoices.issueDate, from),
         lte(invoices.issueDate, to),
         eq(invoices.type, 'invoice'),
         ne(invoices.status, 'cancelled')
@@ -115,7 +115,7 @@ export const reportsRouter = router({
       if (input.clientId) invWhere.push(eq(invoices.clientId, input.clientId));
       if (input.projectId) invWhere.push(eq(invoices.projectId, input.projectId));
       if (input.invoiceStatus) invWhere.push(eq(invoices.status, input.invoiceStatus));
-      
+
       const invSum = await conn.select({
         total: sql<number>`SUM(${invoices.total})`,
         count: sql<number>`COUNT(${invoices.id})`
@@ -125,14 +125,14 @@ export const reportsRouter = router({
 
       // Paid invoices only (for revenue calculation)
       const paidInvWhere = [
-        gte(invoices.issueDate, from), 
-        lte(invoices.issueDate, to), 
+        gte(invoices.issueDate, from),
+        lte(invoices.issueDate, to),
         eq(invoices.status, 'paid'),
         eq(invoices.type, 'invoice')
       ];
       if (input.clientId) paidInvWhere.push(eq(invoices.clientId, input.clientId));
       if (input.projectId) paidInvWhere.push(eq(invoices.projectId, input.projectId));
-      
+
       const paidInvSum = await conn.select({
         total: sql<number>`SUM(${invoices.total})`,
         count: sql<number>`COUNT(${invoices.id})`
@@ -151,7 +151,7 @@ export const reportsRouter = router({
       const purSum = await conn.select({ total: sql<number>`SUM(${purchases.amount})` })
         .from(purchases)
         .where(and(...purWhere));
-      
+
       // Expenses
       const expWhere = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
       if (input.projectId) expWhere.push(eq(expenses.projectId, input.projectId));
@@ -163,13 +163,13 @@ export const reportsRouter = router({
       const expSum = await conn.select({ total: sql<number>`SUM(${expenses.amount})` })
         .from(expenses)
         .where(and(...expWhere));
-      
+
       // Installments - total and paid
       const instWhere = [gte(installments.dueDate, from), lte(installments.dueDate, to)];
       if (input.projectId) instWhere.push(eq(installments.projectId, input.projectId));
       if (input.installmentStatus) instWhere.push(eq(installments.status, input.installmentStatus));
-      
-      const instSum = await conn.select({ 
+
+      const instSum = await conn.select({
         total: sql<number>`SUM(${installments.amount})`,
         paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`
       })
@@ -178,14 +178,14 @@ export const reportsRouter = router({
 
       // Sales (Manual) - completed only, not linked to invoices
       const salesWhere = [
-        gte(sales.saleDate, from), 
-        lte(sales.saleDate, to), 
-        eq(sales.status, 'completed'), 
+        gte(sales.saleDate, from),
+        lte(sales.saleDate, to),
+        eq(sales.status, 'completed'),
         isNull(sales.invoiceId)
       ];
       if (input.projectId) salesWhere.push(eq(sales.projectId, input.projectId));
       if (input.clientId) salesWhere.push(eq(sales.clientId, input.clientId));
-      
+
       const salesSum = await conn.select({ total: sql<number>`SUM(${sales.amount})` })
         .from(sales)
         .where(and(...salesWhere));
@@ -202,20 +202,20 @@ export const reportsRouter = router({
 
       // Net profit = paid invoices + paid installments + manual sales - expenses - purchases
       const net = paidInvoicesTotal + paidInstallmentsTotal + manualSalesTotal - purchasesTotal - expensesTotal;
-      
-      return { 
-        invoicesTotal, 
-        invoicesCount, 
-        paidInvoicesTotal, 
-        paidInvoicesCount, 
-        purchasesTotal, 
-        expensesTotal, 
-        installmentsTotal, 
-        manualSalesTotal, 
-        net 
+
+      return {
+        invoicesTotal,
+        invoicesCount,
+        paidInvoicesTotal,
+        paidInvoicesCount,
+        purchasesTotal,
+        expensesTotal,
+        installmentsTotal,
+        manualSalesTotal,
+        net
       };
     }),
-  
+
   timeseries: protectedProcedure
     .input(z.object({
       from: z.date(),
@@ -358,14 +358,16 @@ export const reportsRouter = router({
       const purchaseStatuses = input.purchaseStatuses ?? ["pending", "completed", "cancelled"];
       const expenseStatuses = input.expenseStatuses ?? ["active", "processing", "completed", "cancelled"];
       const installmentStatuses = input.installmentStatuses ?? ["pending", "paid", "overdue", "cancelled"];
+      const salesStatuses = ["pending", "completed", "cancelled"]; // For manual sales
       const initInv: Record<string, number> = Object.fromEntries(invoiceStatuses.map(s => [s, 0]));
       const initPur: Record<string, number> = Object.fromEntries(purchaseStatuses.map(s => [s, 0]));
       const initExp: Record<string, number> = Object.fromEntries(expenseStatuses.map((s: string) => [s, 0]));
       const initInst: Record<string, number> = Object.fromEntries(installmentStatuses.map((s: string) => [s, 0]));
-      const acc: Record<string, { invoices: Record<string, number>; purchases: Record<string, number>; expenses: Record<string, number>; installments: Record<string, number> }> = {};
-      range.forEach(r => { acc[r.key] = { invoices: { ...initInv }, purchases: { ...initPur }, expenses: { ...initExp }, installments: { ...initInst } }; });
+      const initSales: Record<string, number> = Object.fromEntries(salesStatuses.map(s => [s, 0]));
+      const acc: Record<string, { invoices: Record<string, number>; purchases: Record<string, number>; expenses: Record<string, number>; installments: Record<string, number>; sales: Record<string, number> }> = {};
+      range.forEach(r => { acc[r.key] = { invoices: { ...initInv }, purchases: { ...initPur }, expenses: { ...initExp }, installments: { ...initInst }, sales: { ...initSales } }; });
       if (!conn) {
-        return range.map(r => ({ dateKey: r.key, invoices: { ...initInv }, purchases: { ...initPur }, expenses: { ...initExp }, installments: { ...initInst } }));
+        return range.map(r => ({ dateKey: r.key, invoices: { ...initInv }, purchases: { ...initPur }, expenses: { ...initExp }, installments: { ...initInst }, sales: { ...initSales } }));
       }
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to)];
       if (input.clientId) invWhere.push(sql`${invoices.clientId} = ${input.clientId}`);
@@ -413,7 +415,20 @@ export const reportsRouter = router({
           acc[key].installments[st] = (acc[key].installments[st] || 0) + Number(r.amount || 0);
         }
       });
-      return range.map(r => ({ dateKey: r.key, invoices: acc[r.key].invoices, purchases: acc[r.key].purchases, expenses: acc[r.key].expenses, installments: acc[r.key].installments }));
+      // Add manual sales aggregation (sales not linked to invoices)
+      const salesWhere = [gte(sales.saleDate, from), lte(sales.saleDate, to), isNull(sales.invoiceId)];
+      if (input.projectId) salesWhere.push(sql`${sales.projectId} = ${input.projectId}`);
+      if (input.clientId) salesWhere.push(sql`${sales.clientId} = ${input.clientId}`);
+      const salesRows = await conn.select().from(sales).where(and(...salesWhere));
+      salesRows.forEach((r: any) => {
+        const d = new Date(r.saleDate);
+        const key = makeKey(d);
+        const st = r.status as string;
+        if (acc[key] && salesStatuses.includes(st)) {
+          acc[key].sales[st] = (acc[key].sales[st] || 0) + Number(r.amount || 0);
+        }
+      });
+      return range.map(r => ({ dateKey: r.key, invoices: acc[r.key].invoices, purchases: acc[r.key].purchases, expenses: acc[r.key].expenses, installments: acc[r.key].installments, sales: acc[r.key].sales }));
     }),
 
   breakdownDetails: protectedProcedure

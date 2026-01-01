@@ -243,15 +243,15 @@ export default function Accounting() {
     const labels = rows.map(r => formatDateKeyToArabic(r.dateKey));
     const ds: any[] = [];
 
-    // Revenue logic: Aggregate Invoices and Installments
-    // "Paid" Installments + "Paid" Invoices = Completed Revenue
-    // "Pending" Installments + "Sent" Invoices = Processing Revenue
+    // Revenue logic: Aggregate Invoices, Installments, and Manual Sales
+    // "Paid" Invoices + "Paid" Installments + "Completed" Sales = Completed Revenue
+    // "Sent" Invoices + "Pending" Installments + "Pending" Sales = Processing Revenue
 
     // We will use instSel to drive the Revenue display as per user request to map "Installments" to "Revenue"
     if (instSel.includes("paid")) {
       ds.push({
         label: "إيرادات مكتملة",
-        data: rows.map(r => ((r.invoices || {}).paid || 0) + ((r.installments || {}).paid || 0)),
+        data: rows.map(r => ((r.invoices || {}).paid || 0) + ((r.installments || {}).paid || 0) + ((r.sales || {}).completed || 0)),
         borderColor: "#16A34A",
         backgroundColor: "rgba(22, 163, 74, 0.15)",
         tension: 0.4,
@@ -267,7 +267,7 @@ export default function Accounting() {
     if (instSel.includes("pending")) {
       ds.push({
         label: "إيرادات قيد المعالجة",
-        data: rows.map(r => ((r.invoices || {}).sent || 0) + ((r.installments || {}).pending || 0)),
+        data: rows.map(r => ((r.invoices || {}).sent || 0) + ((r.installments || {}).pending || 0) + ((r.sales || {}).pending || 0)),
         borderColor: "#F59E0B",
         backgroundColor: "rgba(245, 158, 11, 0.15)",
         tension: 0.4,
