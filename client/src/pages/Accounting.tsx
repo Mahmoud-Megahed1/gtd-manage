@@ -194,11 +194,11 @@ export default function Accounting() {
   // Export PDF function - single unified version
   const exportPdf = () => {
     if (!chartRef.current) return;
-    
+
     try {
       const chartImage = chartRef.current.toBase64Image();
       const printWindow = window.open('', '_blank');
-      
+
       if (!printWindow) {
         toast.error('يرجى السماح بالنوافذ المنبثقة');
         return;
@@ -261,7 +261,7 @@ export default function Accounting() {
           </body>
         </html>
       `);
-      
+
       printWindow.document.close();
     } catch (error) {
       console.error('PDF Export Error:', error);
@@ -325,7 +325,7 @@ export default function Accounting() {
     const labels = rows.map(r => formatDateKeyToArabic(r.dateKey));
     const ds: any[] = [];
 
-// Revenue logic: Aggregate Invoices, Installments, and Manual Sales
+    // Revenue logic: Aggregate Invoices, Installments, and Manual Sales
     // "Paid" Invoices + "Paid" Installments + "Completed" Sales = Completed Revenue
     // "Sent" Invoices + "Pending" Installments + "Pending" Sales = Processing Revenue
 
@@ -1378,16 +1378,16 @@ export default function Accounting() {
                                 font: {
                                   weight: 'medium' as const,
                                 },
-                                callback: function(value) {
+                                callback: function (value) {
                                   return value.toLocaleString() + ' ر.س'; // Add ر.س to the ticks
                                 },
                               },
                             },
                           },
                         }}
-                        style={{ 
-                          backgroundColor: '#fff', 
-                          borderRadius: '8px', 
+                        style={{
+                          backgroundColor: '#fff',
+                          borderRadius: '8px',
                           padding: '16px',
                           boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
                         }}
@@ -1397,30 +1397,48 @@ export default function Accounting() {
                 </Card>
               )}
             </div>
-
             {/* Breakdown Tables */}
             {!tsLoading && breakdown && breakdown.length > 0 && (
               <div className="grid gap-4 sm:gap-6">
                 {/* Revenues Breakdown Table */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>تفاصيل الإيرادات</CardTitle>
+                    <CardTitle>تفاصيل الإيرادات الشهرية</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>التاريخ</TableHead>
-                          <TableHead>المشروع</TableHead>
-                          <TableHead>الإيراد المكتمل</TableHead>
-                          <TableHead>الإيراد قيد المعالجة</TableHead>
-                          <TableHead>المصدر</TableHead>
+                          <TableHead>إجمالي الإيرادات</TableHead>
+                          <TableHead>إجمالي المصروفات</TableHead>
+                          <TableHead>صافي الربح</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {(breakdown || []).map((row, idx) => (
                           <TableRow key={idx}>
-                            <TableCell>{new Date(row.dateKey).toLocaleDateString('ar-SA')}</TableCell>
-                            <TableCell>{row.projectName || 'عام'}</TableCell>
+                            <TableCell>{formatDateKeyToArabic(row.dateKey)}</TableCell>
                             <TableCell className="text-green-600 font-semibold">
-                              {row.invoices?.paid && row.installments?.paid ? (row.invoices.paid + row.installments.paid).toLocaleString() + ' ر.س' : '-'}
+                              {(Number(row.invoices) || 0).toLocaleString()} ر.س
+                            </TableCell>
+                            <TableCell className="text-red-600 font-semibold">
+                              {(Number(row.expenses) || 0).toLocaleString()} ر.س
+                            </TableCell>
+                            <TableCell className={`font-bold ${(Number(row.net) || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              {(Number(row.net) || 0).toLocaleString()} ر.س
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardLayout>
+  );
+}

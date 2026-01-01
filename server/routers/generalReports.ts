@@ -609,26 +609,85 @@ export const generalReportsRouter = router({
             const from = input.from ?? new Date(0);
             const to = input.to ?? new Date();
 
-            // Expenses (Operating)
-            const expConditions = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
+            // === REVENUE CALCULATION ===
+            // 1. Paid Installments
+            const instConditions = [
+                gte(installments.dueDate, from),
+                lte(installments.dueDate, to),
+                eq(installments.status, 'paid')
+            ];
+            if (input.projectId) instConditions.push(eq(installments.projectId, input.projectId));
+
+            const paidInstallmentsResult = await conn.select({
+                total: sum(installments.amount)
+            }).from(installments)
+                .where(and(...instConditions));
+            const paidInstallments = Number(paidInstallmentsResult[0]?.total || 0);
+
+            // 2. Paid Invoices (type='invoice', status='paid')
+            const invConditions = [
+                gte(invoices.issueDate, from),
+                lte(invoices.issueDate, to),
+                eq(invoices.type, 'invoice'),
+                eq(invoices.status, 'paid')
+            ];
+            if (input.projectId) invConditions.push(eq(invoices.projectId, input.projectId));
+
+            const paidInvoicesResult = await conn.select({
+                total: sum(invoices.total)
+            }).from(invoices)
+                .where(and(...invConditions));
+            const paidInvoices = Number(paidInvoicesResult[0]?.total || 0);
+
+            // 3. Manual Sales (completed, not linked to invoices)
+            const salesConditions = [
+                gte(sales.saleDate, from),
+                lte(sales.saleDate, to),
+                eq(sales.status, 'completed'),
+                isNull(sales.invoiceId)
+            ];
+            if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
+
+            const manualSalesResult = await conn.select({
+                total: sum(sales.amount)
+            }).from(sales)
+                .where(and(...salesConditions));
+            const manualSales = Number(manualSalesResult[0]?.total || 0);
+
+            // Total Revenue
+            const totalSales = paidInstallments + paidInvoices + manualSales;
+
+            // === EXPENSES CALCULATION ===
+            // 1. Operating Expenses (status != 'cancelled')
+            const expConditions = [
+                gte(expenses.expenseDate, from),
+                lte(expenses.expenseDate, to),
+                ne(expenses.status, 'cancelled')
+            ];
             if (input.projectId) expConditions.push(eq(expenses.projectId, input.projectId));
 
-            const expensesResult = await conn.select({ total: sum(expenses.amount) })
-                .from(expenses)
+            const operatingExpensesResult = await conn.select({
+                total: sum(expenses.amount)
+            }).from(expenses)
                 .where(and(...expConditions));
-            const totalOperatingExpenses = Number(expensesResult[0]?.total || 0);
+            const operatingExpenses = Number(operatingExpensesResult[0]?.total || 0);
 
-            // Purchases
-            const purchConditions = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
+            // 2. Purchases (status='completed' only)
+            const purchConditions = [
+                gte(purchases.purchaseDate, from),
+                lte(purchases.purchaseDate, to),
+                eq(purchases.status, 'completed')
+            ];
             if (input.projectId) purchConditions.push(eq(purchases.projectId, input.projectId));
 
-            const purchasesResult = await conn.select({ total: sum(purchases.amount) })
-                .from(purchases)
+            const purchasesResult = await conn.select({
+                total: sum(purchases.amount)
+            }).from(purchases)
                 .where(and(...purchConditions));
-            const totalPurchases = Number(purchasesResult[0]?.total || 0);
+            const completedPurchases = Number(purchasesResult[0]?.total || 0);
 
-            // Total Expenses (Operating + Purchases)
-            const totalExpenses = totalOperatingExpenses + totalPurchases;
+            // Total Expenses
+            const totalExpenses = operatingExpenses + completedPurchases;
 
             // Expenses by category
             const categoryResult = await conn.select({
@@ -642,71 +701,49 @@ export const generalReportsRouter = router({
             categoryResult.forEach(r => {
                 expensesByCategory[r.category || 'أخرى'] = Number(r.total || 0);
             });
-            // Add purchases as a category? Or separate? For now, let's keep expensesByCategory for operating expenses only or add a generic 'Purchases' category.
-            // Let's add 'مشتريات' category if there are purchases
-            if (totalPurchases > 0) {
-                expensesByCategory['مشتريات'] = totalPurchases;
+
+            // Add purchases as separate category
+            if (completedPurchases > 0) {
+                expensesByCategory['مشتريات'] = completedPurchases;
             }
 
-            // 1. Installments (mirroring accounting.ts)
-            const instConditions = [gte(installments.dueDate, from), lte(installments.dueDate, to)];
-            if (input.projectId) instConditions.push(eq(installments.projectId, input.projectId));
+            // Net Profit
+            const netProfit = totalSales - totalExpenses;
+            const profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
 
-            const instResult = await conn.select({
-                total: sum(installments.amount),
-                paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
-            }).from(installments)
-                .where(and(...instConditions));
-
-            const instTotal = Number(instResult[0]?.total || 0);
-            const instPaid = Number(instResult[0]?.paid || 0);
-
-            // 2. Invoices (Mirroring accounting.ts logic + Date filter)
-            const invConditions = [
-                gte(invoices.issueDate, from),
-                lte(invoices.issueDate, to),
-                eq(invoices.type, 'invoice'),
-                ne(invoices.status, 'cancelled')
-            ];
-            if (input.projectId) invConditions.push(eq(invoices.projectId, input.projectId));
-
-            const invResult = await conn.select({
-                total: sum(invoices.total),
-                paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
-            }).from(invoices)
-                .where(and(...invConditions));
-
-            const invoicesTotal = Number(invResult[0]?.total || 0);
-            const invoicesPaid = Number(invResult[0]?.paid || 0);
-
-            // 3. Manual Sales (Completed ONLY, not linked to invoices)
-            const salesConditions = [
-                gte(sales.saleDate, from),
-                lte(sales.saleDate, to),
-                eq(sales.status, 'completed'),
-                isNull(sales.invoiceId)
-            ];
-            if (input.projectId) salesConditions.push(eq(sales.projectId, input.projectId));
-
-            const salesResult = await conn.select({
-                total: sum(sales.amount)
-            }).from(sales)
-                .where(and(...salesConditions));
-
-            const manualSalesTotal = Number(salesResult[0]?.total || 0);
-
-            // Total Revenue = Installments + Invoices + Manual Sales
-            const totalSales = instTotal + invoicesTotal + manualSalesTotal;
-            const paidSales = instPaid + invoicesPaid + manualSalesTotal;
+            console.log('[Accounting Report] Financial Summary:', {
+                period: `${from.toISOString().split('T')[0]} to ${to.toISOString().split('T')[0]}`,
+                projectId: input.projectId || 'All',
+                revenue: {
+                    paidInstallments,
+                    paidInvoices,
+                    manualSales,
+                    total: totalSales
+                },
+                expenses: {
+                    operating: operatingExpenses,
+                    purchases: completedPurchases,
+                    total: totalExpenses
+                },
+                netProfit,
+                profitMargin: `${profitMargin.toFixed(2)}%`
+            });
 
             return {
-                totalExpenses, // Now includes purchases
+                totalExpenses,
                 totalSales,
-                paidSales,
-                pendingSales: totalSales - paidSales,
+                paidSales: totalSales,
+                pendingSales: 0, // We only count paid revenue
                 expensesByCategory,
-                netProfit: paidSales - totalExpenses,
-                profitMargin: paidSales > 0 ? ((paidSales - totalExpenses) / paidSales) * 100 : 0,
+                netProfit,
+                profitMargin,
+                breakdown: {
+                    paidInstallments,
+                    paidInvoices,
+                    manualSales,
+                    operatingExpenses,
+                    completedPurchases
+                }
             };
         }),
 
@@ -878,68 +915,105 @@ export const generalReportsRouter = router({
             // Financials (only if allowed)
             let financials = null;
             if (perm.canViewFinancials) {
-                const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
-                    // Expenses - filter by expenseDate
-                    conn.select({ total: sum(expenses.amount) })
-                        .from(expenses)
-                        .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
+                // === REVENUE CALCULATION ===
+                // 1. Paid Invoices (type='invoice', status='paid')
+                const paidInvoicesResult = await conn.select({
+                    total: sum(invoices.total)
+                }).from(invoices)
+                    .where(and(
+                        gte(invoices.issueDate, from),
+                        lte(invoices.issueDate, to),
+                        eq(invoices.type, 'invoice'),
+                        eq(invoices.status, 'paid')
+                    ));
+                const paidInvoices = Number(paidInvoicesResult[0]?.total || 0);
 
-                    // Invoices (Mirroring accounting.ts logic + Date filter)
-                    conn.select({
-                        total: sum(invoices.total),
-                        paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
-                    }).from(invoices)
-                        .where(and(
-                            gte(invoices.issueDate, from),
-                            lte(invoices.issueDate, to),
-                            eq(invoices.type, 'invoice'),
-                            ne(invoices.status, 'cancelled')
-                        )),
+                // 2. Paid Installments (status='paid')
+                const paidInstallmentsResult = await conn.select({
+                    total: sum(installments.amount)
+                }).from(installments)
+                    .where(and(
+                        gte(installments.dueDate, from),
+                        lte(installments.dueDate, to),
+                        eq(installments.status, 'paid')
+                    ));
+                const paidInstallments = Number(paidInstallmentsResult[0]?.total || 0);
 
-                    // Installments (All for total, Paid for paid - mirroring accounting.ts)
-                    conn.select({
-                        total: sum(installments.amount),
-                        paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
-                    }).from(installments)
-                        .where(and(gte(installments.dueDate, from), lte(installments.dueDate, to))),
+                // 3. Manual Sales (completed, not linked to invoices)
+                const manualSalesResult = await conn.select({
+                    total: sum(sales.amount)
+                }).from(sales)
+                    .where(and(
+                        gte(sales.saleDate, from),
+                        lte(sales.saleDate, to),
+                        eq(sales.status, 'completed'),
+                        isNull(sales.invoiceId)
+                    ));
+                const manualSales = Number(manualSalesResult[0]?.total || 0);
 
-                    // Purchases - filter by purchaseDate
-                    conn.select({ total: sum(purchases.amount) })
-                        .from(purchases)
-                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
+                // Total Revenue = Paid Invoices + Paid Installments + Manual Sales
+                const totalRevenue = paidInvoices + paidInstallments + manualSales;
 
-                    // Manual Sales (Completed ONLY, not linked to invoices)
-                    conn.select({ total: sum(sales.amount) })
-                        .from(sales)
-                        .where(and(
-                            gte(sales.saleDate, from),
-                            lte(sales.saleDate, to),
-                            eq(sales.status, 'completed'),
-                            isNull(sales.invoiceId)
-                        )),
-                ]);
+                // === EXPENSES CALCULATION ===
+                // 1. Operating Expenses (status != 'cancelled')
+                const operatingExpensesResult = await conn.select({
+                    total: sum(expenses.amount)
+                }).from(expenses)
+                    .where(and(
+                        gte(expenses.expenseDate, from),
+                        lte(expenses.expenseDate, to),
+                        ne(expenses.status, 'cancelled')
+                    ));
+                const operatingExpenses = Number(operatingExpensesResult[0]?.total || 0);
 
-                const totalOperatingExpenses = Number(expResult[0]?.total || 0);
-                const totalPurchases = Number(purchResult[0]?.total || 0);
-                const totalExpenses = totalOperatingExpenses + totalPurchases;
+                // 2. Purchases (status='completed' only)
+                const purchasesResult = await conn.select({
+                    total: sum(purchases.amount)
+                }).from(purchases)
+                    .where(and(
+                        gte(purchases.purchaseDate, from),
+                        lte(purchases.purchaseDate, to),
+                        eq(purchases.status, 'completed')
+                    ));
+                const completedPurchases = Number(purchasesResult[0]?.total || 0);
 
-                const invoicesTotal = Number(invResult[0]?.total || 0);
-                const invoicesPaid = Number(invResult[0]?.paid || 0);
+                // Total Expenses = Operating Expenses + Completed Purchases
+                const totalExpenses = operatingExpenses + completedPurchases;
 
-                const instRevenue = Number(instResult[0]?.total || 0);
-                const instPaid = Number(instResult[0]?.paid || 0);
+                // Net Profit
+                const netProfit = totalRevenue - totalExpenses;
+                const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-                const manualSalesTotal = Number(manualSalesResult[0]?.total || 0);
-
-                const totalRevenue = instRevenue + invoicesTotal + manualSalesTotal;
-                const paidRevenue = instPaid + invoicesPaid + manualSalesTotal;
+                console.log('[Overview Report] Financial Summary:', {
+                    period: `${from.toISOString().split('T')[0]} to ${to.toISOString().split('T')[0]}`,
+                    revenue: {
+                        paidInvoices,
+                        paidInstallments,
+                        manualSales,
+                        total: totalRevenue
+                    },
+                    expenses: {
+                        operating: operatingExpenses,
+                        purchases: completedPurchases,
+                        total: totalExpenses
+                    },
+                    netProfit,
+                    profitMargin: `${profitMargin.toFixed(2)}%`
+                });
 
                 financials = {
                     totalRevenue,
-                    paidRevenue,
+                    paidRevenue: totalRevenue,
                     totalExpenses,
-                    netProfit: paidRevenue - totalExpenses,
-                    profitMargin: paidRevenue > 0 ? ((paidRevenue - totalExpenses) / paidRevenue) * 100 : 0,
+                    netProfit,
+                    profitMargin,
+                    breakdown: {
+                        paidInvoices,
+                        paidInstallments,
+                        manualSales,
+                        operatingExpenses,
+                        completedPurchases
+                    }
                 };
             }
 
