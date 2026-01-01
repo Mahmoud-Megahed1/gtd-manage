@@ -1486,34 +1486,8 @@ export default function Accounting() {
                       </Button>
                     </div>
 
-                    <Table className="mt-4">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>التاريخ</TableHead>
-                          <TableHead>الوصف</TableHead>
-                          <TableHead>الإيرادات</TableHead>
-                          <TableHead>المصروفات</TableHead>
-                          <TableHead>العميل</TableHead>
-                          <TableHead>المشروع</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(breakdown || []).map((row) => (
-                          <TableRow key={row.dateKey}>
-                            <TableCell>{new Date(row.dateKey).toLocaleDateString('ar-SA')}</TableCell>
-                            <TableCell>{row.description}</TableCell>
-                            <TableCell className="text-green-600 font-semibold">
-                              {row.revenue.toLocaleString()} ر.س
-                            </TableCell>
-                            <TableCell className="text-red-600 font-semibold">
-                              {row.expense.toLocaleString()} ر.س
-                            </TableCell>
-                            <TableCell>{row.clientName || '-'}</TableCell>
-                            <TableCell>{row.projectName || '-'}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    {/* Note: Breakdown data structure is {dateKey, invoices, purchases, expenses, installments} */}
+                    {/* The breakdown chart below shows the data correctly */}
                   </div>
                 )}
               </CardContent>
