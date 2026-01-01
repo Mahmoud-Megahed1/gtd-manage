@@ -81,7 +81,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
           family: 'Cairo, sans-serif',
         },
         callbacks: {
-          label: function(context: any) {
+          label: function (context: any) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
@@ -101,7 +101,7 @@ export default function RevenueChart({ monthlyData }: RevenueChartProps) {
           font: {
             family: 'Cairo, sans-serif',
           },
-          callback: function(value: any) {
+          callback: function (value: any) {
             return value.toLocaleString() + ' ر.س';
           }
         },

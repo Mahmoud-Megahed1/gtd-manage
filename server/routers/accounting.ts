@@ -12,7 +12,7 @@ import * as demo from "../_core/demoStore";
 // Admin/Accountant procedure
 const accountingProcedure = protectedProcedure
   .use(({ ctx, next }) => {
-    if (process.env.NODE_ENV === 'production' && ctx.user.role !== 'admin' && ctx.user.role !== 'accountant' && ctx.user.role !== 'finance_manager') {
+    if (process.env.NODE_ENV === 'production' && ctx.user.role !== 'admin' && ctx.user.role !== 'accountant' && ctx.user.role !== 'finance_manager' && ctx.user.role !== 'project_manager' && ctx.user.role !== 'department_manager') {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Accounting access required' });
     }
     return next({ ctx });

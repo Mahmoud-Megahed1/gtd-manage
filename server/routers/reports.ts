@@ -19,7 +19,7 @@ export const reportsRouter = router({
       expenseStatus: z.enum(["active", "processing", "completed", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
+      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager', 'project_manager', 'department_manager'].includes(ctx.user.role)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       // Basic permission guard if needed

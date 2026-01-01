@@ -62,7 +62,19 @@ function getPermissionLevel(role: string, section: string): PermissionLevel {
     finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
     accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
     // Project roles
-    project_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', clients: 'readonly' },
+    project_manager: {
+      // Projects: View All, Create, Edit. NO DELETE.
+      projects: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
+      // Tasks: View All, Create, Edit. NO DELETE.
+      tasks: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
+      dashboard: 'full',
+      hr: 'own',
+      // Forms: View All, Create, Edit. NO DELETE.
+      forms: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
+      // Accounting: Hide sidebar (view: false) but allow Project Financials tab (viewFinancials: true)
+      accounting: { view: false, viewOwn: false, viewFinancials: true, create: false, edit: false, delete: false, approve: false, submit: false },
+      clients: 'readonly'
+    },
     department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full', invoices: 'readonly', clients: 'readonly', reports: 'readonly' },
     site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
     planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
@@ -134,22 +146,26 @@ function getDetailedPermissions(role: string): DetailedPermissions {
 
     // إدارة المشاريع
     department_manager: {
-      hr: { ...ownPerms, view: true },
-      projects: fullPerms,
-      tasks: fullPerms,
+      hr: ownPerms, // Restricted to own data only
+      projects: { ...fullPerms, delete: false }, // No delete
+      tasks: { ...fullPerms, delete: false }, // No delete
       accounting: nonePerms,
       clients: readonlyPerms,
-      forms: fullPerms,
+      forms: { ...fullPerms, delete: false }, // No delete
       invoices: readonlyPerms,
       reports: { ...readonlyPerms, create: true },
     },
     project_manager: {
       hr: ownPerms,
-      projects: fullPerms,
-      tasks: fullPerms,
+      // Projects: View All (except delete)
+      projects: { ...fullPerms, delete: false },
+      // Tasks: View All (except delete)
+      tasks: { ...fullPerms, delete: false },
+      // Accounting: Hide sidebar (handled by frontend Nav) but allow View for Reports/Financials
       accounting: { ...readonlyPerms, viewFinancials: true },
       clients: readonlyPerms,
-      forms: fullPerms,
+      // Forms: View All (except delete)
+      forms: { ...fullPerms, delete: false },
       invoices: nonePerms,
       reports: { ...readonlyPerms, create: true },
     },
@@ -323,7 +339,7 @@ async function ensurePerm(ctx: any, sectionKey: string) {
     department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms', 'generalReports'],
 
     // === إدارة المشاريع ===
-    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports'],
+    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports', 'accounting'],
     project_coordinator: ['projects', 'projectTasks', 'dashboard'],
 
     // === المهندسين والفنيين ===
@@ -905,6 +921,14 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+
+        // Check strict delete permission for tasks
+        const perms = getDetailedPermissions(ctx.user.role);
+        // Only allow if role enables delete on tasks OR user is admin
+        if (!perms.tasks.delete && ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية حذف المهام' });
+        }
+
         await db.deleteProjectTask(input.id);
         await logAudit(ctx.user.id, 'DELETE_TASK', 'task', input.id, undefined, ctx);
         return { success: true };
@@ -1783,7 +1807,30 @@ export const appRouter = router({
   forms: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'forms');
-      return await db.getAllForms();
+      const permLevel = getPermissionLevel(ctx.user.role, 'forms');
+
+      const allForms = await db.getAllForms();
+
+      // If full access, return everything
+      if (ctx.user.role === 'admin' || permLevel === 'full') {
+        return allForms;
+      }
+
+      // If own access, filter by assigned projects
+      if (permLevel === 'own') {
+        const myProjects = await db.getProjectsForAssignee(ctx.user.id);
+        const myProjectIds = myProjects.map((p: any) => p.id);
+
+        return (allForms as any[]).filter((f: any) =>
+          // Allow if form is linked to an assigned project
+          (f.projectId && myProjectIds.includes(f.projectId)) ||
+          // Allow if user created the form
+          f.createdBy === ctx.user.id
+        );
+      }
+
+      // Default: Return all forms (covers 'full', admin, and custom objects)
+      return allForms;
     }),
 
     getById: protectedProcedure
@@ -2747,38 +2794,19 @@ export const appRouter = router({
       await ensurePerm(ctx, 'dashboard');
       const projects = await db.getAllProjects();
 
-      // Debug logging
-      console.log('--- DASHBOARD CHARTS DEBUG ---');
-      console.log(`Total projects in DB: ${projects.length}`);
-      if (projects.length > 0) {
-        console.log('First project:', JSON.stringify(projects[0], null, 2));
-        projects.forEach(p => console.log(`ID:${p.id} Type:${p.projectType} Status:${p.status}`));
-      } else {
-        console.log('NO PROJECTS FOUND');
-      }
-
       // Filter active projects (in_progress) to check their types
-      // The schema defines status as: 'in_progress', 'delivered', 'cancelled'
-      // The schema defines projectType as: 'design', 'execution', 'design_execution', 'supervision'
-
       const activeProjects = projects.filter(p => p.status === 'in_progress');
-      console.log(`Active Projects (in_progress): ${activeProjects.length}`);
 
-      const result = {
+      return {
         design: activeProjects.filter(p => p.projectType === 'design').length,
         execution: activeProjects.filter(p => p.projectType === 'execution').length,
         design_execution: activeProjects.filter(p => p.projectType === 'design_execution').length,
         supervision: activeProjects.filter(p => p.projectType === 'supervision').length,
-        delivered: projects.filter(p => p.status === 'delivered').length,
+        // Count both 'delivered' (schema) and 'completed' (actual DB value)
+        delivered: projects.filter(p => p.status === 'delivered' || p.status === 'completed').length,
         cancelled: projects.filter(p => p.status === 'cancelled').length,
-        // Keeping in_progress as total of active projects if needed, but chart uses types
         in_progress: activeProjects.length,
       };
-
-      console.log('Final Chart Data:', JSON.stringify(result, null, 2));
-      console.log('--- END DEBUG ---');
-
-      return result;
     }),
     monthlyRevenue: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'dashboard');
