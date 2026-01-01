@@ -873,14 +873,21 @@ export const accountingRouter = router({
           const instRows = demo.list("installments");
           const invoicesRows = demo.list("invoices").filter((r: any) => r.status !== "cancelled" && r.type === "invoice");
           const purchasesRows = demo.list("purchases").filter((r: any) => (r.status || "completed") === "completed");
+          const salesRows = demo.list("sales").filter((r: any) => r.status === 'completed' && !r.invoiceId);
+          
           const totalOperationalExpenses = expensesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const totalPurchases = purchasesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const totalExpenses = totalOperationalExpenses + totalPurchases;
+          
           const installmentsRevenue = instRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
           const invoicesRevenue = invoicesRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
-          const totalRevenue = installmentsRevenue + invoicesRevenue;
-          const paidRevenue = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0)
-            + invoicesRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+          const manualSalesTotal = salesRows.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const totalRevenue = installmentsRevenue + invoicesRevenue + manualSalesTotal;
+          
+          const paidInstallments = instRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const paidInvoices = invoicesRows.filter((r: any) => r.status === "paid").reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+          const paidRevenue = paidInstallments + paidInvoices + manualSalesTotal;
+          
           return {
             totalExpenses,
             totalOperationalExpenses,
@@ -893,22 +900,28 @@ export const accountingRouter = router({
           };
         }
 
-        const expensesResult = await db.select({ total: sum(expenses.amount) }).from(expenses).where(inArray(expenses.status, ['active', 'completed']));
-        const purchasesRes = await db.select({ total: sum(purchases.amount) }).from(purchases).where(eq(purchases.status, 'completed'));
+        const expensesResult = await db.select({ 
+          total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` 
+        }).from(expenses).where(inArray(expenses.status, ['active', 'processing', 'completed']));
+        
+        const purchasesRes = await db.select({ 
+          total: sql<number>`COALESCE(SUM(${purchases.amount}), 0)` 
+        }).from(purchases).where(eq(purchases.status, 'completed'));
+        
         const instRes = await db.select({
-          total: sum(installments.amount),
-          paid: sql<number>`sum(case when ${installments.status} = 'paid' then ${installments.amount} else 0 end)`
+          total: sql<number>`COALESCE(SUM(${installments.amount}), 0)`,
+          paid: sql<number>`COALESCE(SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END), 0)`
         }).from(installments);
 
         // Invoices for Total Revenue calculation
         const invRes = await db.select({
-          total: sum(invoices.total),
-          paid: sql<number>`sum(case when ${invoices.status} = 'paid' then ${invoices.total} else 0 end)`
+          total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
+          paid: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END), 0)`
         }).from(invoices).where(and(ne(invoices.status, 'cancelled'), eq(invoices.type, 'invoice')));
 
         // Manual sales (completed only, not linked to invoices) - for Paid Revenue only
         const manualSalesRes = await db.select({
-          total: sum(sales.amount)
+          total: sql<number>`COALESCE(SUM(${sales.amount}), 0)`
         }).from(sales).where(and(
           eq(sales.status, 'completed'),
           isNull(sales.invoiceId)

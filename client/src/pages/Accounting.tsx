@@ -182,8 +182,32 @@ export default function Accounting() {
     return {
       labels,
       datasets: [
-        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#10B981", backgroundColor: "rgba(16, 185, 129, 0.1)", tension: 0.4, fill: "origin", borderWidth: 3, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderWidth: 2 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#EF4444", backgroundColor: "rgba(239, 68, 68, 0.1)", tension: 0.4, fill: "origin", borderWidth: 3, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderWidth: 2 },
+        { 
+          label: "الإيرادات", 
+          data: (timeseries || []).map(r => r.invoices + r.installments + ((r as any).sales || 0)), 
+          borderColor: "#10B981", 
+          backgroundColor: "rgba(16, 185, 129, 0.1)", 
+          tension: 0.4, 
+          fill: "origin", 
+          borderWidth: 3, 
+          pointRadius: 4, 
+          pointHoverRadius: 6, 
+          pointBackgroundColor: "#fff", 
+          pointBorderWidth: 2 
+        },
+        { 
+          label: "المصروفات", 
+          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), 
+          borderColor: "#EF4444", 
+          backgroundColor: "rgba(239, 68, 68, 0.1)", 
+          tension: 0.4, 
+          fill: "origin", 
+          borderWidth: 3, 
+          pointRadius: 4, 
+          pointHoverRadius: 6, 
+          pointBackgroundColor: "#fff", 
+          pointBorderWidth: 2 
+        },
       ],
     };
   }, [timeseries]);

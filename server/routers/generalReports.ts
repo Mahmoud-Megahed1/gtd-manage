@@ -880,43 +880,43 @@ export const generalReportsRouter = router({
             if (perm.canViewFinancials) {
                 const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
                     // Expenses - filter by expenseDate
-                    conn.select({ total: sum(expenses.amount) })
+                    conn.select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
                         .from(expenses)
-                        .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
+                        .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)))
 
-                    // Invoices (Mirroring accounting.ts logic + Date filter)
-                    conn.select({
-                        total: sum(invoices.total),
-                        paid: sql<number>`SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END)`
-                    }).from(invoices)
-                        .where(and(
-                            gte(invoices.issueDate, from),
-                            lte(invoices.issueDate, to),
-                            eq(invoices.type, 'invoice'),
-                            ne(invoices.status, 'cancelled')
-                        )),
+                        // Invoices (Mirroring accounting.ts logic + Date filter)
+                        , conn.select({
+                            total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
+                            paid: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END), 0)`
+                        }).from(invoices)
+                            .where(and(
+                                gte(invoices.issueDate, from),
+                                lte(invoices.issueDate, to),
+                                eq(invoices.type, 'invoice'),
+                                ne(invoices.status, 'cancelled')
+                            )),
 
                     // Installments (All for total, Paid for paid - mirroring accounting.ts)
                     conn.select({
-                        total: sum(installments.amount),
-                        paid: sql<number>`SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END)`,
+                        total: sql<number>`COALESCE(SUM(${installments.amount}), 0)`,
+                        paid: sql<number>`COALESCE(SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END), 0)`,
                     }).from(installments)
                         .where(and(gte(installments.dueDate, from), lte(installments.dueDate, to))),
 
                     // Purchases - filter by purchaseDate
-                    conn.select({ total: sum(purchases.amount) })
+                    conn.select({ total: sql<number>`COALESCE(SUM(${purchases.amount}), 0)` })
                         .from(purchases)
-                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
+                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)))
 
-                    // Manual Sales (Completed ONLY, not linked to invoices)
-                    conn.select({ total: sum(sales.amount) })
-                        .from(sales)
-                        .where(and(
-                            gte(sales.saleDate, from),
-                            lte(sales.saleDate, to),
-                            eq(sales.status, 'completed'),
-                            isNull(sales.invoiceId)
-                        )),
+                        // Manual Sales (Completed ONLY, not linked to invoices)
+                        , conn.select({ total: sql<number>`COALESCE(SUM(${sales.amount}), 0)` })
+                            .from(sales)
+                            .where(and(
+                                gte(sales.saleDate, from),
+                                lte(sales.saleDate, to),
+                                eq(sales.status, 'completed'),
+                                isNull(sales.invoiceId)
+                            )),
                 ]);
 
                 const totalOperatingExpenses = Number(expResult[0]?.total || 0);
@@ -938,8 +938,10 @@ export const generalReportsRouter = router({
                     totalRevenue,
                     paidRevenue,
                     totalExpenses,
+                    totalOperatingExpenses,
+                    totalPurchases,
                     netProfit: paidRevenue - totalExpenses,
-                    profitMargin: paidRevenue > 0 ? ((paidRevenue - totalExpenses) / paidRevenue) * 100 : 0,
+                    pendingRevenue: totalRevenue - paidRevenue,
                 };
             }
 
