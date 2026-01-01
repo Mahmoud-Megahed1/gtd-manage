@@ -114,8 +114,8 @@ export default function Accounting() {
       expenseStatus: expenseStatus === "all" ? undefined : (expenseStatus as any),
       installmentStatus: installmentStatus === "all" ? undefined : (installmentStatus as any),
     },
-    { 
-      refetchOnWindowFocus: false, 
+    {
+      refetchOnWindowFocus: false,
       refetchOnMount: true,
       onSuccess: (data) => {
         console.log('[Reports] Summary data received:', data);
@@ -134,8 +134,8 @@ export default function Accounting() {
       expenseStatus: expenseStatus === "all" ? undefined : (expenseStatus as any),
       installmentStatus: installmentStatus === "all" ? undefined : (installmentStatus as any),
     },
-    { 
-      refetchOnWindowFocus: false, 
+    {
+      refetchOnWindowFocus: false,
       refetchOnMount: true,
       onSuccess: (data) => {
         console.log('[Reports] Timeseries data received:', data);
@@ -206,31 +206,31 @@ export default function Accounting() {
     return {
       labels,
       datasets: [
-        { 
-          label: "الإيرادات", 
-          data: (timeseries || []).map(r => r.invoices + r.installments), 
-          borderColor: "#10B981", 
-          backgroundColor: "rgba(16, 185, 129, 0.1)", 
-          tension: 0.4, 
-          fill: true, 
-          borderWidth: 3, 
-          pointRadius: 5, 
-          pointHoverRadius: 8, 
-          pointBackgroundColor: "#fff", 
+        {
+          label: "الإيرادات",
+          data: (timeseries || []).map(r => r.invoices + r.installments),
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          tension: 0.4,
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          pointBackgroundColor: "#fff",
           pointBorderWidth: 2,
           pointBorderColor: "#10B981"
         },
-        { 
-          label: "المصروفات", 
-          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), 
-          borderColor: "#EF4444", 
-          backgroundColor: "rgba(239, 68, 68, 0.1)", 
-          tension: 0.4, 
-          fill: true, 
-          borderWidth: 3, 
-          pointRadius: 5, 
-          pointHoverRadius: 8, 
-          pointBackgroundColor: "#fff", 
+        {
+          label: "المصروفات",
+          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)),
+          borderColor: "#EF4444",
+          backgroundColor: "rgba(239, 68, 68, 0.1)",
+          tension: 0.4,
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          pointBackgroundColor: "#fff",
           pointBorderWidth: 2,
           pointBorderColor: "#EF4444"
         },
@@ -304,9 +304,9 @@ export default function Accounting() {
     purSel.forEach(st => {
       const color = colorsPur[st] || "#6B7280";
       // Extract R,G,B from hex
-      const r = parseInt(color.slice(1,3), 16);
-      const g = parseInt(color.slice(3,5), 16);
-      const b = parseInt(color.slice(5,7), 16);
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
       ds.push({
         label: `المشتريات: ${st}`,
         data: rows.map(r => (r.purchases || {})[st] || 0),
@@ -326,9 +326,9 @@ export default function Accounting() {
     const colorsExp: Record<string, string> = { active: "#EF4444", processing: "#F59E0B", completed: "#22C55E", cancelled: "#9CA3AF" };
     expSel.forEach(st => {
       const color = colorsExp[st] || "#6B7280";
-      const r = parseInt(color.slice(1,3), 16);
-      const g = parseInt(color.slice(3,5), 16);
-      const b = parseInt(color.slice(5,7), 16);
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
       ds.push({
         label: `المصروفات: ${st}`,
         data: rows.map(r => (r.expenses || {})[st] || 0),
@@ -848,7 +848,7 @@ export default function Accounting() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}>
+                      ))}
                     </TableBody>
                   </Table>
                 ) : (
@@ -978,7 +978,7 @@ export default function Accounting() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}}}
+                      ))}
                     </TableBody>
                   </Table>
                 ) : (
