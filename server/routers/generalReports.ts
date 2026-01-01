@@ -6,7 +6,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import * as db from "../db";
-import { and, gte, lte, eq, sql, count, sum, ne, isNull } from "drizzle-orm";
+import { and, gte, lte, eq, sql, count, sum, ne, isNull, inArray } from "drizzle-orm";
 import {
     clients, projects, invoices, expenses, installments, purchases, savedReports,
     forms, employees, users, sales
@@ -879,13 +879,17 @@ export const generalReportsRouter = router({
             let financials = null;
             if (perm.canViewFinancials) {
                 const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
-                    // Expenses - filter by expenseDate
+                    // Expenses - filter by expenseDate (active, processing, completed statuses)
                     conn.select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
                         .from(expenses)
-                        .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)))
+                        .where(and(
+                            gte(expenses.expenseDate, from), 
+                            lte(expenses.expenseDate, to),
+                            inArray(expenses.status, ['active', 'processing', 'completed'])
+                        )),
 
                     // Invoices (Mirroring accounting.ts logic + Date filter)
-                    , conn.select({
+                    conn.select({
                         total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
                         paid: sql<number>`COALESCE(SUM(CASE WHEN ${invoices.status} = 'paid' THEN ${invoices.total} ELSE 0 END), 0)`
                     }).from(invoices)
@@ -896,20 +900,24 @@ export const generalReportsRouter = router({
                             ne(invoices.status, 'cancelled')
                         )),
 
-                    // Installments (All for total, Paid for paid - mirroring accounting.ts)
+                    // Installments (All for total, Paid for paid - using createdAt like accounting.ts)
                     conn.select({
                         total: sql<number>`COALESCE(SUM(${installments.amount}), 0)`,
                         paid: sql<number>`COALESCE(SUM(CASE WHEN ${installments.status} = 'paid' THEN ${installments.amount} ELSE 0 END), 0)`,
                     }).from(installments)
-                        .where(and(gte(installments.dueDate, from), lte(installments.dueDate, to))),
+                        .where(and(gte(installments.createdAt, from), lte(installments.createdAt, to))),
 
-                    // Purchases - filter by purchaseDate
+                    // Purchases - filter by purchaseDate (completed status)
                     conn.select({ total: sql<number>`COALESCE(SUM(${purchases.amount}), 0)` })
                         .from(purchases)
-                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)))
+                        .where(and(
+                            gte(purchases.purchaseDate, from), 
+                            lte(purchases.purchaseDate, to),
+                            eq(purchases.status, 'completed')
+                        )),
 
                     // Manual Sales (Completed ONLY, not linked to invoices)
-                    , conn.select({ total: sql<number>`COALESCE(SUM(${sales.amount}), 0)` })
+                    conn.select({ total: sql<number>`COALESCE(SUM(${sales.amount}), 0)` })
                         .from(sales)
                         .where(and(
                             gte(sales.saleDate, from),
@@ -933,6 +941,20 @@ export const generalReportsRouter = router({
 
                 const totalRevenue = instRevenue + invoicesTotal + manualSalesTotal;
                 const paidRevenue = instPaid + invoicesPaid + manualSalesTotal;
+
+                // Debug logging (remove in production)
+                console.log('📊 General Reports Overview Debug:', {
+                    dateRange: { from: from.toISOString(), to: to.toISOString() },
+                    expenses: { operating: totalOperatingExpenses, purchases: totalPurchases, total: totalExpenses },
+                    revenue: {
+                        invoices: { total: invoicesTotal, paid: invoicesPaid },
+                        installments: { total: instRevenue, paid: instPaid },
+                        manualSales: manualSalesTotal,
+                        total: totalRevenue,
+                        paid: paidRevenue
+                    },
+                    netProfit: paidRevenue - totalExpenses
+                });
 
                 financials = {
                     totalRevenue,

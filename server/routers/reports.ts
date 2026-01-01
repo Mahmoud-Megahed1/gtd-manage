@@ -57,13 +57,13 @@ export const reportsRouter = router({
       }
       const from = input.from ?? new Date(0);
       const to = input.to ?? new Date();
-      
+
       // All invoices (for total value display)
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), eq(invoices.type, 'invoice')];
       if (input.clientId) invWhere.push(eq(invoices.clientId, input.clientId));
       if (input.projectId) invWhere.push(eq(invoices.projectId, input.projectId));
       if (input.invoiceStatus) invWhere.push(eq(invoices.status, input.invoiceStatus));
-      
+
       const invSum = await conn.select({
         total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
         count: sql<number>`COUNT(${invoices.id})`
@@ -75,7 +75,7 @@ export const reportsRouter = router({
       const paidInvWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), eq(invoices.status, 'paid'), eq(invoices.type, 'invoice')];
       if (input.clientId) paidInvWhere.push(eq(invoices.clientId, input.clientId));
       if (input.projectId) paidInvWhere.push(eq(invoices.projectId, input.projectId));
-      
+
       const paidInvSum = await conn.select({
         total: sql<number>`COALESCE(SUM(${invoices.total}), 0)`,
         count: sql<number>`COUNT(${invoices.id})`
@@ -89,14 +89,14 @@ export const reportsRouter = router({
       const purSum = await conn.select({ total: sql<number>`COALESCE(SUM(${purchases.amount}), 0)` })
         .from(purchases)
         .where(and(...purWhere));
-        
+
       const expWhere = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
       if (input.projectId) expWhere.push(eq(expenses.projectId, input.projectId));
       if (input.expenseStatus) expWhere.push(eq(expenses.status, input.expenseStatus));
       const expSum = await conn.select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
         .from(expenses)
         .where(and(...expWhere));
-        
+
       // Paid installments only (for revenue)
       const instWhere = [gte(installments.createdAt, from), lte(installments.createdAt, to), eq(installments.status, 'paid')];
       if (input.projectId) instWhere.push(eq(installments.projectId, input.projectId));
@@ -121,14 +121,30 @@ export const reportsRouter = router({
       const installmentsTotal = Number(instSum[0]?.total ?? 0);
       const manualSalesTotal = Number(salesSum[0]?.total ?? 0);
 
+      // Debug logging (remove in production)
+      console.log('📊 Reports Summary Debug:', {
+        dateRange: { from: from.toISOString(), to: to.toISOString() },
+        filters: { clientId: input.clientId, projectId: input.projectId },
+        results: {
+          invoicesTotal,
+          invoicesCount,
+          paidInvoicesTotal,
+          paidInvoicesCount,
+          purchasesTotal,
+          expensesTotal,
+          installmentsTotal,
+          manualSalesTotal
+        }
+      });
+
       // Net profit = paid invoices + paid installments + completed manual sales - expenses - purchases
       const net = paidInvoicesTotal + installmentsTotal + manualSalesTotal - purchasesTotal - expensesTotal;
       return { invoicesTotal, invoicesCount, paidInvoicesTotal, paidInvoicesCount, purchasesTotal, expensesTotal, installmentsTotal, manualSalesTotal, net };
     }),
   timeseries: protectedProcedure
     .input(z.object({
-      from: z.date(),
-      to: z.date(),
+      from: z.date().optional(),
+      to: z.date().optional(),
       granularity: z.enum(["day", "month"]).default("day"),
       clientId: z.number().optional(),
       projectId: z.number().optional(),
@@ -142,8 +158,13 @@ export const reportsRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       const conn = await db.getDb();
-      const from = input.from;
-      const to = input.to;
+      // Default to current year if no dates provided
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const endOfYear = new Date(now.getFullYear(), 11, 31);
+
+      const from = input.from ?? startOfYear;
+      const to = input.to ?? endOfYear;
       const range: Array<{ key: string; date: Date }> = [];
       const cursor = new Date(from);
       const makeKey = (d: Date) => input.granularity === "month" ? `${d.getFullYear()}-${d.getMonth() + 1}` : d.toISOString().substring(0, 10);
@@ -201,37 +222,37 @@ export const reportsRouter = router({
           return { dateKey: r.key, invoices: v.invoices, expenses: v.expenses, installments: v.installments, purchases: v.purchases, sales: v.sales, net };
         });
       }
-      
+
       // Paid invoices only for revenue
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), eq(invoices.type, 'invoice'), eq(invoices.status, 'paid')];
       if (input.clientId) invWhere.push(eq(invoices.clientId, input.clientId));
       if (input.projectId) invWhere.push(eq(invoices.projectId, input.projectId));
       const invRows = await conn.select().from(invoices).where(and(...invWhere));
-      
+
       const expWhere = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
       if (input.projectId) expWhere.push(eq(expenses.projectId, input.projectId));
       if (input.expenseStatus) expWhere.push(eq(expenses.status, input.expenseStatus));
       const expRows = await conn.select().from(expenses).where(and(...expWhere));
-      
+
       // Paid installments only for revenue
       const instWhere = [gte(installments.createdAt, from), lte(installments.createdAt, to), eq(installments.status, 'paid')];
       if (input.projectId) instWhere.push(eq(installments.projectId, input.projectId));
       const instRows = await conn.select().from(installments).where(and(...instWhere));
-      
+
       // Purchases aggregation
       const purWhere = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
       if (input.projectId) purWhere.push(eq(purchases.projectId, input.projectId));
       if (input.purchaseStatus) purWhere.push(eq(purchases.status, input.purchaseStatus));
       const purRows = await conn.select().from(purchases).where(and(...purWhere));
-      
+
       // Manual sales - completed only for revenue
       const salesWhere = [gte(sales.saleDate, from), lte(sales.saleDate, to), eq(sales.status, 'completed'), isNull(sales.invoiceId)];
       if (input.projectId) salesWhere.push(eq(sales.projectId, input.projectId));
       const salesRows = await conn.select().from(sales).where(and(...salesWhere));
-      
+
       const acc: Record<string, { invoices: number; expenses: number; installments: number; purchases: number; sales: number }> = {};
       range.forEach(r => { acc[r.key] = { invoices: 0, expenses: 0, installments: 0, purchases: 0, sales: 0 }; });
-      
+
       invRows.forEach((r: any) => {
         const d = new Date(r.issueDate);
         const key = makeKey(d);
@@ -306,16 +327,16 @@ export const reportsRouter = router({
       const initInst: Record<string, number> = Object.fromEntries(installmentStatuses.map(s => [s, 0]));
       const acc: Record<string, { invoices: Record<string, number>; purchases: Record<string, number>; expenses: Record<string, number>; installments: Record<string, number> }> = {};
       range.forEach(r => { acc[r.key] = { invoices: { ...initInv }, purchases: { ...initPur }, expenses: { ...initExp }, installments: { ...initInst } }; });
-      
+
       if (!conn) {
         return range.map(r => ({ dateKey: r.key, invoices: { ...initInv }, purchases: { ...initPur }, expenses: { ...initExp }, installments: { ...initInst } }));
       }
-      
+
       const invWhere = [gte(invoices.issueDate, from), lte(invoices.issueDate, to), eq(invoices.type, 'invoice')];
       if (input.clientId) invWhere.push(eq(invoices.clientId, input.clientId));
       if (input.projectId) invWhere.push(eq(invoices.projectId, input.projectId));
       const invRows = await conn.select().from(invoices).where(and(...invWhere));
-      
+
       invRows.forEach((r: any) => {
         const d = new Date(r.issueDate);
         const key = makeKey(d);
@@ -324,11 +345,11 @@ export const reportsRouter = router({
           acc[key].invoices[st] = (acc[key].invoices[st] || 0) + Number(r.total || 0);
         }
       });
-      
+
       const purWhere = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
       if (input.projectId) purWhere.push(eq(purchases.projectId, input.projectId));
       const purRows = await conn.select().from(purchases).where(and(...purWhere));
-      
+
       purRows.forEach((r: any) => {
         const d = new Date(r.purchaseDate);
         const key = makeKey(d);
@@ -337,11 +358,11 @@ export const reportsRouter = router({
           acc[key].purchases[st] = (acc[key].purchases[st] || 0) + Number(r.amount || 0);
         }
       });
-      
+
       const expWhere = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
       if (input.projectId) expWhere.push(eq(expenses.projectId, input.projectId));
       const expRows = await conn.select().from(expenses).where(and(...expWhere));
-      
+
       expRows.forEach((r: any) => {
         const d = new Date(r.expenseDate);
         const key = makeKey(d);
@@ -350,11 +371,11 @@ export const reportsRouter = router({
           acc[key].expenses[st] = (acc[key].expenses[st] || 0) + Number(r.amount || 0);
         }
       });
-      
+
       const instWhere = [gte(installments.createdAt, from), lte(installments.createdAt, to)];
       if (input.projectId) instWhere.push(eq(installments.projectId, input.projectId));
       const instRows = await conn.select().from(installments).where(and(...instWhere));
-      
+
       instRows.forEach((r: any) => {
         const d = new Date(r.createdAt);
         const key = makeKey(d);
@@ -363,7 +384,7 @@ export const reportsRouter = router({
           acc[key].installments[st] = (acc[key].installments[st] || 0) + Number(r.amount || 0);
         }
       });
-      
+
       return range.map(r => ({ dateKey: r.key, invoices: acc[r.key].invoices, purchases: acc[r.key].purchases, expenses: acc[r.key].expenses, installments: acc[r.key].installments }));
     })
   ,

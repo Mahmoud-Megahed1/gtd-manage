@@ -938,6 +938,18 @@ export const accountingRouter = router({
         // Paid Revenue = Paid Invoices + Paid Installments + Completed Manual Sales
         const paidRevenue = Number(instRes[0]?.paid || 0) + Number(invRes[0]?.paid || 0) + manualSalesTotal;
 
+        // Debug logging (remove in production)
+        console.log('📊 Overall Financials Debug:', {
+          expenses: { operational: totalOperationalExpenses, purchases: totalPurchases, total: totalExpenses },
+          revenue: { 
+            installments: { total: Number(instRes[0]?.total || 0), paid: Number(instRes[0]?.paid || 0) },
+            invoices: { total: Number(invRes[0]?.total || 0), paid: Number(invRes[0]?.paid || 0) },
+            manualSales: manualSalesTotal,
+            total: totalRevenue,
+            paid: paidRevenue
+          }
+        });
+
         return {
           totalExpenses,
           totalOperationalExpenses,
