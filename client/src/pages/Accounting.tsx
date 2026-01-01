@@ -62,7 +62,7 @@ export default function Accounting() {
     return null;
   }
   const { data: expenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.accounting.expenses.list.useQuery({});
-  // Removed installments section per requirement
+
   const { data: salesList, isLoading: loadingSales, refetch: refetchSales } = trpc.accounting.sales.list.useQuery();
   const { data: purchasesList, isLoading: loadingPurchases, refetch: refetchPurchases } = trpc.accounting.purchases.list.useQuery();
   const { data: invoicesList, isLoading: loadingInvoices } = trpc.invoices.list.useQuery({ type: 'invoice' });
@@ -92,7 +92,7 @@ export default function Accounting() {
   // ========== Advanced Reports States ==========
   const [reportFrom, setReportFrom] = useState<string>(() => {
     const d = new Date();
-    d.setMonth(0, 1); // January 1st
+    d.setMonth(d.getMonth() - 6); // Last 6 months instead of full year
     return d.toISOString().split('T')[0];
   });
   const [reportTo, setReportTo] = useState<string>(() => new Date().toISOString().split('T')[0]);
@@ -114,7 +114,13 @@ export default function Accounting() {
       expenseStatus: expenseStatus === "all" ? undefined : (expenseStatus as any),
       installmentStatus: installmentStatus === "all" ? undefined : (installmentStatus as any),
     },
-    { refetchOnWindowFocus: false }
+    { 
+      refetchOnWindowFocus: false, 
+      refetchOnMount: true,
+      onSuccess: (data) => {
+        console.log('[Reports] Summary data received:', data);
+      }
+    }
   );
   const { data: timeseries, isLoading: tsLoading, refetch: tsRefetch } = trpc.reports.timeseries.useQuery(
     {
@@ -128,7 +134,13 @@ export default function Accounting() {
       expenseStatus: expenseStatus === "all" ? undefined : (expenseStatus as any),
       installmentStatus: installmentStatus === "all" ? undefined : (installmentStatus as any),
     },
-    { refetchOnWindowFocus: false }
+    { 
+      refetchOnWindowFocus: false, 
+      refetchOnMount: true,
+      onSuccess: (data) => {
+        console.log('[Reports] Timeseries data received:', data);
+      }
+    }
   );
   const chartRef = useRef<any>(null);
   const [invSel, setInvSel] = useState<string[]>(["paid", "sent"]);
@@ -194,8 +206,34 @@ export default function Accounting() {
     return {
       labels,
       datasets: [
-        { label: "الإيرادات", data: (timeseries || []).map(r => r.invoices + r.installments), borderColor: "#10B981", backgroundColor: "rgba(16, 185, 129, 0.1)", tension: 0.4, fill: "origin", borderWidth: 3, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderWidth: 2 },
-        { label: "المصروفات", data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), borderColor: "#EF4444", backgroundColor: "rgba(239, 68, 68, 0.1)", tension: 0.4, fill: "origin", borderWidth: 3, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: "#fff", pointBorderWidth: 2 },
+        { 
+          label: "الإيرادات", 
+          data: (timeseries || []).map(r => r.invoices + r.installments), 
+          borderColor: "#10B981", 
+          backgroundColor: "rgba(16, 185, 129, 0.1)", 
+          tension: 0.4, 
+          fill: true, 
+          borderWidth: 3, 
+          pointRadius: 5, 
+          pointHoverRadius: 8, 
+          pointBackgroundColor: "#fff", 
+          pointBorderWidth: 2,
+          pointBorderColor: "#10B981"
+        },
+        { 
+          label: "المصروفات", 
+          data: (timeseries || []).map(r => r.expenses + ((r as any).purchases || 0)), 
+          borderColor: "#EF4444", 
+          backgroundColor: "rgba(239, 68, 68, 0.1)", 
+          tension: 0.4, 
+          fill: true, 
+          borderWidth: 3, 
+          pointRadius: 5, 
+          pointHoverRadius: 8, 
+          pointBackgroundColor: "#fff", 
+          pointBorderWidth: 2,
+          pointBorderColor: "#EF4444"
+        },
       ],
     };
   }, [timeseries]);
@@ -215,12 +253,15 @@ export default function Accounting() {
         label: "إيرادات مكتملة",
         data: rows.map(r => ((r.invoices || {}).paid || 0) + ((r.installments || {}).paid || 0)),
         borderColor: "#16A34A",
-        backgroundColor: "#16A34A40",
+        backgroundColor: "rgba(22, 163, 74, 0.15)",
         tension: 0.4,
         fill: true,
-        borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        borderWidth: 3,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: "#fff",
+        pointBorderWidth: 2,
+        pointBorderColor: "#16A34A"
       });
     }
     if (instSel.includes("pending")) {
@@ -228,12 +269,15 @@ export default function Accounting() {
         label: "إيرادات قيد المعالجة",
         data: rows.map(r => ((r.invoices || {}).sent || 0) + ((r.installments || {}).pending || 0)),
         borderColor: "#F59E0B",
-        backgroundColor: "#F59E0B40",
+        backgroundColor: "rgba(245, 158, 11, 0.15)",
         tension: 0.4,
         fill: true,
-        borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        borderWidth: 3,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: "#fff",
+        pointBorderWidth: 2,
+        pointBorderColor: "#F59E0B"
       });
     }
     // Handle other installment statuses normally if needed, or ignore to avoid clutter
@@ -243,43 +287,61 @@ export default function Accounting() {
         label: `التكاليف: ${st}`,
         data: rows.map(r => (r.installments || {})[st] || 0),
         borderColor: "#6B7280",
-        backgroundColor: "#6B728040",
+        backgroundColor: "rgba(107, 114, 128, 0.15)",
         tension: 0.4,
         fill: true,
         borderWidth: 2,
         pointRadius: 4,
-        pointHoverRadius: 6
+        pointHoverRadius: 6,
+        pointBackgroundColor: "#fff",
+        pointBorderWidth: 2,
+        pointBorderColor: "#6B7280"
       });
     });
 
     // Keeping Purchases and Expenses as is
     const colorsPur: Record<string, string> = { pending: "#A78BFA", completed: "#22C55E", cancelled: "#EF4444" };
     purSel.forEach(st => {
+      const color = colorsPur[st] || "#6B7280";
+      // Extract R,G,B from hex
+      const r = parseInt(color.slice(1,3), 16);
+      const g = parseInt(color.slice(3,5), 16);
+      const b = parseInt(color.slice(5,7), 16);
       ds.push({
         label: `المشتريات: ${st}`,
         data: rows.map(r => (r.purchases || {})[st] || 0),
-        borderColor: colorsPur[st] || "#6B7280",
-        backgroundColor: (colorsPur[st] || "#6B7280") + "40",
+        borderColor: color,
+        backgroundColor: `rgba(${r}, ${g}, ${b}, 0.15)`,
         tension: 0.4,
         fill: true,
-        borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        borderWidth: 3,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: "#fff",
+        pointBorderWidth: 2,
+        pointBorderColor: color
       });
     });
 
-    const colorsExp: Record<string, string> = { active: "#EF4444", cancelled: "#9CA3AF" };
+    const colorsExp: Record<string, string> = { active: "#EF4444", processing: "#F59E0B", completed: "#22C55E", cancelled: "#9CA3AF" };
     expSel.forEach(st => {
+      const color = colorsExp[st] || "#6B7280";
+      const r = parseInt(color.slice(1,3), 16);
+      const g = parseInt(color.slice(3,5), 16);
+      const b = parseInt(color.slice(5,7), 16);
       ds.push({
         label: `المصروفات: ${st}`,
         data: rows.map(r => (r.expenses || {})[st] || 0),
-        borderColor: colorsExp[st] || "#6B7280",
-        backgroundColor: (colorsExp[st] || "#6B7280") + "40",
+        borderColor: color,
+        backgroundColor: `rgba(${r}, ${g}, ${b}, 0.15)`,
         tension: 0.4,
         fill: true,
-        borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        borderWidth: 3,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: "#fff",
+        pointBorderWidth: 2,
+        pointBorderColor: color
       });
     });
 
@@ -720,8 +782,6 @@ export default function Accounting() {
             </Card>
           </TabsContent>
 
-
-
           {/* Sales Tab */}
           <TabsContent value="sales" className="space-y-4">
             {/* Invoices Section */}
@@ -788,7 +848,7 @@ export default function Accounting() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))}>
                     </TableBody>
                   </Table>
                 ) : (
@@ -839,6 +899,7 @@ export default function Accounting() {
                               {(projects || []).map((p: any) => (
                                 <option key={p.id} value={String(p.id)}>{p.name}</option>
                               ))}
+
                             </select>
                           </TableCell>
                           <TableCell>
@@ -917,7 +978,7 @@ export default function Accounting() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))}}}
                     </TableBody>
                   </Table>
                 ) : (
@@ -971,6 +1032,7 @@ export default function Accounting() {
                               {(projects || []).map((p: any) => (
                                 <option key={p.id} value={String(p.id)}>{p.name}</option>
                               ))}
+
                             </select>
                           </TableCell>
                           <TableCell>{purchase.supplierName}</TableCell>
@@ -1025,19 +1087,29 @@ export default function Accounting() {
                             <Select
                               defaultValue={purchase.status || "pending"}
                               onValueChange={(v) => updatePurchase.mutate({ id: purchase.id, status: v as any })}
+                              className="w-[120px]"
                             >
-                              <SelectTrigger className="h-8 w-[130px]">
+                              <SelectTrigger className="h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="pending">قيد المعالجة</SelectItem>
+                                <SelectItem value="pending">معلقة</SelectItem>
                                 <SelectItem value="completed">مكتمل</SelectItem>
-                                <SelectItem value="cancelled">ملغي</SelectItem>
+                                <SelectItem value="cancelled">ملغى</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>
                           <TableCell className="text-left">
                             <div className="flex gap-2 justify-end">
+                              {purchase.status !== 'cancelled' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => cancelPurchase.mutate({ id: purchase.id })}
+                                >
+                                  إلغاء
+                                </Button>
+                              )}
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -1049,10 +1121,11 @@ export default function Accounting() {
                           </TableCell>
                         </TableRow>
                       ))}
+
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-center py-12 text-muted-foreground">لا توجد عمليات شراء حالياً</p>
+                  <p className="text-center py-8 text-muted-foreground">لا توجد مشتريات مسجلة</p>
                 )}
               </CardContent>
             </Card>
@@ -1060,288 +1133,402 @@ export default function Accounting() {
 
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>نطاق التاريخ</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-7 gap-3">
-                  <div>
-                    <label className="text-sm">من</label>
-                    <Input type="date" value={reportFrom} onChange={(e) => setReportFrom(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-sm">إلى</label>
-                    <Input type="date" value={reportTo} onChange={(e) => setReportTo(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-sm">العميل</label>
-                    <Select value={reportClientId} onValueChange={(v) => setReportClientId(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="الكل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">الكل</SelectItem>
-                        {(clients || []).map((c: any) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm">المشروع</label>
-                    <Select value={reportProjectId} onValueChange={(v) => setReportProjectId(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="الكل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">الكل</SelectItem>
-                        {(projects || []).map((p: any) => (
-                          <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm">حالة الفاتورة</label>
-                    <Select value={invoiceStatus} onValueChange={(v) => setInvoiceStatus(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="الكل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">الكل</SelectItem>
-                        <SelectItem value="draft">مسودة</SelectItem>
-                        <SelectItem value="sent">مرسلة</SelectItem>
-                        <SelectItem value="paid">مدفوعة</SelectItem>
-                        <SelectItem value="cancelled">ملغاة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm">حالة المشتريات</label>
-                    <Select value={purchaseStatus} onValueChange={(v) => setPurchaseStatus(v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="الكل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">الكل</SelectItem>
-                        <SelectItem value="pending">قيد الانتظار</SelectItem>
-                        <SelectItem value="completed">مكتملة</SelectItem>
-                        <SelectItem value="cancelled">ملغاة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={() => { refetchReportData(); tsRefetch(); }} disabled={reportLoading || tsLoading}>تحديث</Button>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(`/reports.export.csv?${buildQuery()}`, "_blank")}
-                    disabled={!canExportCsv}
-                  >
-                    تصدير CSV
-                  </Button>
-                  <Button variant="outline" onClick={exportServerPdf} disabled={reportLoading && tsLoading}>
-                    تصدير PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(`/reports.breakdown.csv?${buildBreakdownQuery()}`, "_blank")}
-                    disabled={!canExportBreakdown}
-                  >
-                    تفصيل CSV
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>ملخص مالي</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {reportLoading ? (
-                  <div className="animate-pulse grid md:grid-cols-2 gap-4">
-                    <div className="h-24 bg-muted rounded"></div>
-                    <div className="h-24 bg-muted rounded"></div>
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">عدد الفواتير</div>
-                      <div className="text-2xl font-bold">{reportData?.invoicesCount ?? 0} فاتورة</div>
+            {/* Summary Cards for Reports */}
+            {reportLoading ? (
+              <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="h-24 bg-muted rounded animate-pulse"></div>
+                <div className="h-24 bg-muted rounded animate-pulse"></div>
+                <div className="h-24 bg-muted rounded animate-pulse"></div>
+                <div className="h-24 bg-muted rounded animate-pulse"></div>
+                <div className="h-24 bg-muted rounded animate-pulse"></div>
+                <div className="h-24 bg-muted rounded animate-pulse"></div>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground">عدد الفواتير</div>
+                    <div className="text-2xl font-bold">{reportData?.invoicesCount ?? 0} فاتورة</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground">قيمة الفواتير</div>
+                    <div className="text-2xl font-bold">{Number(reportData?.invoicesTotal ?? 0).toLocaleString()} ر.س</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground">الإيرادات المحصلة</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {(Number(reportData?.paidInvoicesTotal || 0) + Number(reportData?.installmentsTotal || 0) + Number(reportData?.manualSalesTotal || 0)).toLocaleString()} ر.س
                     </div>
-                    <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">قيمة الفواتير</div>
-                      <div className="text-2xl font-bold">{Number(reportData?.invoicesTotal ?? 0).toLocaleString()} ر.س</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {(Number(reportData?.expensesTotal ?? 0) + Number(reportData?.purchasesTotal ?? 0)).toLocaleString()} ر.س
                     </div>
-                    <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">إجمالي الإيرادات (المكتملة)</div>
-                      <div className="text-2xl font-bold text-green-600">{(Number(reportData?.paidInvoicesTotal || 0) + Number(reportData?.installmentsTotal || 0) + Number(reportData?.manualSalesTotal || 0)).toLocaleString()} ر.س</div>
-                    </div>
-                    <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">إجمالي المصروفات</div>
-                      <div className="text-2xl font-bold text-red-600">{(Number(reportData?.expensesTotal ?? 0) + Number(reportData?.purchasesTotal ?? 0)).toLocaleString()} ر.س</div>
-                    </div>
-                    <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">التكاليف التشغيلية</div>
-                      <div className="text-2xl font-bold">{Number(reportData?.expensesTotal ?? 0).toLocaleString()} ر.س</div>
-                    </div>
-                    <div className="p-4 border rounded">
-                      <div className="text-sm text-muted-foreground">المشتريات</div>
-                      <div className="text-2xl font-bold">{Number(reportData?.purchasesTotal ?? 0).toLocaleString()} ر.س</div>
-                    </div>
-                    <div className="p-4 border rounded md:col-span-3 bg-primary/5">
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground">التكاليف التشغيلية</div>
+                    <div className="text-2xl font-bold">{Number(reportData?.expensesTotal ?? 0).toLocaleString()} ر.س</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-muted-foreground">المشتريات</div>
+                    <div className="text-2xl font-bold">{Number(reportData?.purchasesTotal ?? 0).toLocaleString()} ر.س</div>
+                  </CardContent>
+                </Card>
+                <Card className="sm:col-span-3">
+                  <CardContent className="pt-6">
+                    <div className="text-center">
                       <div className="text-sm text-muted-foreground">صافي الربح</div>
                       <div className={`text-3xl font-bold ${Number(reportData?.net ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {Number(reportData?.net ?? 0).toLocaleString()} ر.س
                       </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Filters and Date Range Picker */}
             <Card>
               <CardHeader>
-                <CardTitle>الإيرادات والمصروفات الشهرية</CardTitle>
+                <CardTitle>تقرير الإيرادات والمصروفات</CardTitle>
               </CardHeader>
               <CardContent>
-                {tsLoading ? (
-                  <div className="h-64 bg-muted rounded animate-pulse" />
-                ) : (
-                  <div className="h-[300px] w-full">
-                    <Line
-                      ref={chartRef}
-                      data={chartData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: "top",
-                            align: "center",
-                            labels: {
-                              usePointStyle: false,
-                              boxWidth: 40,
-                              font: { family: "Tajawal", size: 14 }
-                            }
-                          }
-                        },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            ticks: {
-                              callback: (value) => `${Number(value).toLocaleString()} ر.س`,
-                              font: { family: "Tajawal" }
-                            },
-                            grid: { color: "#f3f4f6" }
-                          },
-                          x: {
-                            grid: { display: false },
-                            ticks: { font: { family: "Tajawal" } }
-                          }
-                        }
-                      }}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="reportFrom">من تاريخ</Label>
+                    <Input
+                      id="reportFrom"
+                      type="date"
+                      value={reportFrom}
+                      onChange={(e) => setReportFrom(e.target.value)}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="reportTo">إلى تاريخ</Label>
+                    <Input
+                      id="reportTo"
+                      type="date"
+                      value={reportTo}
+                      onChange={(e) => setReportTo(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="clientId">العميل</Label>
+                    <Select
+                      id="clientId"
+                      value={reportClientId}
+                      onValueChange={setReportClientId}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="جميع العملاء" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع العملاء</SelectItem>
+                        {(clients || []).map(client => (
+                          <SelectItem key={client.id} value={String(client.id)}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="projectId">المشروع</Label>
+                    <Select
+                      id="projectId"
+                      value={reportProjectId}
+                      onValueChange={setReportProjectId}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="جميع المشاريع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع المشاريع</SelectItem>
+                        {(projects || []).map(project => (
+                          <SelectItem key={project.id} value={String(project.id)}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Button
+                      onClick={() => {
+                        tsRefetch();
+                        refetchReportData();
+                      }}
+                      className="w-full"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      تحميل التقرير
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Timeseries Chart */}
+            <div className="mt-6">
+              {tsLoading ? (
+                <div className="text-center py-4 text-muted-foreground">جاري التحميل بيانات الرسم البياني...</div>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>الإيرادات والمصروفات الشهرية</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[400px] w-full">
+                      <Line
+                        ref={chartRef}
+                        data={chartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'top' as const,
+                              rtl: true,
+                              labels: {
+                                font: {
+                                  family: 'Cairo, sans-serif',
+                                  size: 13,
+                                },
+                                padding: 15,
+                                usePointStyle: true,
+                              },
+                            },
+                            tooltip: {
+                              rtl: true,
+                              titleFont: {
+                                family: 'Cairo, sans-serif',
+                                size: 14,
+                              },
+                              bodyFont: {
+                                family: 'Cairo, sans-serif',
+                                size: 13,
+                              },
+                              callbacks: {
+                                label: (context: any) => {
+                                  let label = context.dataset.label || '';
+                                  if (label && context.parsed.y !== null) {
+                                    label += ': ' + context.parsed.y.toLocaleString() + ' ر.س';
+                                  }
+                                  return label;
+                                }
+                              }
+                            },
+                          },
+                          scales: {
+                            x: {
+                              grid: {
+                                display: false,
+                              },
+                              ticks: {
+                                font: {
+                                  family: 'Cairo, sans-serif',
+                                  size: 12,
+                                },
+                              },
+                            },
+                            y: {
+                              beginAtZero: true,
+                              grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                              },
+                              ticks: {
+                                font: {
+                                  family: 'Cairo, sans-serif',
+                                  size: 12,
+                                },
+                                callback: (value: any) => {
+                                  return value.toLocaleString() + ' ر.س';
+                                }
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+
+                    {/* Download Buttons */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={exportPdf}
+                        disabled={!chartData.labels.length}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        تصدير PDF
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(`/reports.export.csv?${buildQuery()}`, "_blank")}
+                        disabled={!canExportCsv}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        تصدير CSV
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Breakdown Table - Advanced Reports */}
+            <Card>
+              <CardHeader>
+                <CardTitle>تفصيل شهري للإيرادات والمصروفات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {bdLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">جاري التحميل بيانات التفصيل...</div>
+                ) : (
+                  <div>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label htmlFor="invoiceStatuses">حالات الفواتير</Label>
+                        <Select
+                          id="invoiceStatuses"
+                          multiple
+                          value={invSel}
+                          onValueChange={setInvSel}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="كل الحالات" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="paid">مدفوعة</SelectItem>
+                            <SelectItem value="sent">مرسلة</SelectItem>
+                            <SelectItem value="draft">مسودة</SelectItem>
+                            <SelectItem value="cancelled">ملغاة</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="purchaseStatuses">حالات المشتريات</Label>
+                        <Select
+                          id="purchaseStatuses"
+                          multiple
+                          value={purSel}
+                          onValueChange={setPurSel}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="كل الحالات" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="completed">مكتملة</SelectItem>
+                            <SelectItem value="pending">قيد الانتظار</SelectItem>
+                            <SelectItem value="cancelled">ملغاة</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="expenseStatuses">حالات المصروفات</Label>
+                        <Select
+                          id="expenseStatuses"
+                          multiple
+                          value={expSel}
+                          onValueChange={setExpSel}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="كل الحالات" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">نشطة</SelectItem>
+                            <SelectItem value="processing">قيد المعالجة</SelectItem>
+                            <SelectItem value="completed">مكتملة</SelectItem>
+                            <SelectItem value="cancelled">ملغاة</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="installmentStatuses">حالات الأقساط</Label>
+                        <Select
+                          id="installmentStatuses"
+                          multiple
+                          value={instSel}
+                          onValueChange={setInstSel}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="كل الحالات" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">قيد الدفع</SelectItem>
+                            <SelectItem value="paid">مدفوعة</SelectItem>
+                            <SelectItem value="cancelled">ملغاة</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          bdRefetch();
+                        }}
+                        className="flex-1"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        تحميل التفصيل
+                      </Button>
+                    </div>
+
+                    <Table className="mt-4">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>التاريخ</TableHead>
+                          <TableHead>الوصف</TableHead>
+                          <TableHead>الإيرادات</TableHead>
+                          <TableHead>المصروفات</TableHead>
+                          <TableHead>العميل</TableHead>
+                          <TableHead>المشروع</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(breakdown || []).map((row) => (
+                          <TableRow key={row.dateKey}>
+                            <TableCell>{new Date(row.dateKey).toLocaleDateString('ar-SA')}</TableCell>
+                            <TableCell>{row.description}</TableCell>
+                            <TableCell className="text-green-600 font-semibold">
+                              {row.revenue.toLocaleString()} ر.س
+                            </TableCell>
+                            <TableCell className="text-red-600 font-semibold">
+                              {row.expense.toLocaleString()} ر.س
+                            </TableCell>
+                            <TableCell>{row.clientName || '-'}</TableCell>
+                            <TableCell>{row.projectName || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
             </Card>
-            <Card>
+
+            {/* Breakdown Chart */}
+            <Card className="mt-6">
               <CardHeader>
-                <CardTitle>تفصيل حسب الحالة</CardTitle>
+                <CardTitle>التفصيل حسب الحالة</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-5 gap-3">
-                  <div>
-                    <div className="text-sm mb-2">حالات الفواتير</div>
-                    <div className="flex flex-col gap-2">
-                      {["draft", "sent", "paid", "cancelled"].map(s => (
-                        <label key={s} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={invSel.includes(s)}
-                            onCheckedChange={(v) => {
-                              setInvSel(prev => {
-                                const set = new Set(prev);
-                                if (v) set.add(s); else set.delete(s);
-                                return Array.from(set);
-                              });
-                            }}
-                          />
-                          <span>{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm mb-2">حالات المشتريات</div>
-                    <div className="flex flex-col gap-2">
-                      {["pending", "completed", "cancelled"].map(s => (
-                        <label key={s} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={purSel.includes(s)}
-                            onCheckedChange={(v) => {
-                              setPurSel(prev => {
-                                const set = new Set(prev);
-                                if (v) set.add(s); else set.delete(s);
-                                return Array.from(set);
-                              });
-                            }}
-                          />
-                          <span>{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm mb-2">حالات المصروفات</div>
-                    <div className="flex flex-col gap-2">
-                      {["active", "processing", "completed", "cancelled"].map(s => (
-                        <label key={s} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={expSel.includes(s)}
-                            onCheckedChange={(v) => {
-                              setExpSel(prev => {
-                                const set = new Set(prev);
-                                if (v) set.add(s); else set.delete(s);
-                                return Array.from(set);
-                              });
-                            }}
-                          />
-                          <span>{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm mb-2">حالات الإيرادات</div>
-                    <div className="flex flex-col gap-2">
-                      {["pending", "paid", "overdue", "cancelled"].map(s => (
-                        <label key={s} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={instSel.includes(s)}
-                            onCheckedChange={(v) => {
-                              setInstSel(prev => {
-                                const set = new Set(prev);
-                                if (v) set.add(s); else set.delete(s);
-                                return Array.from(set);
-                              });
-                            }}
-                          />
-                          <span>{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={() => bdRefetch()} disabled={bdLoading}>تحديث التفصيل</Button>
-                  </div>
-                </div>
+              <CardContent>
                 {bdLoading ? (
                   <div className="h-64 bg-muted rounded animate-pulse" />
                 ) : (
-                  <div className="h-[300px] w-full">
+                  <div className="h-[350px] w-full">
                     <Line
                       data={breakdownData}
                       options={{
@@ -1349,29 +1536,66 @@ export default function Accounting() {
                         maintainAspectRatio: false,
                         plugins: {
                           legend: {
-                            position: "top",
-                            align: "center",
+                            position: 'bottom' as const,
+                            rtl: true,
                             labels: {
-                              usePointStyle: false,
-                              boxWidth: 40,
-                              font: { family: "Tajawal", size: 14 }
+                              font: {
+                                family: 'Cairo, sans-serif',
+                                size: 12,
+                              },
+                              padding: 12,
+                              usePointStyle: true,
+                            },
+                          },
+                          tooltip: {
+                            rtl: true,
+                            titleFont: {
+                              family: 'Cairo, sans-serif',
+                              size: 13,
+                            },
+                            bodyFont: {
+                              family: 'Cairo, sans-serif',
+                              size: 12,
+                            },
+                            callbacks: {
+                              label: (context: any) => {
+                                let label = context.dataset.label || '';
+                                if (label && context.parsed.y !== null) {
+                                  label += ': ' + context.parsed.y.toLocaleString() + ' ر.س';
+                                }
+                                return label;
+                              }
                             }
-                          }
+                          },
                         },
                         scales: {
+                          x: {
+                            grid: {
+                              display: false,
+                            },
+                            ticks: {
+                              font: {
+                                family: 'Cairo, sans-serif',
+                                size: 11,
+                              },
+                            },
+                          },
                           y: {
                             beginAtZero: true,
-                            ticks: {
-                              callback: (value) => `${Number(value).toLocaleString()} ر.س`,
-                              font: { family: "Tajawal" }
+                            grid: {
+                              color: 'rgba(0, 0, 0, 0.05)',
                             },
-                            grid: { color: "#f3f4f6" }
+                            ticks: {
+                              font: {
+                                family: 'Cairo, sans-serif',
+                                size: 11,
+                              },
+                              callback: (value: any) => {
+                                return value.toLocaleString() + ' ر.س';
+                              }
+                            },
                           },
-                          x: {
-                            grid: { display: false },
-                            ticks: { font: { family: "Tajawal" } }
-                          }
-                        }
+                        },
                       }}
                     />
                   </div>
