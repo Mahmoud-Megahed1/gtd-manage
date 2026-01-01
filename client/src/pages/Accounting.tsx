@@ -1401,10 +1401,8 @@ export default function Accounting() {
                       <div>
                         <Label htmlFor="invoiceStatuses">حالات الفواتير</Label>
                         <Select
-                          id="invoiceStatuses"
-                          multiple
-                          value={invSel}
-                          onValueChange={setInvSel}
+                          value={invSel[0]}
+                          onValueChange={(v) => setInvSel([v])}
                         >
                           <SelectTrigger className="h-10">
                             <SelectValue placeholder="كل الحالات" />
@@ -1420,10 +1418,8 @@ export default function Accounting() {
                       <div>
                         <Label htmlFor="purchaseStatuses">حالات المشتريات</Label>
                         <Select
-                          id="purchaseStatuses"
-                          multiple
-                          value={purSel}
-                          onValueChange={setPurSel}
+                          value={purSel[0]}
+                          onValueChange={(v) => setPurSel([v])}
                         >
                           <SelectTrigger className="h-10">
                             <SelectValue placeholder="كل الحالات" />
@@ -1438,10 +1434,8 @@ export default function Accounting() {
                       <div>
                         <Label htmlFor="expenseStatuses">حالات المصروفات</Label>
                         <Select
-                          id="expenseStatuses"
-                          multiple
-                          value={expSel}
-                          onValueChange={setExpSel}
+                          value={expSel[0]}
+                          onValueChange={(v) => setExpSel([v])}
                         >
                           <SelectTrigger className="h-10">
                             <SelectValue placeholder="كل الحالات" />
@@ -1457,10 +1451,8 @@ export default function Accounting() {
                       <div>
                         <Label htmlFor="installmentStatuses">حالات الأقساط</Label>
                         <Select
-                          id="installmentStatuses"
-                          multiple
-                          value={instSel}
-                          onValueChange={setInstSel}
+                          value={instSel[0]}
+                          onValueChange={(v) => setInstSel([v])}
                         >
                           <SelectTrigger className="h-10">
                             <SelectValue placeholder="كل الحالات" />
