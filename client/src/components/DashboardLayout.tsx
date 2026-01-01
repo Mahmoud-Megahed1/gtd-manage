@@ -21,7 +21,7 @@ import {
   UserCog,
   Bell,
   BarChart3,
-  Bot // Added Bot icon
+  Sparkles // Changed from Bot to Sparkles
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -119,7 +119,7 @@ const navItems: NavItem[] = [
   },
 
   // مساعد AI - AI Assistant (New!)
-  { title: "مساعد AI", href: "/ai-assistant", icon: <Bot className="w-5 h-5" /> },
+  { title: "مساعد AI", href: "/ai-assistant", icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
 
   // الإشعارات - Notifications (all users)
   { title: "الإشعارات", href: "/notifications", icon: <Bell className="w-5 h-5" /> },
@@ -190,7 +190,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     // Only check user perms if they exist and explicitly deny
     // Default is true (allowed) if not specified
-    const byPerm = !mePermissions || mePermissions[permKey] !== false;
+    // Cast to any to avoid TS error since 'ai_assistant' is not in strictly typed PermissionResource yet
+    const byPerm = !mePermissions || (mePermissions as any)[permKey] !== false;
 
     return byPerm;
   });
