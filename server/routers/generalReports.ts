@@ -879,10 +879,14 @@ export const generalReportsRouter = router({
             let financials = null;
             if (perm.canViewFinancials) {
                 const [expResult, invResult, instResult, purchResult, manualSalesResult] = await Promise.all([
-                    // Expenses - filter by expenseDate
+                    // Expenses - filter by expenseDate and exclude cancelled
                     conn.select({ total: sum(expenses.amount) })
                         .from(expenses)
-                        .where(and(gte(expenses.expenseDate, from), lte(expenses.expenseDate, to))),
+                        .where(and(
+                            gte(expenses.expenseDate, from),
+                            lte(expenses.expenseDate, to),
+                            ne(expenses.status, 'cancelled')
+                        )),
 
                     // Invoices (Mirroring accounting.ts logic + Date filter)
                     conn.select({
@@ -903,10 +907,14 @@ export const generalReportsRouter = router({
                     }).from(installments)
                         .where(and(gte(installments.dueDate, from), lte(installments.dueDate, to))),
 
-                    // Purchases - filter by purchaseDate
+                    // Purchases - filter by purchaseDate and completed only
                     conn.select({ total: sum(purchases.amount) })
                         .from(purchases)
-                        .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to))),
+                        .where(and(
+                            gte(purchases.purchaseDate, from),
+                            lte(purchases.purchaseDate, to),
+                            eq(purchases.status, 'completed')
+                        )),
 
                     // Manual Sales (Completed ONLY, not linked to invoices)
                     conn.select({ total: sum(sales.amount) })
