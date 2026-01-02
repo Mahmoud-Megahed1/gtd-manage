@@ -58,17 +58,7 @@ export default function Accounting() {
     }
   }, [canView, setLocation, permLoading]);
 
-  if (permLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
-  if (!canView('accounting')) {
-    return null;
-  }
   const { data: expenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.accounting.expenses.list.useQuery({});
 
   const { data: salesList, isLoading: loadingSales, refetch: refetchSales } = trpc.accounting.sales.list.useQuery();
@@ -623,6 +613,18 @@ export default function Accounting() {
       expenseDate: expenseData.date
     });
   };
+
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!canView('accounting')) {
+    return null;
+  }
 
   return (
     <DashboardLayout>
