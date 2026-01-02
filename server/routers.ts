@@ -2445,9 +2445,13 @@ export const appRouter = router({
       }),
 
     // Approve with temp password
-    approveResetWithTempPassword: adminProcedure
+    approveResetWithTempPassword: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا تملك صلاحية الموافقة على طلبات إعادة تعيين كلمة المرور' });
+
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
@@ -2497,9 +2501,13 @@ export const appRouter = router({
       }),
 
     // Reject reset request
-    rejectResetRequest: adminProcedure
+    rejectResetRequest: protectedProcedure
       .input(z.object({ requestId: z.number(), reason: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا تملك صلاحية رفض طلبات إعادة تعيين كلمة المرور' });
+
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
