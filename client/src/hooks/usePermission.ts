@@ -22,7 +22,7 @@ import {
  * if (canView('accounting.reports')) { ... }
  */
 export function usePermission() {
-    const { user } = useAuth();
+    const { user, loading: isLoading } = useAuth();
     const role = user?.role;
 
     const permissions = useMemo(() => ({
@@ -90,10 +90,17 @@ export function usePermission() {
         /**
          * Current user role
          */
+        /**
+         * Current user role
+         */
         role,
-    }), [role]);
+        /**
+         * Loading state of the user
+         */
+        loading: user === undefined && isLoading,
+    }), [role, isLoading]);
 
-    return permissions;
+    return { ...permissions, loading: isLoading };
 }
 
 export default usePermission;

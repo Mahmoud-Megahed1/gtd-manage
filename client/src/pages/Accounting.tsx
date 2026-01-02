@@ -49,14 +49,22 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 // Force cache bust: v1.1.1
 export default function Accounting() {
-  const { canView } = usePermission();
+  const { canView, loading: permLoading } = usePermission();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!canView('accounting')) {
+    if (!permLoading && !canView('accounting')) {
       setLocation('/');
     }
-  }, [canView, setLocation]);
+  }, [canView, setLocation, permLoading]);
+
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!canView('accounting')) {
     return null;
