@@ -27,8 +27,8 @@ import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
 import { NotificationBell } from "@/components/NotificationBell";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,9 +111,9 @@ const navItems: NavItem[] = [
   },
 
   // مساعد AI - AI Assistant (Available for all users - permissions will be enforced in backend)
-  { 
-    title: "مساعد AI", 
-    href: "/ai-assistant", 
+  {
+    title: "مساعد AI",
+    href: "/ai-assistant",
     icon: <Sparkles className="w-5 h-5 text-indigo-500" />,
     // No roles specified = available for all authenticated users
     // Backend enforces role-specific capabilities (see ai.chat in routers.ts)
@@ -134,7 +134,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { theme, toggleTheme, switchable } = useTheme();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+
   const logoutMutation = trpc.auth.logout.useMutation();
   const { data: mePermissions } = trpc.users.mePermissions.useQuery(undefined, { enabled: !!user });
   const { data: notifCount } = trpc.notifications.unreadCount.useQuery(undefined, { enabled: !!user });
@@ -260,17 +260,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden md:block w-96 mr-4">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="بحث عام..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 h-9"
-                />
-              </div>
-            </div>
+
             <NotificationBell />
           </div>
         </div>
@@ -284,18 +274,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <div className="h-full overflow-y-auto custom-scrollbar">
           <div className="flex flex-col min-h-full">
-            {/* Mobile/Tablet Search (shown inside sidebar if screen is small) */}
-            <div className="p-4 md:hidden">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="بحث..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-            </div>
+
 
             {/* Theme Toggle */}
             {switchable && (
