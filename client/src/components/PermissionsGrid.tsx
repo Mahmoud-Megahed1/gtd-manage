@@ -59,6 +59,11 @@ export function PermissionsGrid({ role, customPermissions, onChange }: Permissio
             resources: ['accounting', 'accounting.reports', 'invoices', 'approval_requests'] as PermissionResource[]
         },
         {
+            title: "شؤون الموظفين (HR Self-Service)",
+            description: "متاحة لجميع الموظفين افتراضياً",
+            resources: ['hr.profile', 'hr.leaves', 'hr.attendance', 'hr.payroll', 'hr.reviews', 'hr.letters'] as PermissionResource[]
+        },
+        {
             title: "الإدارة والموارد",
             resources: ['hr', 'users', 'clients', 'forms', 'forms.change_orders'] as PermissionResource[]
         },

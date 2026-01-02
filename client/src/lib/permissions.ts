@@ -5,7 +5,7 @@
  Permission Matrix - Defines what each role can access
 */
 
-export type PermissionAction = 'view' | 'create' | 'edit' | 'delete' | 'approve';
+export type PermissionAction = 'view' | 'create' | 'edit' | 'delete' | 'approve' | 'print' | 'submit';
 
 export type PermissionResource =
     | 'clients'
@@ -17,6 +17,12 @@ export type PermissionResource =
     | 'forms'
     | 'forms.change_orders'
     | 'hr'
+    | 'hr.profile'          // بياناتي الشخصية
+    | 'hr.leaves'           // الإجازات
+    | 'hr.attendance'       // الحضور
+    | 'hr.payroll'          // الرواتب
+    | 'hr.reviews'          // التقييمات
+    | 'hr.letters'          // الخطابات الرسمية
     | 'users'
     | 'settings'
     | 'notifications'
@@ -32,18 +38,25 @@ export type RolePermissions = {
 
 // Complete Permission Matrix for all 20 roles
 // Based on the detailed matrix from the user
+// HR Self-Service (hr.profile, hr.leaves, hr.attendance, hr.payroll, hr.reviews, hr.letters) - available to ALL employees
 export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
     // 1️⃣ admin (مدير النظام) - Full access to everything
     admin: {
         clients: ['view', 'create', 'edit', 'delete'],
         projects: ['view', 'create', 'edit', 'delete'],
         tasks: ['view', 'create', 'edit', 'delete'],
-        invoices: ['view', 'create', 'edit', 'delete'],
+        invoices: ['view', 'create', 'edit', 'delete', 'print'],
         accounting: ['view', 'create', 'edit', 'delete'],
-        'accounting.reports': ['view', 'create'],
+        'accounting.reports': ['view', 'create', 'print'],
         forms: ['view', 'create', 'edit', 'delete'],
         'forms.change_orders': ['view', 'create', 'edit', 'delete', 'approve'],
         hr: ['view', 'create', 'edit', 'delete'],
+        'hr.profile': ['view', 'edit'],
+        'hr.leaves': ['view', 'create', 'approve'],
+        'hr.attendance': ['view', 'create', 'edit'],
+        'hr.payroll': ['view', 'create', 'edit'],
+        'hr.reviews': ['view', 'create', 'edit'],
+        'hr.letters': ['view', 'create'],
         users: ['view', 'create', 'edit', 'delete'],
         settings: ['view', 'edit'],
         notifications: ['view', 'create'],
@@ -54,181 +67,286 @@ export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
         approval_requests: ['view', 'create', 'approve'],
     },
 
-    // 2️⃣ department_manager (مدير قسم)
-    // المشاريع: VCU | المهام: VCU | الاستمارات: VCU | HR: عرض القسم | المحاسبة: عرض | التقارير: VCU
+    // 2️⃣ department_manager (مدير قسم) - VCU on projects/tasks/forms, no delete, readonly on accounting
     department_manager: {
         clients: ['view'],
         projects: ['view', 'create', 'edit'],
         tasks: ['view', 'create', 'edit'],
         invoices: ['view'],
-        'accounting.reports': ['view', 'create'],
+        'accounting.reports': ['view', 'create', 'print'],
         forms: ['view', 'create', 'edit'],
         'forms.change_orders': ['view', 'create', 'edit', 'approve'],
         hr: ['view'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         drawings: ['view', 'create', 'edit'],
         rfis: ['view', 'create', 'edit'],
         submittals: ['view', 'create', 'edit'],
     },
 
-    // 3️⃣ project_manager (مدير المشاريع)
-    // العملاء: أسماء فقط | المشاريع: الكل VCU | المهام: VCU | الاستمارات: VCU | HR: بياناته فقط
+    // 3️⃣ project_manager (مدير المشاريع) - VCU on all projects, no delete, viewFinancials
     project_manager: {
-        clients: ['view'], // أسماء فقط
+        clients: ['view'],
         projects: ['view', 'create', 'edit'],
         tasks: ['view', 'create', 'edit'],
         forms: ['view', 'create', 'edit'],
         'forms.change_orders': ['view', 'create'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'accounting.reports': ['view'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         drawings: ['view', 'create', 'edit'],
         rfis: ['view', 'create', 'edit'],
         submittals: ['view', 'create', 'edit'],
+        hr: ['view'],
     },
 
-    // 4️⃣ project_coordinator (منسق مشاريع)
+    // 4️⃣ project_coordinator (منسق مشاريع) - assigned projects, VCU on tasks
     project_coordinator: {
-        clients: ['view'], // names only
+        clients: ['view'],
         projects: ['view', 'edit'],
         tasks: ['view', 'create', 'edit'],
         forms: ['view'],
         'forms.change_orders': ['view'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         drawings: ['view', 'create', 'edit'],
         rfis: ['view', 'create', 'edit'],
         submittals: ['view', 'create', 'edit'],
         approval_requests: ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 5️⃣ architect (معماري)
-    // المشاريع: المُسندة فقط | المهام: حالة فقط | الرسومات: VCU | RFIs: VCU
+    // 5️⃣ architect (معماري) - assigned projects only, status only on tasks, VCU drawings/rfis
     architect: {
-        projects: ['view'], // المُسندة فقط - filtered in backend
-        tasks: ['view', 'edit'], // حالة فقط
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        projects: ['view'],
+        tasks: ['view', 'edit'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         drawings: ['view', 'create', 'edit'],
         rfis: ['view', 'create', 'edit'],
+        hr: ['view'],
     },
 
-    // 6️⃣ interior_designer (مصمم داخلي)
-    // المشاريع: المُسندة فقط | المهام: حالة فقط | الرسومات: VCU
+    // 6️⃣ interior_designer (مصمم داخلي) - assigned projects only, VCU drawings
     interior_designer: {
-        projects: ['view'], // المُسندة فقط
-        tasks: ['view', 'edit'], // حالة فقط
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        projects: ['view'],
+        tasks: ['view', 'edit'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         drawings: ['view', 'create', 'edit'],
+        hr: ['view'],
     },
 
-    // 7️⃣ site_engineer (مهندس موقع)
-    // المشاريع: المُسندة فقط | المهام: حالة | RFIs: VCU | Submittals: VCU
+    // 7️⃣ site_engineer (مهندس موقع) - assigned projects, VCU rfis/submittals
     site_engineer: {
-        projects: ['view'], // المُسندة فقط
-        tasks: ['view', 'edit'], // حالة فقط
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        projects: ['view'],
+        tasks: ['view', 'edit'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         rfis: ['view', 'create', 'edit'],
         submittals: ['view', 'create', 'edit'],
+        hr: ['view'],
     },
 
-    // 8️⃣ planning_engineer (مهندس تخطيط)
-    // المشاريع: المُسندة فقط | المهام: حالة | التقارير: VC
+    // 8️⃣ planning_engineer (مهندس تخطيط) - assigned projects, readonly reports
     planning_engineer: {
-        projects: ['view'], // المُسندة فقط
-        tasks: ['view', 'edit'], // حالة فقط
+        projects: ['view'],
+        tasks: ['view', 'edit'],
         'accounting.reports': ['view', 'create'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 9️⃣ designer (مصمم)
-    // المشاريع: المُسندة فقط بدون ميزانية | المهام: حالة فقط
+    // 9️⃣ designer (مصمم) - assigned projects only, no financials
     designer: {
-        projects: ['view'], // المُسندة فقط - no budget
-        tasks: ['view', 'edit'], // حالة فقط
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        projects: ['view'],
+        tasks: ['view', 'edit'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 🔟 technician (فني)
+    // 🔟 technician (فني) - assigned projects only
     technician: {
-        projects: ['view'], // المُسندة فقط
-        tasks: ['view', 'edit'], // حالة فقط
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        projects: ['view'],
+        tasks: ['view', 'edit'],
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 1️⃣1️⃣ finance_manager (مدير مالي)
-    // المشاريع: V بالميزانية | الفواتير: VCU | المحاسبة: VCUD | الاستمارات: VCU | طلبات اعتماد: approve
+    // 1️⃣1️⃣ finance_manager (مدير مالي) - full accounting, approve change orders
     finance_manager: {
-        projects: ['view'], // بالميزانية
-        invoices: ['view', 'create', 'edit'],
+        projects: ['view'],
+        invoices: ['view', 'create', 'edit', 'print'],
         accounting: ['view', 'create', 'edit', 'delete'],
-        'accounting.reports': ['view', 'create'],
+        'accounting.reports': ['view', 'create', 'print'],
         forms: ['view', 'create', 'edit'],
         'forms.change_orders': ['view', 'approve'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         approval_requests: ['view', 'create', 'approve'],
+        hr: ['view'],
     },
 
-    // 1️⃣2️⃣ accountant (محاسب)
-    // الفواتير: V | المحاسبة: V | التقارير: V + طباعة | طلبات اعتماد: V + رفع
+    // 1️⃣2️⃣ accountant (محاسب) - مشاهدة + طباعة + رفع طلبات للاعتماد (لا إنشاء مباشر)
     accountant: {
-        invoices: ['view'],
-        accounting: ['view'],
-        'accounting.reports': ['view'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
-        approval_requests: ['view', 'create'],
+        invoices: ['view', 'print'],
+        accounting: ['view', 'print', 'submit'],  // submit = رفع طلب للاعتماد
+        'accounting.reports': ['view', 'print'],
+        clients: ['view'],  // مشاهدة العملاء
+        'hr.profile': ['view', 'edit'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        approval_requests: ['view', 'submit'],  // رفع طلبات للاعتماد
+        hr: ['view'],
     },
 
-    // 1️⃣3️⃣ sales_manager (مدير مبيعات)
-    // العملاء: VCU | الفواتير: VCU | الاستمارات: VCU
+    // 1️⃣3️⃣ sales_manager (مدير مبيعات) - full clients/invoices/forms
     sales_manager: {
         clients: ['view', 'create', 'edit'],
-        invoices: ['view', 'create', 'edit'],
+        invoices: ['view', 'create', 'edit', 'print'],
         forms: ['view', 'create', 'edit'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 1️⃣4️⃣ hr_manager (مدير الموارد البشرية)
+    // 1️⃣4️⃣ hr_manager (مدير الموارد البشرية) - full HR
     hr_manager: {
         hr: ['view', 'create', 'edit', 'delete'],
+        'hr.profile': ['view', 'edit'],
+        'hr.leaves': ['view', 'create', 'edit', 'approve'],
+        'hr.attendance': ['view', 'create', 'edit'],
+        'hr.payroll': ['view', 'create', 'edit'],
+        'hr.reviews': ['view', 'create', 'edit'],
+        'hr.letters': ['view', 'create'],
         users: ['view'],
     },
 
-    // 1️⃣5️⃣ admin_assistant (مساعد إداري)
-    // العملاء: إنشاء | الاستمارات: VCU
+    // 1️⃣5️⃣ admin_assistant (مساعد إداري) - create clients, full forms
     admin_assistant: {
         clients: ['view', 'create'],
         forms: ['view', 'create', 'edit'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 1️⃣6️⃣ procurement_officer (مسؤول مشتريات)
+    // 1️⃣6️⃣ procurement_officer (مسؤول مشتريات) - readonly projects/accounting
     procurement_officer: {
         projects: ['view'],
         accounting: ['view'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 1️⃣7️⃣ storekeeper (أمين مخزن)
+    // 1️⃣7️⃣ storekeeper (أمين مخزن) - HR self-service only
     storekeeper: {
         projects: ['view'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 1️⃣8️⃣ qa_qc (ضبط الجودة)
+    // 1️⃣8️⃣ qa_qc (ضبط الجودة) - readonly projects/tasks
     qa_qc: {
         projects: ['view'],
         tasks: ['view'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 
-    // 1️⃣9️⃣ document_controller (مراقب وثائق)
+    // 1️⃣9️⃣ document_controller (مراقب وثائق) - readonly on documents
     document_controller: {
         projects: ['view'],
         forms: ['view'],
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
         drawings: ['view'],
         submittals: ['view'],
+        hr: ['view'],
     },
 
-    // 2️⃣0️⃣ viewer (مشاهد فقط)
+    // 2️⃣0️⃣ viewer (مشاهد فقط) - HR self-service only
     viewer: {
-        hr: ['view', 'create'], // بياناته + طلب إجازة
+        'hr.profile': ['view'],
+        'hr.leaves': ['view', 'create'],
+        'hr.attendance': ['view'],
+        'hr.payroll': ['view'],
+        'hr.reviews': ['view'],
+        'hr.letters': ['view', 'create'],
+        hr: ['view'],
     },
 };
 
@@ -340,6 +458,12 @@ export const RESOURCE_LABELS: Record<PermissionResource, string> = {
     forms: 'الاستمارات',
     'forms.change_orders': 'أوامر التغيير',
     hr: 'الموارد البشرية',
+    'hr.profile': 'بياناتي الشخصية',
+    'hr.leaves': 'الإجازات',
+    'hr.attendance': 'الحضور والانصراف',
+    'hr.payroll': 'كشف الرواتب',
+    'hr.reviews': 'التقييمات',
+    'hr.letters': 'الخطابات الرسمية',
     users: 'المستخدمين',
     settings: 'الإعدادات',
     notifications: 'الإشعارات',
@@ -359,6 +483,8 @@ export const ACTION_LABELS: Record<PermissionAction, string> = {
     edit: 'تعديل',
     delete: 'حذف',
     approve: 'اعتماد',
+    print: 'طباعة',
+    submit: 'رفع للاعتماد',
 };
 
 /**
@@ -400,6 +526,12 @@ export const ALL_RESOURCES: PermissionResource[] = [
     'forms',
     'forms.change_orders',
     'hr',
+    'hr.profile',
+    'hr.leaves',
+    'hr.attendance',
+    'hr.payroll',
+    'hr.reviews',
+    'hr.letters',
     'users',
     'settings',
     'notifications',
@@ -413,7 +545,7 @@ export const ALL_RESOURCES: PermissionResource[] = [
 /**
  * All available actions
  */
-export const ALL_ACTIONS: PermissionAction[] = ['view', 'create', 'edit', 'delete', 'approve'];
+export const ALL_ACTIONS: PermissionAction[] = ['view', 'create', 'edit', 'delete', 'approve', 'print', 'submit'];
 
 /**
  * Permission Modifiers - Granular flags to restrict/enhance access
@@ -434,7 +566,7 @@ export const MODIFIER_LABELS: Record<PermissionModifier, string> = {
  * Defines restrictions or enhancements enabled by default for specific roles
  */
 export const DEFAULT_MODIFIERS: Record<string, Partial<Record<PermissionResource, PermissionModifier[]>>> = {
-    // Architects & Designers: Restricted to assigned projects, no financials
+    // المهندسين والفنيين: المشاريع والمهام المُسندة فقط
     architect: {
         projects: ['onlyAssigned'],
         tasks: ['onlyAssigned'],
@@ -451,34 +583,50 @@ export const DEFAULT_MODIFIERS: Record<string, Partial<Record<PermissionResource
         projects: ['onlyAssigned'],
         tasks: ['onlyAssigned'],
     },
+    planning_engineer: {
+        projects: ['onlyAssigned'],
+        tasks: ['onlyAssigned'],
+    },
+    technician: {
+        tasks: ['onlyAssigned'],
+    },
 
-    // Project Coordinator: Assigned + Financials hidden (unless overridden)
+    // منسق المشاريع: المسندة فقط
     project_coordinator: {
         projects: ['onlyAssigned'],
         tasks: ['onlyAssigned'],
     },
 
-    // Accountant: Cannot auto-approve (must request), can view financials
+    // المحاسب: يرى الماليات لكن بدون autoApprove (يرفع طلبات)
     accountant: {
         projects: ['canViewFinancials'],
         accounting: ['canViewFinancials'],
-        // 'autoApprove' is missing, meaning they MUST request approval
+        // بدون autoApprove = يرفع طلبات للاعتماد
     },
 
-    // Managers: Can view financials, auto-approve
+    // مسؤول المشتريات: بدون autoApprove (يرفع طلبات)
+    procurement_officer: {
+        accounting: ['canViewFinancials'],
+        // بدون autoApprove
+    },
+
+    // الإدارة العليا: كل شيء متاح + autoApprove
     admin: {
-        projects: ['canViewFinancials', 'autoApprove'],
+        projects: ['canViewFinancials'],
         accounting: ['canViewFinancials', 'autoApprove'],
         invoices: ['autoApprove'],
     },
     finance_manager: {
-        projects: ['canViewFinancials', 'autoApprove'],
+        projects: ['canViewFinancials'],
         accounting: ['canViewFinancials', 'autoApprove'],
         invoices: ['autoApprove'],
     },
+    department_manager: {
+        projects: ['canViewFinancials'],
+    },
     project_manager: {
         projects: ['canViewFinancials'],
-    }
+    },
 };
 
 /**

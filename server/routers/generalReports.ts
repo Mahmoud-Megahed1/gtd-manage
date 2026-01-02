@@ -23,17 +23,19 @@ interface ReportPermission {
     onlyOwn: boolean;
 }
 
+import { getPermissionsFromCache } from "../utils/permissions";
+
 // Helper to get effective report permissions (Role Default + DB Override)
-async function getReportPermission(userId: number, role: string, section: ReportSection): Promise<ReportPermission> {
+async function getReportPermission(ctx: any, section: ReportSection): Promise<ReportPermission> {
+    const role = ctx.user.role;
+    const userId = ctx.user.id;
+
     // 1. Get Role Defaults
     let perm: ReportPermission;
     if (role === 'admin') {
         perm = { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false };
     } else {
         const matrix: Record<string, Record<ReportSection, ReportPermission>> = {
-            // ... (Keep existing matrix logic, but I will put it in a separate const to avoid massive code block if possible, or just inline key parts)
-            // For brevity, I will use a simplified logic or re-use the existing large matrix if I can access it purely as data.
-            // Since I'm replacing the function, I effectively remove the old one. I should copy the matrix.
             finance_manager: {
                 clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
                 projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
@@ -112,14 +114,14 @@ async function getReportPermission(userId: number, role: string, section: Report
                 saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             },
             project_coordinator: {
-                clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled view clients
+                clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
                 projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
                 tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
                 invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
                 accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
                 hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
                 forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-                overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled overview
+                overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
                 saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             },
             department_manager: {
@@ -144,7 +146,6 @@ async function getReportPermission(userId: number, role: string, section: Report
                 overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
                 saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             },
-            // Fallbacks for other roles can map to 'other' or specific logic
             admin_assistant: { clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true } },
             procurement_manager: { clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false } },
             warehouse_manager: { clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true } },
@@ -156,39 +157,33 @@ async function getReportPermission(userId: number, role: string, section: Report
         perm = rolePerms[section] || { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false };
     }
 
-    // 2. Check Custom Permission Modifiers in DB
-    const userPerms = await db.getUserPermissions(userId);
-    const overrides = userPerms?.permissionsJson ? JSON.parse(userPerms.permissionsJson) : {};
+    // 2. Check Custom Permission Modifiers (using cache)
+    const overrides = await getPermissionsFromCache(ctx);
 
     // Override specific flags if present
     const keys: (keyof ReportPermission)[] = ['canViewFinancials', 'onlyAssigned', 'onlyOwn'];
     keys.forEach(key => {
-        const lookup = `${section === 'overview' ? 'projects' : section}.${key}`; // Map overview to projects for modifiers? Or allow overview specific modifiers. Use section.key
+        const lookup = `${section === 'overview' ? 'projects' : section}.${key}`;
         if (overrides.hasOwnProperty(lookup)) {
+            // @ts-ignore
             perm[key] = !!overrides[lookup];
         }
     });
 
-    // Also check generic resource overrides? e.g. 'projects.onlyAssigned' affects 'projects' section report.
-    // The section names in report roughly match resource names.
-    // 'projects', 'tasks', 'invoices', 'accounting', 'hr' match.
-    // 'clients', 'forms' match.
-    // 'overview' might be special.
-
     // Explicit check for resource-level modifiers that should affect reports
     if (section === 'projects' || section === 'overview') {
-        if (overrides['projects.canViewFinancials'] !== undefined) perm.canViewFinancials = overrides['projects.canViewFinancials'];
-        if (overrides['projects.onlyAssigned'] !== undefined) perm.onlyAssigned = overrides['projects.onlyAssigned'];
+        if (overrides.hasOwnProperty('projects.canViewFinancials')) perm.canViewFinancials = overrides['projects.canViewFinancials'];
+        if (overrides.hasOwnProperty('projects.onlyAssigned')) perm.onlyAssigned = overrides['projects.onlyAssigned'];
     }
     if (section === 'accounting' || section === 'invoices') {
-        if (overrides['accounting.canViewFinancials'] !== undefined) perm.canViewFinancials = overrides['accounting.canViewFinancials'];
+        if (overrides.hasOwnProperty('accounting.canViewFinancials')) perm.canViewFinancials = overrides['accounting.canViewFinancials'];
     }
 
     return perm;
 }
 
-async function checkReportPermission(userId: number, role: string, section: ReportSection): Promise<ReportPermission> {
-    const perm = await getReportPermission(userId, role, section);
+async function checkReportPermission(ctx: any, section: ReportSection): Promise<ReportPermission> {
+    const perm = await getReportPermission(ctx, section);
     if (!perm.canView) {
         throw new TRPCError({ code: 'FORBIDDEN', message: `ليس لديك صلاحية الوصول لتقرير ${section}` });
     }
@@ -222,7 +217,7 @@ export const generalReportsRouter = router({
             };
 
             for (const section of sections) {
-                const perm = await getReportPermission(ctx.user.id, ctx.user.role, section);
+                const perm = await getReportPermission(ctx, section);
                 if (perm.canView) {
                     available.push({ key: section, label: labels[section], canViewFinancials: perm.canViewFinancials });
                 }
@@ -237,7 +232,7 @@ export const generalReportsRouter = router({
             status: z.string().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            await checkReportPermission(ctx.user.id, ctx.user.role, 'clients');
+            await checkReportPermission(ctx, 'clients');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -295,7 +290,7 @@ export const generalReportsRouter = router({
             clientId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            const perm = await checkReportPermission(ctx.user.id, ctx.user.role, 'projects');
+            const perm = await checkReportPermission(ctx, 'projects');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -392,7 +387,7 @@ export const generalReportsRouter = router({
             assigneeId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            const perm = await checkReportPermission(ctx.user.id, ctx.user.role, 'tasks');
+            const perm = await checkReportPermission(ctx, 'tasks');
 
             const conn = await db.getDb();
             const { projectTasks } = await import("../../drizzle/schema");
@@ -467,7 +462,7 @@ export const generalReportsRouter = router({
             clientId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            await checkReportPermission(ctx.user.id, ctx.user.role, 'invoices');
+            await checkReportPermission(ctx, 'invoices');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -551,7 +546,7 @@ export const generalReportsRouter = router({
             projectId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            await checkReportPermission(ctx.user.id, ctx.user.role, 'accounting');
+            await checkReportPermission(ctx, 'accounting');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -684,7 +679,7 @@ export const generalReportsRouter = router({
             departmentId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            const perm = await checkReportPermission(ctx.user.id, ctx.user.role, 'hr');
+            const perm = await checkReportPermission(ctx, 'hr');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -751,7 +746,7 @@ export const generalReportsRouter = router({
             clientId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            checkReportPermission(ctx.user.role, 'forms');
+            await checkReportPermission(ctx, 'forms');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -813,7 +808,7 @@ export const generalReportsRouter = router({
     overviewReport: protectedProcedure
         .input(dateFilterSchema)
         .query(async ({ input, ctx }) => {
-            const perm = checkReportPermission(ctx.user.role, 'overview');
+            const perm = await checkReportPermission(ctx, 'overview');
 
             const conn = await db.getDb();
             if (!conn) {

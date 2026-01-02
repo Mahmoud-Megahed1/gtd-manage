@@ -115,9 +115,6 @@ export default function Accounting() {
     {
       refetchOnWindowFocus: false,
       refetchOnMount: true,
-      onSuccess: (data) => {
-        console.log('[Reports] Summary data received:', data);
-      }
     }
   );
   const { data: timeseries, isLoading: tsLoading, refetch: tsRefetch } = trpc.reports.timeseries.useQuery(
@@ -135,9 +132,6 @@ export default function Accounting() {
     {
       refetchOnWindowFocus: false,
       refetchOnMount: true,
-      onSuccess: (data) => {
-        console.log('[Reports] Timeseries data received:', data);
-      }
     }
   );
   const chartRef = useRef<any>(null);
@@ -1167,7 +1161,6 @@ export default function Accounting() {
                             <Select
                               defaultValue={purchase.status || "pending"}
                               onValueChange={(v) => updatePurchase.mutate({ id: purchase.id, status: v as any })}
-                              className="w-[120px]"
                             >
                               <SelectTrigger className="h-8">
                                 <SelectValue />
@@ -1306,7 +1299,6 @@ export default function Accounting() {
                   <div>
                     <Label htmlFor="clientId">العميل</Label>
                     <Select
-                      id="clientId"
                       value={reportClientId}
                       onValueChange={setReportClientId}
                     >
@@ -1326,7 +1318,6 @@ export default function Accounting() {
                   <div>
                     <Label htmlFor="projectId">المشروع</Label>
                     <Select
-                      id="projectId"
                       value={reportProjectId}
                       onValueChange={setReportProjectId}
                     >

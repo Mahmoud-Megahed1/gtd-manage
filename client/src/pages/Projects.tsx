@@ -37,6 +37,7 @@ export default function Projects() {
 
   // Permission flags
   const canAdd = permissions?.permissions.projects.create || user?.role === 'admin';
+  const canEdit = permissions?.permissions.projects.edit || user?.role === 'admin';
   const canDelete = permissions?.permissions.projects.delete || user?.role === 'admin';
   const canViewFinancials = permissions?.permissions.projects.viewFinancials || user?.role === 'admin';
   const isOwnOnly = permissions?.permissions.projects.viewOwn && !permissions?.permissions.projects.view;
@@ -182,24 +183,26 @@ export default function Projects() {
                   >
                     عرض التفاصيل
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setEditProject({
-                      id: project.id,
-                      name: project.name,
-                      status: project.status,
-                      budget: project.budget || 0,
-                      description: project.description || "",
-                      startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
-                      endDate: project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
-                      assignedTo: project.assignedTo ? String(project.assignedTo) : "",
-                      projectType: project.projectType
-                    })}
-                  >
-                    <Edit2 className="w-4 h-4 ml-2" />
-                    تعديل المشروع
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setEditProject({
+                        id: project.id,
+                        name: project.name,
+                        status: project.status,
+                        budget: project.budget || 0,
+                        description: project.description || "",
+                        startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
+                        endDate: project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : "",
+                        assignedTo: project.assignedTo ? String(project.assignedTo) : "",
+                        projectType: project.projectType
+                      })}
+                    >
+                      <Edit2 className="w-4 h-4 ml-2" />
+                      تعديل المشروع
+                    </Button>
+                  )}
                   {canDelete && (
                     <Button
                       variant="destructive"

@@ -5,7 +5,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Users, FolderKanban, Receipt, FileText, UserCog, Edit, Trash2, Calculator, Clock, Calendar, DollarSign, ClipboardList, BarChart3 } from "lucide-react";
+import { Users, FolderKanban, Receipt, FileText, UserCog, Edit, Trash2, Calculator, Clock, Calendar, DollarSign, ClipboardList, BarChart3, FileCheck, FileQuestion, Image } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { AddUserDialog } from "@/components/AddUserDialog";
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ProjectsChart from "@/components/ProjectsChart";
 import RevenueChart from "@/components/RevenueChart";
+import { hasPermission, hasDefaultModifier, type PermissionResource } from "@/lib/permissions";
 
 export default function Dashboard() {
   const { user: currentUser } = useAuth();
@@ -38,16 +39,32 @@ export default function Dashboard() {
     email: string | null;
   } | null>(null);
 
+  // Get permissions safely
+  const perms = permissions?.permissions;
+
+  // Helper to check permissions - Uses centralized permission matrix
+  const canView = (section: PermissionResource) => {
+    const role = currentUser?.role;
+    if (role === 'admin') return true;
+    return hasPermission(role, section, 'view');
+  };
+
+  // Check if user can only view their own data (assigned projects/tasks)
+  const isOwnOnly = (section: PermissionResource) => {
+    const role = currentUser?.role;
+    if (!role) return false;
+    return hasDefaultModifier(role, section, 'onlyAssigned');
+  };
+
+  // Roles that should NOT see accounting sidebar (but may view project financials)
+  const hideAccountingSidebar = ['department_manager', 'project_manager', 'project_coordinator', 'architect', 'interior_designer', 'designer', 'technician', 'site_engineer', 'planning_engineer', 'qa_qc', 'document_controller', 'storekeeper'];
+
   // Get role-based stat cards
   const getStatCards = () => {
     const isAdmin = currentUser?.role === 'admin';
-    const canViewClients = permissions?.permissions.clients.view || isAdmin;
-    const canViewProjects = permissions?.permissions.projects.view || permissions?.permissions.projects.viewOwn || isAdmin;
-    const canViewAccounting = permissions?.permissions.accounting.view || isAdmin;
-
     const cards = [];
 
-    if (canViewClients) {
+    if (canView('clients')) {
       cards.push({
         title: "إجمالي العملاء",
         value: stats?.totalClients || 0,
@@ -56,17 +73,17 @@ export default function Dashboard() {
       });
     }
 
-    if (canViewProjects) {
+    if (canView('projects')) {
       cards.push({
-        title: "المشاريع النشطة",
+        title: isOwnOnly('projects') ? "مشاريعي النشطة" : "المشاريع النشطة",
         value: stats?.activeProjects || 0,
         icon: <FolderKanban className="w-8 h-8 text-primary" />,
-        description: "مشاريع قيد التنفيذ",
+        description: isOwnOnly('projects') ? "مشاريع مسندة إليك" : "مشاريع قيد التنفيذ",
         href: "/projects"
       });
     }
 
-    if (canViewAccounting) {
+    if (canView('accounting')) {
       cards.push({
         title: "الفواتير والعروض",
         value: stats?.totalInvoices || 0,
@@ -75,17 +92,127 @@ export default function Dashboard() {
       });
     }
 
-    cards.push({
-      title: "الاستمارات",
-      value: stats?.totalForms || 0,
-      icon: <FileText className="w-8 h-8 text-primary" />,
-      description: "استمارات العملاء"
-    });
+    if (canView('forms')) {
+      cards.push({
+        title: "الاستمارات",
+        value: stats?.totalForms || 0,
+        icon: <FileText className="w-8 h-8 text-primary" />,
+        description: "استمارات العملاء"
+      });
+    }
 
     return cards;
   };
 
   const statCards = getStatCards();
+
+  // Define quick actions based on role
+  const getQuickActions = () => {
+    const actions = [];
+    const role = currentUser?.role || '';
+    const isAdmin = role === 'admin';
+
+    // HR Self-Service - Always shown for all employees
+    actions.push({
+      href: "/hr",
+      icon: <Calendar className="w-10 h-10 text-green-500 mb-3 group-hover:scale-110 transition-transform" />,
+      title: "بياناتي الشخصية",
+      subtitle: "الإجازات، الرواتب، الحضور",
+      show: true,
+    });
+
+    // Projects - for those with project access
+    if (canView('projects')) {
+      actions.push({
+        href: "/projects",
+        icon: <FolderKanban className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />,
+        title: isOwnOnly('projects') ? 'مشاريعي' : 'المشاريع',
+        subtitle: isOwnOnly('projects') ? 'المشاريع المسندة لك' : 'جميع المشاريع',
+        show: true,
+      });
+    }
+
+    // Tasks - for those with task access
+    if (canView('tasks')) {
+      actions.push({
+        href: "/tasks",
+        icon: <ClipboardList className="w-10 h-10 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />,
+        title: isOwnOnly('tasks') ? 'مهامي' : 'المهام',
+        subtitle: isOwnOnly('tasks') ? 'المهام المسندة لك' : 'جميع المهام',
+        show: true,
+      });
+    }
+
+    // Drawings - for architects and interior designers
+    if (canView('drawings')) {
+      actions.push({
+        href: "/drawings",
+        icon: <Image className="w-10 h-10 text-indigo-500 mb-3 group-hover:scale-110 transition-transform" />,
+        title: "الرسومات",
+        subtitle: "رسومات المشاريع",
+        show: true,
+      });
+    }
+
+    // Clients - only for those with clients access
+    if (canView('clients')) {
+      actions.push({
+        href: "/clients",
+        icon: <Users className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />,
+        title: "العملاء",
+        subtitle: "قائمة العملاء",
+        show: true,
+      });
+    }
+
+    // Invoices - for those with invoices access
+    if (canView('invoices')) {
+      actions.push({
+        href: "/invoices",
+        icon: <Receipt className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />,
+        title: "الفواتير",
+        subtitle: "الفواتير والعروض",
+        show: true,
+      });
+    }
+
+    // Accounting - for accountants and finance managers only
+    if (canView('accounting')) {
+      actions.push({
+        href: "/accounting",
+        icon: <Calculator className="w-10 h-10 text-yellow-500 mb-3 group-hover:scale-110 transition-transform" />,
+        title: "المحاسبة",
+        subtitle: "المصروفات والإيرادات",
+        show: true,
+      });
+    }
+
+    // Forms - for those with forms access
+    if (canView('forms')) {
+      actions.push({
+        href: "/forms",
+        icon: <FileText className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />,
+        title: "الاستمارات",
+        subtitle: "استمارات العملاء",
+        show: true,
+      });
+    }
+
+    // Reports - for those with accounting.reports access
+    if (canView('accounting.reports') || isAdmin) {
+      actions.push({
+        href: "/general-reports",
+        icon: <BarChart3 className="w-10 h-10 text-purple-500 mb-3 group-hover:scale-110 transition-transform" />,
+        title: "التقارير العامة",
+        subtitle: "التقارير والإحصائيات",
+        show: true,
+      });
+    }
+
+    return actions.filter(a => a.show);
+  };
+
+  const quickActions = getQuickActions();
 
   return (
     <DashboardLayout>
@@ -154,8 +281,46 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Charts */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Charts - Only show for roles with financial access */}
+        {canView('accounting') && (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>توزيع المشاريع حسب الحالة</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProjectsChart data={projectsData || {
+                  design: 0,
+                  execution: 0,
+                  design_execution: 0,
+                  supervision: 0,
+                  delivered: 0,
+                  cancelled: 0,
+                  in_progress: 0
+                }} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>الإيرادات والمصروفات الشهرية</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RevenueChart monthlyData={revenueData || [
+                  { month: 'يناير', revenue: 0, expenses: 0 },
+                  { month: 'فبراير', revenue: 0, expenses: 0 },
+                  { month: 'مارس', revenue: 0, expenses: 0 },
+                  { month: 'أبريل', revenue: 0, expenses: 0 },
+                  { month: 'مايو', revenue: 0, expenses: 0 },
+                  { month: 'يونيو', revenue: 0, expenses: 0 },
+                ]} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Project Chart Only for Engineers/Designers (No Financials) */}
+        {!canView('accounting') && canView('projects') && (
           <Card>
             <CardHeader>
               <CardTitle>توزيع المشاريع حسب الحالة</CardTitle>
@@ -172,23 +337,7 @@ export default function Dashboard() {
               }} />
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>الإيرادات والمصروفات الشهرية</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RevenueChart monthlyData={revenueData || [
-                { month: 'يناير', revenue: 0, expenses: 0 },
-                { month: 'فبراير', revenue: 0, expenses: 0 },
-                { month: 'مارس', revenue: 0, expenses: 0 },
-                { month: 'أبريل', revenue: 0, expenses: 0 },
-                { month: 'مايو', revenue: 0, expenses: 0 },
-                { month: 'يونيو', revenue: 0, expenses: 0 },
-              ]} />
-            </CardContent>
-          </Card>
-        </div>
+        )}
 
         {/* Quick Actions - Role Based */}
         <Card>
@@ -197,84 +346,17 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {/* HR Self-Service for all employees */}
-              <Link href="/hr">
-                <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                  <Calendar className="w-10 h-10 text-green-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="font-medium">بياناتي الشخصية</span>
-                  <span className="text-xs text-muted-foreground">HR - إجازات، رواتب</span>
-                </div>
-              </Link>
-
-              {/* Clients - only for those with access */}
-              {(permissions?.permissions.clients.view || currentUser?.role === 'admin') && (
-                <Link href="/clients">
+              {quickActions.map((action, index) => (
+                <Link key={index} href={action.href}>
                   <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <Users className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">العملاء</span>
+                    {action.icon}
+                    <span className="font-medium">{action.title}</span>
+                    {action.subtitle && (
+                      <span className="text-xs text-muted-foreground">{action.subtitle}</span>
+                    )}
                   </div>
                 </Link>
-              )}
-
-              {/* Projects - for those with project access */}
-              {(permissions?.permissions.projects.view || permissions?.permissions.projects.viewOwn || currentUser?.role === 'admin') && (
-                <Link href="/projects">
-                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <FolderKanban className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">{permissions?.permissions.projects.viewOwn && !permissions?.permissions.projects.view ? 'مشاريعي' : 'المشاريع'}</span>
-                  </div>
-                </Link>
-              )}
-
-              {/* Tasks - for those with task access */}
-              {(permissions?.permissions.tasks.view || permissions?.permissions.tasks.viewOwn || currentUser?.role === 'admin') && (
-                <Link href="/tasks">
-                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <ClipboardList className="w-10 h-10 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">{permissions?.permissions.tasks.viewOwn && !permissions?.permissions.tasks.view ? 'مهامي' : 'المهام'}</span>
-                  </div>
-                </Link>
-              )}
-
-              {/* Invoices - for those with invoices access */}
-              {(permissions?.permissions.invoices?.view || currentUser?.role === 'admin') && (
-                <Link href="/invoices">
-                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <Receipt className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">الفواتير</span>
-                  </div>
-                </Link>
-              )}
-
-              {/* Accounting - for accountants and admins */}
-              {(currentUser?.role !== 'department_manager' && currentUser?.role !== 'project_manager') && (permissions?.permissions.accounting.view || currentUser?.role === 'admin') && (
-                <Link href="/accounting">
-                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <Calculator className="w-10 h-10 text-yellow-500 mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">المحاسبة</span>
-                  </div>
-                </Link>
-              )}
-
-              {/* Forms - for those with forms access */}
-              {(permissions?.permissions.forms?.view || currentUser?.role === 'admin') && (
-                <Link href="/forms">
-                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <FileText className="w-10 h-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">الاستمارات</span>
-                  </div>
-                </Link>
-              )}
-
-              {/* Reports - for those with reports access */}
-              {(permissions?.permissions.reports?.view || currentUser?.role === 'admin') && (
-                <Link href="/general-reports">
-                  <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
-                    <BarChart3 className="w-10 h-10 text-purple-500 mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">التقارير العامة</span>
-                  </div>
-                </Link>
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -328,6 +410,8 @@ export default function Dashboard() {
                           {user.role === 'procurement_officer' && 'مسؤول مشتريات'}
                           {user.role === 'storekeeper' && 'أمين مخازن'}
                           {user.role === 'qa_qc' && 'مسؤول جودة'}
+                          {user.role === 'document_controller' && 'مراقب وثائق'}
+                          {user.role === 'viewer' && 'مشاهد'}
                         </Badge>
                         <Button
                           size="sm"

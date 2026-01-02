@@ -9,67 +9,19 @@ import {
 import { eq, and, gte, lte, desc, sum, sql, inArray, ne, isNull } from "drizzle-orm";
 import * as demo from "../_core/demoStore";
 
-// Helper to check for permission modifiers
-async function hasModifier(userId: number, role: string, resource: string, modifier: string): Promise<boolean> {
-  const db = await getDb();
-  if (!db) return false;
+import { hasModifier, ensurePerm } from "../utils/permissions";
 
-  // 1. Check Custom Override in DB
-  const perms = await db.select().from(userPermissions).where(eq(userPermissions.userId, userId)).limit(1);
-  const record = perms[0]?.permissionsJson ? JSON.parse(perms[0].permissionsJson) : {};
-  const key = `${resource}.${modifier}`;
-
-  if (record.hasOwnProperty(key)) {
-    return !!record[key];
-  }
-
-  // 2. Check Role Defaults
-  if (modifier === 'autoApprove') {
-    if (['admin', 'finance_manager'].includes(role)) return true;
-    return false;
-  }
-
-  if (modifier === 'canViewFinancials') {
-    if (['admin', 'finance_manager', 'accountant', 'project_manager'].includes(role)) return true;
-    return false;
-  }
-
-  return false;
-}
-
-// Admin/Accountant procedure
-const accountingProcedure = protectedProcedure
-  .use(({ ctx, next }) => {
-    if (process.env.NODE_ENV === 'production' && ctx.user.role !== 'admin' && ctx.user.role !== 'accountant' && ctx.user.role !== 'finance_manager' && ctx.user.role !== 'project_manager' && ctx.user.role !== 'department_manager') {
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'Accounting access required' });
-    }
-    return next({ ctx });
-  })
-  .use(async ({ ctx, next }) => {
-    const db = await getDb();
-    if (!db) return next({ ctx });
-    try {
-      const permsRow = await db.select().from(userPermissions).where(eq(userPermissions.userId, ctx.user.id)).limit(1);
-      const record = permsRow[0]?.permissionsJson ? JSON.parse(permsRow[0].permissionsJson) : {};
-      if (record.hasOwnProperty('accounting') && !record['accounting']) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
-      }
-    } catch { }
-    return next({ ctx });
-  });
-
-// Admin/Finance Manager/Accountant procedure
-const adminFinanceProcedure = accountingProcedure.use(({ ctx, next }) => {
-  // Allow accountant, but specific actions will check for approval requirements
-  const allowedRoles = ['admin', 'finance_manager', 'accountant'];
-  if (!allowedRoles.includes(ctx.user.role)) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'يجب رفع طلب للاعتماد - لا يمكنك التعديل مباشرة'
-    });
-  }
+// Base accounting procedure - checks for 'accounting' section access
+const accountingProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  await ensurePerm(ctx, 'accounting');
   return next({ ctx });
 });
+
+// Admin/Finance Manager procedure alias - in this new system, write access is checked 
+// granularly inside the endpoints using hasModifier (e.g. accounting.edit, accounting.autoApprove),
+// so we can reuse the base procedure or a slightly modified one if we wanted "base write" access.
+// For backwards compatibility with the code structure, we'll alias it but rely on the inner checks.
+const adminFinanceProcedure = accountingProcedure;
 
 // Status values that lock an item from being edited/deleted
 const LOCKED_STATUSES = ['approved', 'locked', 'paid'];
@@ -122,7 +74,7 @@ export const accountingRouter = router({
         }
 
         // Check for Auto-Approve permission
-        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove');
+        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove', ctx);
         if (!canAutoApprove) {
           await db.insert(approvalRequests).values({
             entityType: 'expense', // Enum value
@@ -159,7 +111,12 @@ export const accountingRouter = router({
         expenseDate: z.string().optional(),
         status: z.enum(['active', 'processing', 'completed', 'cancelled']).optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           const { id, expenseDate, ...data } = input as any;
@@ -190,7 +147,12 @@ export const accountingRouter = router({
 
     delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.remove("expenses", input.id);
@@ -209,7 +171,12 @@ export const accountingRouter = router({
 
     cancel: accountingProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.update("expenses", input.id, { status: "cancelled" });
@@ -285,7 +252,12 @@ export const accountingRouter = router({
         category: z.string().optional(),
         notes: z.string().optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           const totalPrice = input.quantity * input.unitPrice;
@@ -328,7 +300,12 @@ export const accountingRouter = router({
         category: z.string().optional(),
         notes: z.string().optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           const { id, ...data } = input as any;
@@ -355,7 +332,12 @@ export const accountingRouter = router({
 
     delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.remove("boq", input.id);
@@ -427,7 +409,12 @@ export const accountingRouter = router({
         description: z.string().optional(),
         notes: z.string().optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.insert("installments", {
@@ -462,7 +449,12 @@ export const accountingRouter = router({
         description: z.string().optional(),
         notes: z.string().optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           const { id, dueDate, paidDate, ...data } = input as any;
@@ -490,7 +482,12 @@ export const accountingRouter = router({
         id: z.number(),
         paidDate: z.number().optional()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.update("installments", input.id, { status: "paid", paidDate: input.paidDate ? new Date(input.paidDate) : new Date() });
@@ -509,7 +506,12 @@ export const accountingRouter = router({
 
     delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.remove("installments", input.id);
@@ -522,7 +524,12 @@ export const accountingRouter = router({
 
     cancel: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.update("installments", input.id, { status: "cancelled" });
@@ -615,7 +622,7 @@ export const accountingRouter = router({
         }
 
         // Check for Auto-Approve permission
-        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove');
+        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove', ctx);
         if (!canAutoApprove) {
           await db.insert(approvalRequests).values({
             entityType: 'sale',
@@ -641,7 +648,12 @@ export const accountingRouter = router({
 
     cancel: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.update("sales", input.id, { status: "cancelled" });
@@ -665,7 +677,12 @@ export const accountingRouter = router({
         notes: z.string().optional(),
         status: z.enum(["pending", "completed", "cancelled"]).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           const { id, saleDate, ...data } = input as any;
@@ -685,7 +702,12 @@ export const accountingRouter = router({
 
     delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.remove("sales", input.id);
@@ -763,7 +785,7 @@ export const accountingRouter = router({
         }
 
         // Check for Auto-Approve permission
-        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove');
+        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove', ctx);
         if (!canAutoApprove) {
           await db.insert(approvalRequests).values({
             entityType: 'purchase',
@@ -789,7 +811,12 @@ export const accountingRouter = router({
 
     cancel: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.update("purchases", input.id, { status: "cancelled" });
@@ -815,7 +842,12 @@ export const accountingRouter = router({
         notes: z.string().optional(),
         status: z.enum(["pending", "completed", "cancelled"]).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           const { id, purchaseDate, ...data } = input as any;
@@ -835,7 +867,12 @@ export const accountingRouter = router({
 
     delete: adminFinanceProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Check edit permission for ALL roles
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'edit', ctx);
+        if (!canEdit) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية التعديل - يرجى مراجعة المدير المالي' });
+        }
         const db = await getDb();
         if (!db) {
           demo.remove("purchases", input.id);

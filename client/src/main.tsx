@@ -13,7 +13,20 @@ import { getLoginUrl } from "./const";
 import "./index.css";
 import "./print.css?v=2"; // Cache buster added
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache data for 5 minutes before refetching
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Keep unused data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
+      // Don't refetch on window focus for better performance
+      refetchOnWindowFocus: false,
+      // Retry failed queries 1 time
+      retry: 1,
+    },
+  },
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;

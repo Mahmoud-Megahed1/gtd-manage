@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import * as db from "./db";
 import { storagePut } from "./storage";
 import { notifyOwner } from "./_core/notification";
+import { logAudit } from "./_core/audit";
 import { hrRouter } from "./routers/hr";
 import { accountingRouter } from "./routers/accounting";
 import { reportsRouter } from "./routers/reports";
@@ -24,301 +25,7 @@ function generateUniqueNumber(prefix: string): string {
   return `${prefix}-${timestamp}-${random}`.toUpperCase();
 }
 
-// Permission levels for granular access control
-type PermissionLevel = 'full' | 'own' | 'readonly' | 'none';
-
-// Detailed sub-permissions for each section
-type SubPermissions = {
-  view: boolean;
-  viewOwn: boolean;
-  viewFinancials: boolean;
-  create: boolean;
-  edit: boolean;
-  delete: boolean;
-  approve: boolean;
-  submit: boolean;
-};
-
-type DetailedPermissions = {
-  hr: SubPermissions;
-  projects: SubPermissions;
-  tasks: SubPermissions;
-  accounting: SubPermissions;
-  clients: SubPermissions;
-  forms: SubPermissions;
-  invoices: SubPermissions;
-  reports: SubPermissions;
-};
-
-function getPermissionLevel(role: string, section: string): PermissionLevel {
-  // Admin has full access everywhere
-  if (role === 'admin') return 'full';
-
-  // Define permission matrix: role -> section -> level
-  const permissionMatrix: Record<string, Record<string, PermissionLevel>> = {
-    // HR Manager - full access to HR
-    hr_manager: { hr: 'full', dashboard: 'full' },
-    // Finance roles
-    finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
-    accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
-    // Project roles
-    project_manager: {
-      // Projects: View All, Create, Edit. NO DELETE.
-      projects: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
-      // Tasks: View All, Create, Edit. NO DELETE.
-      tasks: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
-      dashboard: 'full',
-      hr: 'own',
-      // Forms: View All, Create, Edit. NO DELETE.
-      forms: { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: false, approve: true, submit: true },
-      // Accounting: Hide sidebar (view: false) but allow Project Financials tab (viewFinancials: true)
-      accounting: { view: false, viewOwn: false, viewFinancials: true, create: false, edit: false, delete: false, approve: false, submit: false },
-      clients: 'readonly'
-    },
-    department_manager: { projects: 'full', tasks: 'full', dashboard: 'full', hr: 'own', forms: 'full', invoices: 'readonly', clients: 'readonly', reports: 'readonly' },
-    site_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
-    planning_engineer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
-    architect: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
-    interior_designer: { projects: 'own', tasks: 'own', dashboard: 'readonly', hr: 'own' },
-    designer: { projects: 'own', tasks: 'own', hr: 'own', dashboard: 'readonly' },
-    // Regular employees - can only see their own data in HR
-    employee: { hr: 'own', dashboard: 'readonly' },
-    // Other roles
-    sales_manager: { clients: 'full', invoices: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
-    procurement_officer: { procurement: 'full', purchases: 'full', dashboard: 'readonly', hr: 'own' },
-    document_controller: { documents: 'full', attachments: 'full', dashboard: 'readonly', hr: 'own' },
-    qa_qc: { qaqc: 'full', dashboard: 'readonly', hr: 'own' },
-    storekeeper: { procurement: 'readonly', dashboard: 'readonly', hr: 'own' },
-    viewer: { dashboard: 'readonly' },
-  };
-
-  const rolePerms = permissionMatrix[role];
-  if (!rolePerms) return 'none';
-
-  return rolePerms[section] || 'none';
-}
-
-// Get detailed sub-permissions for a role
-function getDetailedPermissions(role: string): DetailedPermissions {
-  const fullPerms: SubPermissions = { view: true, viewOwn: true, viewFinancials: true, create: true, edit: true, delete: true, approve: true, submit: true };
-  const ownPerms: SubPermissions = { view: false, viewOwn: true, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: true };
-  const readonlyPerms: SubPermissions = { view: true, viewOwn: true, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: false };
-  const nonePerms: SubPermissions = { view: false, viewOwn: false, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: false };
-
-  if (role === 'admin') {
-    return { hr: fullPerms, projects: fullPerms, tasks: fullPerms, accounting: fullPerms, clients: fullPerms, forms: fullPerms, invoices: fullPerms, reports: fullPerms };
-  }
-
-  const rolePermsMap: Record<string, DetailedPermissions> = {
-    // إدارة الموارد البشرية
-    hr_manager: {
-      hr: fullPerms,
-      projects: readonlyPerms,
-      tasks: readonlyPerms,
-      accounting: nonePerms,
-      clients: readonlyPerms,
-      forms: readonlyPerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-
-    // الإدارة المالية
-    finance_manager: {
-      hr: ownPerms,
-      projects: { ...readonlyPerms, viewFinancials: true },
-      tasks: nonePerms,
-      accounting: fullPerms,
-      clients: readonlyPerms,
-      forms: nonePerms,
-      invoices: fullPerms,
-      reports: fullPerms,
-    },
-    accountant: {
-      hr: ownPerms,
-      projects: readonlyPerms,
-      tasks: nonePerms,
-      accounting: { ...readonlyPerms, submit: true },
-      clients: readonlyPerms,
-      forms: nonePerms,
-      invoices: { ...readonlyPerms, create: true },
-      reports: readonlyPerms,
-    },
-
-    // إدارة المشاريع
-    department_manager: {
-      hr: ownPerms, // Restricted to own data only
-      projects: { ...fullPerms, delete: false }, // No delete
-      tasks: { ...fullPerms, delete: false }, // No delete
-      accounting: nonePerms,
-      clients: readonlyPerms,
-      forms: { ...fullPerms, delete: false }, // No delete
-      invoices: readonlyPerms,
-      reports: { ...readonlyPerms, create: true },
-    },
-    project_manager: {
-      hr: ownPerms,
-      // Projects: View All (except delete)
-      projects: { ...fullPerms, delete: false },
-      // Tasks: View All (except delete)
-      tasks: { ...fullPerms, delete: false },
-      // Accounting: Hide sidebar (handled by frontend Nav) but allow View for Reports/Financials
-      accounting: { ...readonlyPerms, viewFinancials: true },
-      clients: readonlyPerms,
-      // Forms: View All (except delete)
-      forms: { ...fullPerms, delete: false },
-      invoices: nonePerms,
-      reports: { ...readonlyPerms, create: true },
-    },
-    project_coordinator: {
-      hr: ownPerms,
-      projects: { ...readonlyPerms, edit: true },
-      tasks: { ...ownPerms, edit: true, create: true },
-      accounting: nonePerms,
-      clients: { ...readonlyPerms, view: true },
-      forms: { ...readonlyPerms, view: true },
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-
-    // المهندسين والفنيين
-    architect: {
-      hr: { ...ownPerms, submit: true },
-      projects: { ...ownPerms, view: false, viewOwn: true },
-      tasks: { ...ownPerms, edit: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-    interior_designer: {
-      hr: { ...ownPerms, submit: true },
-      projects: { ...ownPerms, view: false, viewOwn: true },
-      tasks: { ...ownPerms, edit: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-    site_engineer: {
-      hr: { ...ownPerms, submit: true },
-      projects: { ...ownPerms, view: false, viewOwn: true },
-      tasks: { ...ownPerms, edit: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-    planning_engineer: {
-      hr: { ...ownPerms, submit: true },
-      projects: { ...ownPerms, view: false, viewOwn: true },
-      tasks: { ...ownPerms, edit: true, create: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: readonlyPerms,
-    },
-    designer: {
-      hr: { ...ownPerms, submit: true },
-      projects: { ...ownPerms, view: false, viewOwn: true },
-      tasks: { ...ownPerms, edit: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-    technician: {
-      hr: { ...ownPerms, submit: true },
-      projects: { ...ownPerms, view: false, viewOwn: true },
-      tasks: { ...ownPerms, edit: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-
-    // المبيعات
-    sales_manager: {
-      hr: ownPerms,
-      projects: readonlyPerms,
-      tasks: nonePerms,
-      accounting: { ...readonlyPerms, viewFinancials: true },
-      clients: fullPerms,
-      forms: fullPerms,
-      invoices: fullPerms,
-      reports: { ...readonlyPerms, create: true },
-    },
-
-    // الدعم الإداري
-    admin_assistant: {
-      hr: ownPerms,
-      projects: readonlyPerms,
-      tasks: readonlyPerms,
-      accounting: nonePerms,
-      clients: { ...readonlyPerms, create: true },
-      forms: fullPerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-
-    // المشتريات والمخازن
-    procurement_officer: {
-      hr: ownPerms,
-      projects: readonlyPerms,
-      tasks: nonePerms,
-      accounting: readonlyPerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: readonlyPerms,
-    },
-    storekeeper: {
-      hr: ownPerms,
-      projects: nonePerms,
-      tasks: nonePerms,
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-
-    // ضبط الجودة
-    qa_qc: {
-      hr: ownPerms,
-      projects: readonlyPerms,
-      tasks: { ...readonlyPerms, edit: true },
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: readonlyPerms,
-    },
-
-    // موظف عادي (fallback)
-    employee: {
-      hr: { ...ownPerms, submit: true },
-      projects: nonePerms,
-      tasks: nonePerms,
-      accounting: nonePerms,
-      clients: nonePerms,
-      forms: nonePerms,
-      invoices: nonePerms,
-      reports: nonePerms,
-    },
-  };
-
-  return rolePermsMap[role] || { hr: nonePerms, projects: nonePerms, tasks: nonePerms, accounting: nonePerms, clients: nonePerms, forms: nonePerms, invoices: nonePerms, reports: nonePerms };
-}
-
-// Export permissions for frontend
-export { getPermissionLevel, getDetailedPermissions };
-export type { PermissionLevel, SubPermissions, DetailedPermissions };
+import { getPermissionLevel, getDetailedPermissions, ensurePerm, hasModifier, getPermissionsFromCache } from "./utils/permissions";
 
 // Get employee ID linked to user
 async function getEmployeeIdForUser(userId: number): Promise<number | null> {
@@ -326,125 +33,7 @@ async function getEmployeeIdForUser(userId: number): Promise<number | null> {
   return emp?.id || null;
 }
 
-import { logAudit } from "./_core/audit";
 
-// Permission levels for granular access control
-
-async function ensurePerm(ctx: any, sectionKey: string) {
-  // SECURITY: Permission checks apply in ALL environments
-  const role = ctx.user.role;
-
-  // 1. Check Custom Override in DB
-  const perms = await db.getUserPermissions(ctx.user.id);
-  const record = perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
-
-  // Check for explicit ALLOW or DENY
-  // Key format: "resource" (e.g. 'accounting') or "resource.action" (handled by different checks usually, but here checking section access)
-  // For section access, we usually look for 'resource.view' or just 'resource'
-
-  // If we have an explicit override for this section (boolean)
-  if (record.hasOwnProperty(sectionKey)) {
-    if (record[sectionKey]) {
-      return; // Explicitly ALLOWED
-    } else {
-      await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `User permission override denied access to "${sectionKey}"`, ctx);
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' }); // Explicitly DENIED
-    }
-  }
-
-  // Also check "resource.view" as a proxy for section access if "resource" key is missing
-  const viewKey = `${sectionKey}.view`;
-  if (record.hasOwnProperty(viewKey)) {
-    if (record[viewKey]) {
-      return; // Explicitly ALLOWED via view action
-    }
-    // If view is false, we don't necessarily deny section if there are other actions? 
-    // But usually view is required for section access.
-  }
-
-  // 2. Fallback to Role Defaults
-  const defaultAllowedByRole: Record<string, string[]> = {
-    // === الإدارة العليا ===
-    admin: ['*'],
-    department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms', 'generalReports'],
-
-    // === إدارة المشاريع ===
-    project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports', 'accounting'],
-    project_coordinator: ['projects', 'projectTasks', 'dashboard', 'clients', 'forms', 'rfis', 'submittals', 'drawings', 'generalReports', 'approval_requests'],
-
-    // === المهندسين والفنيين ===
-    architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard', 'hr'], // Added HR based on matrix
-    interior_designer: ['projects', 'drawings', 'dashboard', 'hr'],
-    site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard', 'hr'],
-    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard', 'generalReports', 'accounting', 'hr'], // Added accounting for reports
-    designer: ['projects', 'projectTasks', 'dashboard', 'hr'],
-    technician: ['projectTasks', 'dashboard', 'hr'],
-
-    // === الإدارة المالية ===
-    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms', 'generalReports', 'approval_requests'],
-    accountant: ['accounting', 'reports', 'dashboard', 'invoices', 'generalReports', 'approval_requests'],
-
-    // === المبيعات ===
-    sales_manager: ['sales', 'clients', 'invoices', 'dashboard', 'forms', 'generalReports', 'hr'],
-
-    // === الموارد البشرية ===
-    hr_manager: ['hr', 'dashboard', 'users'],
-    admin_assistant: ['hr', 'dashboard', 'forms', 'clients'],
-
-    // === المشتريات والمخازن ===
-    procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard', 'generalReports', 'hr'],
-    storekeeper: ['procurement', 'dashboard', 'hr'],
-    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard', 'generalReports', 'hr'],
-
-    // === مشاهد ===
-    viewer: ['hr'],
-  };
-
-  const allowedList = defaultAllowedByRole[role] || [];
-  const roleAllowed = allowedList.includes('*') || allowedList.includes(sectionKey);
-
-  if (!roleAllowed) {
-    await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `Role "${role}" attempted to access "${sectionKey}" - DENIED`, ctx);
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
-  }
-}
-
-// Helper to check if user has a specific modifier enabled (default or overridden)
-async function hasModifier(userId: number, role: string, resource: string, modifier: string): Promise<boolean> {
-  // 1. Check Custom Override in DB
-  const perms = await db.getUserPermissions(userId);
-  const record = perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
-  const key = `${resource}.${modifier}`;
-
-  if (record.hasOwnProperty(key)) {
-    return !!record[key];
-  }
-
-  // 2. Check Role Defaults (Hardcoded for now to match frontend DEFAULT_MODIFIERS)
-  // Architects/Designers/Site Engineers -> onlyAssigned
-  if (modifier === 'onlyAssigned') {
-    if (['architect', 'interior_designer', 'designer', 'site_engineer', 'project_coordinator', 'technician'].includes(role) &&
-      ['projects', 'tasks'].includes(resource)) {
-      return true;
-    }
-  }
-
-  // Admin/Managers -> canViewFinancials
-  if (modifier === 'canViewFinancials') {
-    if (['admin', 'finance_manager', 'project_manager'].includes(role)) return true;
-    if (role === 'accountant') return true;
-    // Others default to false
-    return false;
-  }
-
-  // Admin/Finance -> autoApprove
-  if (modifier === 'autoApprove') {
-    if (['admin', 'finance_manager'].includes(role)) return true;
-    return false;
-  }
-
-  return false;
-}
 
 // Helper to check if user can access a specific project (assigned to it or a team member)
 async function canAccessProject(userId: number, projectId: number): Promise<boolean> {
@@ -474,7 +63,7 @@ async function canAccessProject(userId: number, projectId: number): Promise<bool
 // Helper to ensure user has access to a specific project for 'own' permission level
 async function ensureProjectAccess(ctx: any, projectId: number) {
   // Check if user has 'onlyAssigned' modifier for projects
-  const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned');
+  const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned', ctx);
 
   // Admin always has access
   if (ctx.user.role === 'admin') {
@@ -493,26 +82,7 @@ async function ensureProjectAccess(ctx: any, projectId: number) {
   }
 }
 // Role-based access control
-const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== 'admin') {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
-  }
-  return next({ ctx });
-});
-
-const accountantProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (!['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Accountant access required' });
-  }
-  return next({ ctx });
-});
-
-const managerProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (!['admin', 'department_manager', 'project_manager', 'site_engineer', 'architect', 'interior_designer', 'planning_engineer', 'designer'].includes(ctx.user.role)) {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Project manager access required' });
-  }
-  return next({ ctx });
-});
+// Role-based procedures removed in favor of granular permissions (ensurePerm/hasModifier)
 
 export const appRouter = router({
   system: systemRouter,
@@ -532,65 +102,47 @@ export const appRouter = router({
     getMyPermissions: protectedProcedure.query(async ({ ctx }) => {
       const perms = getDetailedPermissions(ctx.user.role);
 
-      // Fetch custom overrides from DB
+      // Fetch custom overrides from Cache (or DB if not cached)
       try {
-        const conn = await db.getDb();
-        if (conn) {
-          const { userPermissions } = await import("../drizzle/schema");
-          const { eq } = await import("drizzle-orm");
+        const overrides = await getPermissionsFromCache(ctx);
 
-          const [userPerm] = await conn.select().from(userPermissions).where(eq(userPermissions.userId, ctx.user.id));
+        // Apply overrides to the permission matrix
+        Object.keys(overrides).forEach(key => {
+          const parts = key.split('.');
+          const permsAny = perms as any;
+          const isAllowed = overrides[key];
 
-          if (userPerm && userPerm.permissionsJson) {
-            const overrides = JSON.parse(userPerm.permissionsJson);
+          // Handle "resource.action" format (e.g., "projects.view")
+          if (parts.length === 2 && ['view', 'create', 'edit', 'delete', 'approve', 'print', 'submit'].includes(parts[1])) {
+            const resource = parts[0];
+            const action = parts[1];
 
-            // Apply overrides to the permission matrix
-            // Structure of overrides: { "resource.action": boolean, "resource.modifier": boolean }
-            Object.keys(overrides).forEach(key => {
-              const parts = key.split('.');
-              // Handle "resource.action" format (e.g., "projects.view")
-              if (parts.length === 2 && ['view', 'create', 'edit', 'delete', 'approve'].includes(parts[1])) {
-                const resource = parts[0] as any;
-                const action = parts[1] as any;
-                const isAllowed = overrides[key];
-
-                if (perms[resource]) {
-                  if (isAllowed) {
-                    // Add action if not present
-                    if (!perms[resource].includes(action)) {
-                      perms[resource].push(action);
-                    }
-                  } else {
-                    // Remove action if present
-                    perms[resource] = perms[resource].filter((a: any) => a !== action);
-                  }
-                } else if (isAllowed) {
-                  // Resource didn't exist in default matrix, create it
-                  perms[resource] = [action];
-                }
+            if (permsAny[resource]) {
+              if (isAllowed) {
+                if (!permsAny[resource].includes(action)) permsAny[resource].push(action); // Add action
+              } else {
+                permsAny[resource] = permsAny[resource].filter((a: any) => a !== action); // Remove action
               }
-              // Handle "resource.subresource.action" (e.g., "accounting.reports.view")
-              else if (parts.length === 3 && ['view', 'create', 'edit', 'delete', 'approve'].includes(parts[2])) {
-                const resource = `${parts[0]}.${parts[1]}` as any;
-                const action = parts[2] as any;
-                const isAllowed = overrides[key];
-                if (perms[resource]) {
-                  if (isAllowed) {
-                    if (!perms[resource].includes(action)) perms[resource].push(action);
-                  } else {
-                    perms[resource] = perms[resource].filter((a: any) => a !== action);
-                  }
-                } else if (isAllowed) {
-                  perms[resource] = [action];
-                }
-              }
-              // Modifiers are handled by specific logic in backend/frontend helpers
-              // But we should probably pass them through if the frontend needs usage.
-              // Currently frontend uses 'permissions' object which matches RolePermissions type.
-              // Modifiers aren't part of RolePermissions usually (it's action list).
-            });
+            } else if (isAllowed) {
+              permsAny[resource] = [action]; // Create resource with action
+            }
           }
-        }
+          // Handle "resource.subresource.action"
+          else if (parts.length === 3 && ['view', 'create', 'edit', 'delete', 'approve', 'print', 'submit'].includes(parts[2])) {
+            const resource = `${parts[0]}.${parts[1]}`;
+            const action = parts[2];
+
+            if (permsAny[resource]) {
+              if (isAllowed) {
+                if (!permsAny[resource].includes(action)) permsAny[resource].push(action);
+              } else {
+                permsAny[resource] = permsAny[resource].filter((a: any) => a !== action);
+              }
+            } else if (isAllowed) {
+              permsAny[resource] = [action];
+            }
+          }
+        });
       } catch (e) {
         console.error("Failed to fetch user permissions", e);
       }
@@ -606,7 +158,6 @@ export const appRouter = router({
           clients: getPermissionLevel(ctx.user.role, 'clients'),
           dashboard: getPermissionLevel(ctx.user.role, 'dashboard'),
         },
-        // We could verify permissionLevel too if we wanted "Own" overrides
       };
     }),
 
@@ -728,8 +279,8 @@ export const appRouter = router({
         notes: z.string().optional()
       }))
       .mutation(async ({ input, ctx }) => {
-        // Only admin and sales_manager can create clients
-        const canCreate = ['admin', 'sales_manager'].includes(ctx.user.role);
+        // Check create permission
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'clients', 'create', ctx);
         if (!canCreate) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إضافة عملاء - صلاحية المشاهدة فقط' });
         }
@@ -760,8 +311,8 @@ export const appRouter = router({
         notes: z.string().optional()
       }))
       .mutation(async ({ input, ctx }) => {
-        // Only admin and sales_manager can update clients
-        const canEdit = ['admin', 'sales_manager'].includes(ctx.user.role);
+        // Check edit permission
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'clients', 'edit', ctx);
         if (!canEdit) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل بيانات العملاء - صلاحية المشاهدة فقط' });
         }
@@ -772,10 +323,12 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'clients');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'clients', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف العملاء' });
         await db.deleteClient(input.id);
         await logAudit(ctx.user.id, 'DELETE_CLIENT', 'client', input.id, undefined, ctx);
         return { success: true };
@@ -791,12 +344,12 @@ export const appRouter = router({
         const permLevel = getPermissionLevel(ctx.user.role, 'projects');
 
         // Check if user can view financials - Use custom modifier
-        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials');
+        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials', ctx);
 
         let projects;
         // For 'own' permission level, only show assigned projects
         // Also enforce if onlyAssigned modifier is present
-        const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned');
+        const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned', ctx);
 
         if (permLevel === 'own' || onlyAssigned) {
           projects = await db.getProjectsForAssignee(ctx.user.id);
@@ -829,6 +382,18 @@ export const appRouter = router({
         const project = await db.getProjectById(input.id);
         if (!project) throw new TRPCError({ code: 'NOT_FOUND' });
 
+        // Check if user can view financials
+        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials', ctx);
+
+        // Check onlyAssigned - Users with this modifier can only view assigned projects
+        const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned', ctx);
+        if (onlyAssigned) {
+          const canAccess = await canAccessProject(ctx.user.id, input.id);
+          if (!canAccess) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك الوصول لهذا المشروع - غير مُسند إليك' });
+          }
+        }
+
         const [client, boqItems, expenses, installments, sales] = await Promise.all([
           db.getClientById(project.clientId),
           db.getProjectBOQ(input.id),
@@ -837,10 +402,22 @@ export const appRouter = router({
           db.getProjectSales(input.id)
         ]);
 
+        // Hide financials if user cannot view them
+        if (!canViewFinancials) {
+          return {
+            project: { ...project, budget: undefined },
+            client,
+            boqItems: [],       // Hide BOQ
+            expenses: [],       // Hide Expenses
+            installments: [],   // Hide Installments
+            sales: []           // Hide Sales
+          };
+        }
+
         return { project, client, boqItems, expenses, installments, sales };
       }),
 
-    create: managerProcedure
+    create: protectedProcedure
       .input(z.object({
         clientId: z.number().optional(), // Optional - can create project without client
         name: z.string(),
@@ -854,6 +431,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'create', ctx);
+        if (!canCreate) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء مشاريع' });
         const projectNumber = generateUniqueNumber('PRJ');
         await db.createProject({
           ...input,
@@ -880,6 +459,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل المشاريع' });
         const { id, ...data } = input;
 
         // Get current project for comparison
@@ -953,10 +534,12 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف المشاريع' });
         await db.deleteProject(input.id);
         await logAudit(ctx.user.id, 'DELETE_PROJECT', 'project', input.id, undefined, ctx);
         return { success: true };
@@ -971,7 +554,7 @@ export const appRouter = router({
         if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
 
         // Check if user can view financials
-        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials');
+        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials', ctx);
 
         const [boq, expenses, installments, client, sales, projectInvoices] = await Promise.all([
           canViewFinancials ? db.getProjectBOQ(input.id) : Promise.resolve([]),
@@ -1001,6 +584,10 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        // Task creation requires 'tasks.create' permission
+        const canCreateTask = await hasModifier(ctx.user.id, ctx.user.role, 'tasks', 'create', ctx);
+        if (!canCreateTask) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء مهام' });
+
         await db.createProjectTask({
           projectId: input.projectId,
           name: input.name,
@@ -1061,10 +648,9 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
 
         // Check strict delete permission for tasks
-        const perms = getDetailedPermissions(ctx.user.role);
-        // Only allow if role enables delete on tasks OR user is admin
-        if (!perms.tasks.delete && ctx.user.role !== 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية حذف المهام' });
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'tasks', 'delete', ctx);
+        if (!canDelete) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف المهام' });
         }
 
         await db.deleteProjectTask(input.id);
@@ -1108,10 +694,12 @@ export const appRouter = router({
         return rows;
       }),
 
-    addTeamMember: managerProcedure
+    addTeamMember: protectedProcedure
       .input(z.object({ projectId: z.number(), userId: z.number(), role: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل فريق المشروع' });
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { projectTeam } = await import("../drizzle/schema");
@@ -1148,10 +736,12 @@ export const appRouter = router({
         }
       }),
 
-    removeTeamMember: managerProcedure
+    removeTeamMember: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل فريق المشروع' });
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { projectTeam } = await import("../drizzle/schema");
@@ -1190,7 +780,9 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({ projectId: z.number(), title: z.string(), question: z.string(), assignedTo: z.number().optional() }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
+        await ensurePerm(ctx, 'rfis');
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'rfis', 'create', ctx);
+        if (!canCreate) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء RFI' });
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
@@ -1265,10 +857,12 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'CLOSE_RFI', 'rfi', input.id, undefined, ctx);
         return { success: true };
       }),
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
+        await ensurePerm(ctx, 'rfis');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'rfis', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف الـ RFI' });
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { rfis } = await import("../drizzle/schema");
@@ -1402,10 +996,12 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'REJECT_SUBMITTAL', 'submittal', input.id, undefined, ctx);
         return { success: true };
       }),
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'submittals', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف طلبات الاعتماد' });
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { submittals } = await import("../drizzle/schema");
@@ -1472,10 +1068,12 @@ export const appRouter = router({
         const { drawingVersions } = await import("../drizzle/schema");
         return await conn.select().from(drawingVersions).where(eq(drawingVersions.drawingId, input.drawingId)).orderBy(desc(drawingVersions.createdAt));
       }),
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'projects');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'drawings', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف الرسومات' });
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         const { drawings } = await import("../drizzle/schema");
@@ -1626,10 +1224,11 @@ export const appRouter = router({
         }))
       }))
       .mutation(async ({ input, ctx }) => {
-        // Only admin, finance_manager, sales_manager can CREATE invoices
-        const canCreate = ['admin', 'finance_manager', 'sales_manager'].includes(ctx.user.role);
+        // Permission check
+        await ensurePerm(ctx, 'invoices');
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'invoices', 'create', ctx);
         if (!canCreate) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء فواتير - صلاحية المشاهدة فقط' });
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء فواتير - التفاصيل المطلوبة غير متوفرة' });
         }
 
         const invoiceNumber = input.invoiceNumber || generateUniqueNumber(input.type === 'invoice' ? 'INV' : 'QUO');
@@ -1717,6 +1316,9 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'invoices');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'invoices', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل الفواتير' });
+
         const { id, items, ...data } = input;
 
         // Get existing invoice to check type transition
@@ -1799,9 +1401,12 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'invoices');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'invoices', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف الفواتير' });
         await db.deleteInvoice(input.id);
         await logAudit(ctx.user.id, 'DELETE_INVOICE', 'invoice', input.id, undefined, ctx);
         return { success: true };
@@ -1812,7 +1417,8 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         // Permission check
-        const canCreate = ['admin', 'finance_manager', 'sales_manager'].includes(ctx.user.role);
+        await ensurePerm(ctx, 'invoices');
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'invoices', 'create', ctx);
         if (!canCreate) {
           throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تحويل عروض السعر' });
         }
@@ -1874,7 +1480,7 @@ export const appRouter = router({
         const project = await db.getProjectById(co.projectId);
         return { changeOrder: co, project };
       }),
-    create: managerProcedure
+    create: protectedProcedure
       .input(z.object({
         projectId: z.number(),
         title: z.string(),
@@ -1884,7 +1490,10 @@ export const appRouter = router({
         impactDays: z.number().min(0).default(0),
       }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
+        await ensurePerm(ctx, 'forms.change_orders');
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'forms.change_orders', 'create', ctx);
+        if (!canCreate) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء أوامر تغيير' });
+
         const code = generateUniqueNumber('CO');
         const result = await db.createChangeOrder({
           projectId: input.projectId,
@@ -1901,10 +1510,13 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'CREATE_CHANGE_ORDER', 'changeOrder', id, `CO ${code}`, ctx);
         return { success: true, id, code };
       }),
-    submit: managerProcedure
+    submit: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
+        await ensurePerm(ctx, 'forms.change_orders');
+        // Treat submit as edit or create? Usually edit status
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'forms.change_orders', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل أوامر التغيير' });
         await db.updateChangeOrder(input.id, { status: 'submitted', submittedBy: ctx.user.id, submittedAt: new Date() });
         await logAudit(ctx.user.id, 'SUBMIT_CHANGE_ORDER', 'changeOrder', input.id, undefined, ctx);
         return { success: true };
@@ -1931,10 +1543,12 @@ export const appRouter = router({
         await logAudit(ctx.user.id, 'REJECT_CHANGE_ORDER', 'changeOrder', input.id, input.reason, ctx);
         return { success: true };
       }),
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
+        await ensurePerm(ctx, 'forms.change_orders');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'forms.change_orders', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف أوامر التغيير' });
         await db.deleteChangeOrder(input.id);
         await logAudit(ctx.user.id, 'DELETE_CHANGE_ORDER', 'changeOrder', input.id, undefined, ctx);
         return { success: true };
@@ -2037,10 +1651,12 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'forms');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'forms', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكن حذف النماذج' });
         await db.deleteForm(input.id);
         await logAudit(ctx.user.id, 'DELETE_FORM', 'form', input.id, undefined, ctx);
         return { success: true };
@@ -2051,39 +1667,41 @@ export const appRouter = router({
 
   // ============= AUDIT LOGS =============
   auditLogs: router({
-    list: adminProcedure
+    list: protectedProcedure
       .input(z.object({ limit: z.number().optional() }))
       .query(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'audit');
+        await ensurePerm(ctx, 'audit_logs');
         return await db.getAuditLogs(input.limit);
       }),
 
     getEntityLogs: protectedProcedure
       .input(z.object({ entityType: z.string(), entityId: z.number() }))
       .query(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'audit');
+        await ensurePerm(ctx, 'audit_logs');
         return await db.getEntityAuditLogs(input.entityType, input.entityId);
       })
   }),
 
   // ============= SETTINGS =============
   settings: router({
-    get: adminProcedure
+    get: protectedProcedure
       .input(z.object({ key: z.string() }))
       .query(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'settings');
         return await db.getCompanySetting(input.key);
       }),
 
-    getAll: adminProcedure.query(async ({ ctx }) => {
+    getAll: protectedProcedure.query(async ({ ctx }) => {
       await ensurePerm(ctx, 'settings');
       return await db.getAllCompanySettings();
     }),
 
-    set: adminProcedure
+    set: protectedProcedure
       .input(z.object({ key: z.string(), value: z.string() }))
       .mutation(async ({ input, ctx }) => {
         await ensurePerm(ctx, 'settings');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'settings', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل الإعدادات' });
         await db.setCompanySetting(input.key, input.value, ctx.user.id);
         await logAudit(ctx.user.id, 'UPDATE_SETTING', 'setting', undefined, `Updated setting: ${input.key}`, ctx);
         return { success: true };
@@ -2092,11 +1710,12 @@ export const appRouter = router({
 
   // ============= USERS =============
   users: router({
-    list: adminProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
+      await ensurePerm(ctx, 'users');
       return await db.getAllUsers();
     }),
 
-    create: adminProcedure
+    create: protectedProcedure
       .input(z.object({
         name: z.string(),
         email: z.string().email(),
@@ -2118,6 +1737,10 @@ export const appRouter = router({
         ]).default('designer')
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'create', ctx);
+        if (!canCreate) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء مستخدمين' });
+
         // Check if email already exists
         const existingUser = await db.getUserByEmail(input.email);
         if (existingUser) {
@@ -2134,7 +1757,7 @@ export const appRouter = router({
         return user;
       }),
 
-    updateRole: adminProcedure
+    updateRole: protectedProcedure
       .input(z.object({
         userId: z.number(),
         role: z.enum([
@@ -2145,6 +1768,10 @@ export const appRouter = router({
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل الأدوار' });
+
         const role = (input.role ?? 'designer') as any;
         await db.updateUserRole(input.userId, role);
 
@@ -2241,7 +1868,7 @@ export const appRouter = router({
         return { success: true, requiresRelogin: true, message: 'تم تغيير الدور - المستخدم يحتاج تسجيل خروج ودخول للتفعيل' };
       }),
 
-    update: adminProcedure
+    update: protectedProcedure
       .input(z.object({
         userId: z.number(),
         name: z.string().optional(),
@@ -2254,6 +1881,10 @@ export const appRouter = router({
         ]).optional()
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل المستخدمين' });
+
         const { userId, ...updateData } = input;
 
         if (updateData.email) {
@@ -2305,11 +1936,15 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({
         userId: z.number()
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'delete', ctx);
+        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف المستخدمين' });
+
         // Prevent deleting yourself
         if (input.userId === ctx.user.id) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'لا يمكنك حذف حسابك الشخصي' });
@@ -2331,9 +1966,10 @@ export const appRouter = router({
         return { success: true };
       })
     ,
-    getPermissions: adminProcedure
+    getPermissions: protectedProcedure
       .input(z.object({ userId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
         const perms = await db.getUserPermissions(input.userId);
         return perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
       }),
@@ -2341,12 +1977,18 @@ export const appRouter = router({
       const perms = await db.getUserPermissions(ctx.user.id);
       return perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
     }),
-    setPermissions: adminProcedure
+    setPermissions: protectedProcedure
       .input(z.object({
         userId: z.number(),
         permissions: z.record(z.string(), z.boolean())
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        // Setting permissions requires strict edit access or even admin-only logic if we want to be safe.
+        // The matrix allows 'users' edit for admin and hr_manager.
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل الصلاحيات' });
+
         console.log("[setPermissions] Saving for userId:", input.userId, input.permissions);
         await db.setUserPermissions(input.userId, input.permissions);
         console.log("[setPermissions] Saved successfully");
@@ -2366,12 +2008,16 @@ export const appRouter = router({
         return { success: true };
       }),
     // Admin sets password for a user
-    setPassword: adminProcedure
+    setPassword: protectedProcedure
       .input(z.object({
         userId: z.number(),
         password: z.string().min(4)
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تغيير كلمات المرور' });
+
         const crypto = await import('crypto');
         const hash = crypto.createHash('sha256').update(input.password).digest('hex');
         await db.setUserPassword(input.userId, hash);
@@ -2422,9 +2068,10 @@ export const appRouter = router({
         return { success: true };
       }),
     // Get user password info (admin only - shows if password is set)
-    getPasswordInfo: adminProcedure
+    getPasswordInfo: protectedProcedure
       .input(z.object({ userId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
         const user = await db.getUserById(input.userId);
         return { hasPassword: !!user?.passwordHash };
       }),
@@ -2612,9 +2259,13 @@ export const appRouter = router({
       }),
 
     // Admin sends a reset link to user
-    sendResetLink: adminProcedure
+    sendResetLink: protectedProcedure
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إرسال روابط التعيين' });
+
         // Generate token
         const crypto = await import('crypto');
         const token = crypto.randomBytes(32).toString('hex');
@@ -2653,9 +2304,13 @@ export const appRouter = router({
       }),
 
     // Admin sends temporary password that user must change on login
-    sendTempPassword: adminProcedure
+    sendTempPassword: protectedProcedure
       .input(z.object({ userId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعيين كلمة سر مؤقتة' });
+
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
@@ -2686,8 +2341,9 @@ export const appRouter = router({
         return { success: true };
       }),
     // Get all pending password reset requests (admin)
-    listResetRequests: adminProcedure
-      .query(async () => {
+    listResetRequests: protectedProcedure
+      .query(async ({ ctx }) => {
+        await ensurePerm(ctx, 'users');
         const conn = await db.getDb();
         if (!conn) return [];
 
@@ -2709,9 +2365,10 @@ export const appRouter = router({
       }),
 
     // Get single request details
-    getResetRequest: adminProcedure
+    getResetRequest: protectedProcedure
       .input(z.object({ requestId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
         const conn = await db.getDb();
         if (!conn) return null;
 
@@ -2734,9 +2391,13 @@ export const appRouter = router({
       }),
 
     // Approve with reset link
-    approveResetWithLink: adminProcedure
+    approveResetWithLink: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await ensurePerm(ctx, 'users');
+        const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'users', 'edit', ctx);
+        if (!canEdit) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك الموافقة على طلبات التعيين' });
+
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 

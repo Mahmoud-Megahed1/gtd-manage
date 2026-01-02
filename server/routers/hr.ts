@@ -7,27 +7,76 @@ import {
   InsertEmployee, InsertAttendance, InsertPayroll, InsertLeave, InsertPerformanceReview
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
+import { getPermissionsFromCache } from "../utils/permissions";
 
-// Admin-only procedure
-const adminProcedure = protectedProcedure
-  .use(({ ctx, next }) => {
-    if (!['admin', 'hr_manager'].includes(ctx.user.role)) {
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'Admin access required' });
-    }
-    return next({ ctx });
-  })
-  .use(async ({ ctx, next }) => {
-    const db = await getDb();
-    if (!db) return next({ ctx });
-    try {
-      const permsRow = await db.select().from((await import("../../drizzle/schema")).userPermissions).where(eq((await import("../../drizzle/schema")).userPermissions.userId, ctx.user.id)).limit(1);
-      const record = permsRow[0]?.permissionsJson ? JSON.parse(permsRow[0].permissionsJson) : {};
-      if (record.hasOwnProperty('hr') && !record['hr']) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
-      }
-    } catch { }
-    return next({ ctx });
-  });
+// Helper to check HR permissions dynamically
+const ensureHrPermission = async (ctx: any, action: 'view' | 'create' | 'edit' | 'delete' | 'approve') => {
+  // 1. Admin always has access
+  if (ctx.user.role === 'admin') return true;
+
+  // 2. Check DB for custom overrides first
+  // 2. Check DB for custom overrides first (using cache)
+  const customPerms = await getPermissionsFromCache(ctx);
+
+  // Check specific action override (e.g. "hr.view": true/false)
+  const key = `hr.${action}`;
+  if (customPerms.hasOwnProperty(key)) {
+    if (!customPerms[key]) throw new TRPCError({ code: 'FORBIDDEN', message: 'Action denied by custom permissions' });
+    return true; // Explicitly allowed
+  }
+  // Check resource override (e.g. "hr": false to block all)
+  if (customPerms.hasOwnProperty('hr') && !customPerms['hr']) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'HR section access denied' });
+  }
+
+  // 3. Fallback to Role Defaults (Hardcoded here to match client/lib/permissions.ts)
+  // We mirror the PERMISSION_MATRIX here for backend security
+  const role = ctx.user.role;
+  const matrix: Record<string, string[]> = {
+    // Admin handled above
+    hr_manager: ['view', 'create', 'edit', 'delete', 'approve'],
+    finance_manager: ['view'], // View only for finance by default
+    accountant: ['view'],      // View only for accountant
+    department_manager: ['view'],
+    project_manager: ['view'], // Project managers can view HR dashboard stats?
+
+    // Allow 'view' for all other roles so they can access the endpoint
+    // The strict filtering in employees.list will ensure they only see THEIR OWN record
+    architect: ['view'],
+    interior_designer: ['view'],
+    site_engineer: ['view'],
+    planning_engineer: ['view'],
+    designer: ['view'],
+    technician: ['view'],
+    project_coordinator: ['view'],
+    sales_manager: ['view'],
+    admin_assistant: ['view'],
+    procurement_officer: ['view'],
+    storekeeper: ['view'],
+    qa_qc: ['view'],
+    document_controller: ['view'],
+    viewer: ['view'],
+  };
+
+  const allowedActions = matrix[role] || [];
+  if (!allowedActions.includes(action)) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: `Role ${role} cannot ${action} HR records` });
+  }
+};
+
+// Procedure for View operations (List, Get)
+const hrViewProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  await ensureHrPermission(ctx, 'view');
+  return next({ ctx });
+});
+
+// Procedure for Modify operations (Create, Update, Delete)
+// Note: We'll do specific checks in mutations if needed (e.g. delete might need 'delete' perm)
+const hrWriteProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  // This is a placeholder if we want generic write check, but we use specific manual checks
+  // adhering to the 'ensureHrPermission' helper usage inside them is better.
+  return next({ ctx });
+});
 
 export const hrRouter = router({
   // ============= MY PROFILE (Self-Service for All Employees) =============
@@ -233,10 +282,11 @@ export const hrRouter = router({
 
   // ============= EMPLOYEES =============
   employees: router({
-    list: adminProcedure.query(async () => {
+    list: hrViewProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return (await import("../_core/demoStore")).list("employees");
-      const res = await db.select({
+
+      let query = db.select({
         id: employees.id,
         userId: employees.userId,
         employeeNumber: employees.employeeNumber,
@@ -252,14 +302,24 @@ export const hrRouter = router({
         userEmail: users.email
       })
         .from(employees)
-        .leftJoin(users, eq(employees.userId, users.id))
-        .orderBy(desc(employees.createdAt));
+        .leftJoin(users, eq(employees.userId, users.id));
+
+      // STRICT SCOPING: Non-managerial roles can ONLY see themselves
+      // Allowed full list: Admin, HR Manager, Finance Manager, Accountant, General Manager, Department Manager
+      const fullAccessRoles = ['admin', 'hr_manager', 'finance_manager', 'accountant', 'department_manager', 'general_manager', 'project_manager'];
+
+      // If user is NOT in the allowed list, force filter to OWN record
+      if (!fullAccessRoles.includes(ctx.user.role)) {
+        query = query.where(eq(employees.userId, ctx.user.id)) as any;
+      }
+
+      const res = await (query as any).orderBy(desc(employees.createdAt));
 
       return res;
     }),
 
     // Get users without employee records
-    getUnlinkedUsers: adminProcedure.query(async () => {
+    getUnlinkedUsers: hrViewProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
 
@@ -289,7 +349,7 @@ export const hrRouter = router({
         return result[0];
       }),
 
-    create: adminProcedure
+    create: protectedProcedure
       .input(z.object({
         userId: z.number(),
         employeeNumber: z.string().optional(), // Made optional - will auto-generate
@@ -301,6 +361,7 @@ export const hrRouter = router({
         emergencyContact: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'create');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -348,7 +409,7 @@ export const hrRouter = router({
         return { success: true };
       }),
 
-    update: adminProcedure
+    update: protectedProcedure
       .input(z.object({
         id: z.number(),
         department: z.string().optional(),
@@ -358,7 +419,8 @@ export const hrRouter = router({
         emergencyContact: z.string().optional(),
         status: z.enum(['active', 'on_leave', 'terminated']).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'edit');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
@@ -418,9 +480,10 @@ export const hrRouter = router({
         };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'delete');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -778,14 +841,10 @@ export const hrRouter = router({
         };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        // Only admin can delete attendance records (not hr_manager)
-        if (ctx.user.role !== 'admin') {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admin can delete attendance records' });
-        }
-
+        await ensureHrPermission(ctx, 'delete');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -831,7 +890,7 @@ export const hrRouter = router({
         return await query.orderBy(desc(payroll.createdAt));
       }),
 
-    create: adminProcedure
+    create: protectedProcedure
       .input(z.object({
         employeeId: z.number(),
         month: z.number(),
@@ -842,6 +901,7 @@ export const hrRouter = router({
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'create');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -885,12 +945,13 @@ export const hrRouter = router({
         return { success: true, netSalary };
       }),
 
-    markPaid: adminProcedure
+    markPaid: protectedProcedure
       .input(z.object({
         id: z.number(),
         paymentDate: z.date(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'edit');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -905,7 +966,7 @@ export const hrRouter = router({
         return { success: true };
       }),
 
-    update: adminProcedure
+    update: protectedProcedure
       .input(z.object({
         id: z.number(),
         employeeId: z.number().optional(),
@@ -918,7 +979,8 @@ export const hrRouter = router({
         status: z.enum(['pending', 'paid']).optional(),
         paymentDate: z.date().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'edit');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -946,9 +1008,10 @@ export const hrRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'delete');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1112,12 +1175,13 @@ export const hrRouter = router({
         return { success: true };
       }),
 
-    approve: adminProcedure
+    approve: protectedProcedure
       .input(z.object({
         id: z.number(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'approve');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1252,13 +1316,14 @@ export const hrRouter = router({
         return { success: true };
       }),
 
-    reject: adminProcedure
+    reject: protectedProcedure
       .input(z.object({
         id: z.number(),
         notes: z.string().optional(),
         reason: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'approve');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1322,12 +1387,13 @@ export const hrRouter = router({
       }),
 
     // Delete leave request (by admin)
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({
         id: z.number(),
         reason: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'delete');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1426,12 +1492,13 @@ export const hrRouter = router({
       }),
 
     // Approve cancellation request (by admin)
-    approveCancellation: adminProcedure
+    approveCancellation: protectedProcedure
       .input(z.object({
         id: z.number(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'approve');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1464,12 +1531,13 @@ export const hrRouter = router({
       }),
 
     // Reject cancellation request (by admin)
-    rejectCancellation: adminProcedure
+    rejectCancellation: protectedProcedure
       .input(z.object({
         id: z.number(),
         notes: z.string().min(1, 'يرجى إدخال سبب الرفض'),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'approve');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1514,7 +1582,7 @@ export const hrRouter = router({
       }),
 
     // List pending cancellation requests (for admin)
-    listCancellationRequests: adminProcedure.query(async () => {
+    listCancellationRequests: hrViewProcedure.query(async () => {
       const db = await getDb();
       if (!db) {
         const demo = await import("../_core/demoStore");
@@ -1551,7 +1619,7 @@ export const hrRouter = router({
         return await query.orderBy(desc(performanceReviews.reviewDate));
       }),
 
-    create: adminProcedure
+    create: protectedProcedure
       .input(z.object({
         employeeId: z.number(),
         reviewDate: z.date(),
@@ -1563,6 +1631,7 @@ export const hrRouter = router({
         comments: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'create');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");
@@ -1595,9 +1664,10 @@ export const hrRouter = router({
         return { success: true };
       }),
 
-    delete: adminProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        await ensureHrPermission(ctx, 'delete');
         const db = await getDb();
         if (!db) {
           const demo = await import("../_core/demoStore");

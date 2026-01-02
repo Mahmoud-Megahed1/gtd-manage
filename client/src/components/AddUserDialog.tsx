@@ -37,8 +37,23 @@ export function AddUserDialog() {
   });
 
   const utils = trpc.useUtils();
+
+  const setPermissionsMutation = trpc.users.setPermissions.useMutation();
+
   const createUser = trpc.users.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async (user) => {
+      // Save custom permissions if specified
+      if (customizePermissions && Object.keys(customPermissions).length > 0 && user?.id) {
+        try {
+          await setPermissionsMutation.mutateAsync({
+            userId: user.id,
+            permissions: customPermissions,
+          });
+        } catch (e) {
+          console.error('Failed to save custom permissions:', e);
+        }
+      }
+
       toast.success("تم إضافة المستخدم بنجاح");
       utils.users.list.invalidate();
       setOpen(false);
@@ -73,10 +88,7 @@ export function AddUserDialog() {
       if (!confirmed) return;
     }
 
-    createUser.mutate({
-      ...formData,
-      permissions: customizePermissions ? customPermissions : undefined
-    });
+    createUser.mutate(formData);
   };
 
   const getRoleLabel = (role: string) => {
@@ -106,6 +118,8 @@ export function AddUserDialog() {
       procurement_officer: "مسؤول مشتريات",
       storekeeper: "أمين مخازن",
       qa_qc: "مسؤول جودة",
+      document_controller: "مسؤول وثائق",
+      viewer: "مشاهد فقط",
     };
     return labels[role] || role;
   };
@@ -185,6 +199,9 @@ export function AddUserDialog() {
                   <SelectItem value="procurement_officer">{getRoleLabel("procurement_officer")}</SelectItem>
                   <SelectItem value="storekeeper">{getRoleLabel("storekeeper")}</SelectItem>
                   <SelectItem value="qa_qc">{getRoleLabel("qa_qc")}</SelectItem>
+                  <SelectItem value="document_controller">{getRoleLabel("document_controller")}</SelectItem>
+                  {/* مشاهد فقط */}
+                  <SelectItem value="viewer">{getRoleLabel("viewer")}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -206,6 +223,8 @@ export function AddUserDialog() {
                 {formData.role === "procurement_officer" && "طلبات الشراء والموردين"}
                 {formData.role === "storekeeper" && "المخزون والتوريدات"}
                 {formData.role === "qa_qc" && "الجودة والفحوصات"}
+                {formData.role === "document_controller" && "إدارة الوثائق والملفات"}
+                {formData.role === "viewer" && "مشاهدة فقط - بدون أي صلاحيات تعديل"}
               </p>
             </div>
 

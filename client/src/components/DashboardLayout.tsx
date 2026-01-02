@@ -18,10 +18,8 @@ import {
   X,
   UserCog,
   Bell,
-  UserCog,
-  Bell,
   BarChart3,
-  Sparkles // Changed from Bot to Sparkles
+  Sparkles
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -45,88 +43,54 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+import { hasPermission, type PermissionResource } from "@/lib/permissions";
+
 interface NavItem {
   title: string;
   href: string;
   icon: React.ReactNode;
-  roles?: string[];
+  resource?: PermissionResource; // Link to permission resource
 }
 
 const navItems: NavItem[] = [
-  // Dashboard - visible to all logged in users
-  { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
+  // Dashboard - visible to all
+  { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, resource: 'dashboard' },
 
-  // المشاريع - Projects (Most important for project management company)
-  // المشاريع - Projects (Most important for project management company)
-  {
-    title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, roles: [
-      "admin", "hr_manager", "finance_manager", "department_manager", "project_manager",
-      "project_coordinator", "architect", "interior_designer", "site_engineer",
-      "planning_engineer", "designer", "technician", "sales_manager", "admin_assistant",
-      "procurement_officer", "qa_qc"
-    ]
-  },
+  // المشاريع - Projects
+  { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, resource: 'projects' },
 
   // العملاء - Clients
-  {
-    title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, roles: [
-      "admin", "hr_manager", "finance_manager", "accountant", "department_manager",
-      "project_manager", "project_coordinator", "sales_manager", "admin_assistant"
-    ]
-  },
+  { title: "العملاء", href: "/clients", icon: <Users className="w-5 h-5" />, resource: 'clients' },
 
-  // HR - شؤون الموظفين (all employees can see their personal data)
-  { title: "شؤون الموظفين", href: "/hr", icon: <UserCog className="w-5 h-5" /> },
+  // HR - شؤون الموظفين
+  { title: "شؤون الموظفين", href: "/hr", icon: <UserCog className="w-5 h-5" />, resource: 'hr' },
 
+  // الفواتير - Invoices
+  { title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, resource: 'invoices' },
 
-  // الفواتير - Invoices (Matrix: admin✅, finance_manager✅, accountant👁️+, department_manager👁️, sales_manager✅)
-  {
-    title: "الفواتير والعروض", href: "/invoices", icon: <Receipt className="w-5 h-5" />, roles: [
-      "admin", "finance_manager", "accountant", "department_manager", "sales_manager"
-    ]
-  },
+  // الاستمارات - Forms
+  { title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" />, resource: 'forms' },
 
-  // الاستمارات - Forms (Matrix: admin✅, hr_manager👁️, department_manager✅, project_manager✅, project_coordinator👁️, sales_manager✅, admin_assistant✅)
-  {
-    title: "الاستمارات", href: "/forms", icon: <FileText className="w-5 h-5" />, roles: [
-      "admin", "hr_manager", "department_manager", "project_manager",
-      "project_coordinator", "sales_manager", "admin_assistant"
-    ]
-  },
+  // المحاسبة - Accounting
+  { title: "المحاسبة", href: "/accounting", icon: <Calculator className="w-5 h-5" />, resource: 'accounting' },
 
-  // المحاسبة - Accounting (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️, project_manager👁️💰, sales_manager👁️💰, procurement_officer👁️)
-  {
-    title: "المحاسبة", href: "/accounting", icon: <Calculator className="w-5 h-5" />, roles: [
-      "admin", "finance_manager", "accountant",
-      "sales_manager", "procurement_officer"
-    ]
-  },
+  // الرسومات - Drawings
+  { title: "الرسومات", href: "/drawings", icon: <FileText className="w-5 h-5" />, resource: 'drawings' }, // Assuming drawings resource exists or maps to something
 
-  // التقارير - Reports (Matrix: admin✅, finance_manager✅, accountant👁️, department_manager👁️+, project_manager👁️+, planning_engineer👁️, sales_manager👁️+, procurement_officer👁️, qa_qc👁️)
-  {
-    title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, roles: [
-      "admin", "finance_manager", "accountant", "department_manager", "project_manager",
-      "planning_engineer", "sales_manager", "procurement_officer", "qa_qc", "project_coordinator"
-    ]
-  },
+  // التقارير - Reports
+  { title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, resource: 'accounting.reports' as any },
 
-  // مساعد AI - AI Assistant (Available for all users - permissions will be enforced in backend)
-  {
-    title: "مساعد AI",
-    href: "/ai-assistant",
-    icon: <Sparkles className="w-5 h-5 text-indigo-500" />,
-    // No roles specified = available for all authenticated users
-    // Backend enforces role-specific capabilities (see ai.chat in routers.ts)
-  },
+  // مساعد AI - AI Assistant
+  { title: "مساعد AI", href: "/ai-assistant", icon: <Sparkles className="w-5 h-5 text-indigo-500" /> },
 
-  // الإشعارات - Notifications (all users)
+  // الإشعارات - Notifications
   { title: "الإشعارات", href: "/notifications", icon: <Bell className="w-5 h-5" /> },
 
-  // سجل النشاطات - Audit Logs (admin only)
-  { title: "سجل النشاطات", href: "/audit-logs", icon: <History className="w-5 h-5" />, roles: ["admin"] },
+  // سجل النشاطات - Audit Logs
+  { title: "سجل النشاطات", href: "/audit-logs", icon: <History className="w-5 h-5" />, resource: 'audit' },
 
-  // الإعدادات - Settings (admin only)
-  { title: "الإعدادات", href: "/settings", icon: <Settings className="w-5 h-5" />, roles: ["admin"] },
+  // الإعدادات - Settings
+  { title: "الإعدادات", href: "/settings", icon: <Settings className="w-5 h-5" />, resource: 'settings' },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -136,20 +100,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logoutMutation = trpc.auth.logout.useMutation();
-  const { data: mePermissions } = trpc.users.mePermissions.useQuery(undefined, { enabled: !!user });
+  const { data: mePermissions } = trpc.auth.getMyPermissions.useQuery(undefined, { enabled: !!user });
   const { data: notifCount } = trpc.notifications.unreadCount.useQuery(undefined, { enabled: !!user });
 
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync();
-      // Clear all localStorage
       localStorage.removeItem("manus-runtime-user-info");
-      // Clear cookies manually as backup
       document.cookie = "GT_SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      // Force hard redirect to clear all state
       window.location.replace("/");
     } catch (error) {
-      // Even on error, try to logout by clearing local state
       localStorage.removeItem("manus-runtime-user-info");
       document.cookie = "GT_SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       window.location.replace("/");
@@ -157,48 +117,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const filteredNavItems = navItems.filter(item => {
-    // Force hide Accounting for department_manager (Hard override)
-    if (user?.role === 'department_manager' && item.href === '/accounting') return false;
+    const role = user?.role || '';
 
-    // Admin sees everything (Safety Override)
-    if (user?.role === 'admin') return true;
+    // Admin sees everything
+    if (role === 'admin') return true;
 
-    // First check: role-based access (primary)
-    const byRole = !item.roles || (user && item.roles.includes(user.role));
+    // Items without resource protection (e.g. AI Assistant, Notifications) are visible to all logged in users
+    if (!item.resource) return true;
 
-    // If role doesn't allow, stop here
-    if (!byRole) return false;
+    // Check strict permissions
+    // 1. Check DB Override first
+    const permKey = item.resource;
+    const userPerm = mePermissions?.permissions ? (mePermissions.permissions as any)[permKey] : undefined;
 
-    // Second check: user-specific permissions (can restrict OR grant)
-    const keyMap: Record<string, string> = {
-      "/dashboard": "dashboard",
-      "/clients": "clients",
-      "/projects": "projects",
-      "/tasks": "projectTasks",
-      "/change-orders": "change_orders",
-      "/invoices": "invoices",
-      "/forms": "forms",
-      "/accounting": "accounting", // Base accounting access
-      "/hr": "hr",
-      "/audit-logs": "audit",
-      "/settings": "settings",
-      "/ai-assistant": "ai_assistant",
-      "/general-reports": "generalReports",
-    };
-    const permKey = keyMap[item.href];
+    if (userPerm?.view === true) return true;
+    if (userPerm?.view === false) return false;
 
-    // Check if we have an explicit override from DB
-    // mePermissions comes from getMyPermissions -> includes DB overrides merged
-    const userPerm = mePermissions ? (mePermissions as any)[permKey] : undefined;
-
-    // 1. Explicit GRANT: If DB says true, allow it (overrides role restriction)
-    if (userPerm === true) return true;
-
-    // 2. Explicit DENY: If DB says false, block it (overrides role allowance)
-    if (userPerm === false) return false;
-
-    // 3. Fallback to Role-based access
-    return byRole;
+    // 2. Check Role Default
+    return hasPermission(role, item.resource, 'view');
   });
 
   const getUserInitials = (name?: string | null) => {
@@ -213,9 +149,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, string> = {
       admin: "مدير",
-      accountant: "محاسب",
+      department_manager: "مدير قسم",
       project_manager: "مدير مشاريع",
-      designer: "مصمم"
+      project_coordinator: "منسق مشاريع",
+      architect: "معماري",
+      interior_designer: "مصمم داخلي",
+      site_engineer: "مهندس موقع",
+      planning_engineer: "مهندس تخطيط",
+      designer: "مصمم",
+      technician: "فني",
+      finance_manager: "مدير مالي",
+      accountant: "محاسب",
+      sales_manager: "مبيعات",
+      hr_manager: "موارد بشرية",
+      admin_assistant: "مساعد إداري",
+      procurement_officer: "مشتريات",
+      storekeeper: "أمين مخازن",
+      qa_qc: "جودة",
+      document_controller: "مراقب وثائق",
+      viewer: "مشاهد",
     };
     return roleMap[role] || role;
   };
@@ -232,7 +184,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   if (!user) {
-    // Automatic redirect to login - no user interaction needed
     if (typeof window !== 'undefined') {
       window.location.href = '/';
     }
@@ -248,7 +199,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Top Navigation Bar - Visible on all screens */}
+      {/* Top Navigation Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border h-16">
         <div className="flex items-center justify-between px-4 h-full">
           <div className="flex items-center gap-4">
@@ -267,21 +218,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2">
-
             <NotificationBell />
           </div>
         </div>
       </div>
 
-      {/* Sidebar - Collapsible on all screens */}
-      {/* z-40 puts it below the header (z-50), so we add pt-16 tto show content below header */}
+      {/* Sidebar */}
       <aside
         className={`fixed top-0 right-0 z-40 bottom-0 w-72 bg-card border-l border-border transition-transform duration-300 pt-16 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
           }`}
       >
         <div className="h-full overflow-y-auto custom-scrollbar">
           <div className="flex flex-col min-h-full">
-
 
             {/* Theme Toggle */}
             {switchable && (
@@ -303,9 +251,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex-1 px-3 py-2">
               <nav className="space-y-1">
                 {filteredNavItems.map((item) => {
-                  // ULTRA FAILSAFE: Do not render Accounting for Department Manager
-                  if (user?.role === 'department_manager' && item.href === '/accounting') return null;
-
                   const isActive = location === item.href || location.startsWith(item.href + "/");
                   return (
                     <Link key={item.href} href={item.href}>
@@ -360,7 +305,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Logout Button - Direct */}
+              {/* Logout Button */}
               <Button
                 variant="outline"
                 className="w-full mt-3 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
@@ -374,14 +319,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content - Full width always */}
+      {/* Main Content */}
       <main className="pt-16 transition-all duration-300">
         <div className="p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </main>
 
-      {/* Overlay for all screens when sidebar is open */}
+      {/* Overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"

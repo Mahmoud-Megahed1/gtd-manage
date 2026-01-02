@@ -5,6 +5,7 @@ import * as db from "../db";
 import { and, gte, lte, sql, eq, desc, isNull, inArray, ne } from "drizzle-orm";
 import { invoices, expenses, installments, purchases, sales, clients } from "../../drizzle/schema";
 import * as demo from "../_core/demoStore";
+import { ensurePerm } from "../utils/permissions";
 
 export const reportsRouter = router({
   summary: protectedProcedure
@@ -19,9 +20,7 @@ export const reportsRouter = router({
       expenseStatus: z.enum(["active", "processing", "completed", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager', 'project_manager', 'department_manager'].includes(ctx.user.role)) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
-      }
+      await ensurePerm(ctx, 'reports');
 
       const conn = await db.getDb();
       if (!conn) {
@@ -253,9 +252,7 @@ export const reportsRouter = router({
       expenseStatus: z.enum(["active", "processing", "completed", "cancelled"]).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
-      }
+      await ensurePerm(ctx, 'reports');
       const conn = await db.getDb();
       const from = input.from;
       const to = input.to;
@@ -459,9 +456,7 @@ export const reportsRouter = router({
       installmentStatuses: z.array(z.enum(["pending", "paid", "overdue", "cancelled"])).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
-      }
+      await ensurePerm(ctx, 'reports');
       const conn = await db.getDb();
       const from = input.from;
       const to = input.to;
@@ -580,9 +575,7 @@ export const reportsRouter = router({
       installmentStatuses: z.array(z.string()).optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (process.env.NODE_ENV === 'production' && !['admin', 'accountant', 'finance_manager'].includes(ctx.user.role)) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
-      }
+      await ensurePerm(ctx, 'reports');
       const conn = await db.getDb();
       const from = input.from;
       const to = input.to;

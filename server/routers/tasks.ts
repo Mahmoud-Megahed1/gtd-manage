@@ -8,24 +8,13 @@ import { projectTasks, taskComments } from "../../drizzle/schema";
 import { notifyOwner } from "../_core/notification";
 import { logAudit } from "../_core/audit";
 
-async function ensureTasksPerm(ctx: any) {
-  const role = ctx.user.role;
-  // Allow multiple roles to manage tasks
-  const allowedRoles = [
-    'admin', 'project_manager', 'designer',
-    'site_engineer', 'planning_engineer',
-    'architect', 'interior_designer', 'hr_manager'
-  ];
-  if (!allowedRoles.includes(role)) {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'لا تملك صلاحية إدارة المهام' });
-  }
-}
+import { ensurePerm, hasModifier } from "../utils/permissions";
 
 export const tasksRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
-      await ensureTasksPerm(ctx);
+      await ensurePerm(ctx, 'tasks');
       const conn = await db.getDb();
       if (!conn) {
         // Demo mode fallback
@@ -53,10 +42,8 @@ export const tasksRouter = router({
       taskType: z.enum(["task", "phase"]).optional()
     }).optional())
     .query(async ({ input, ctx }) => {
-      const role = ctx.user.role;
-      const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
-      const isDesigner = designerRoles.includes(role);
-      const isAdminOrManager = ['admin', 'project_manager', 'department_manager'].includes(role);
+      await ensurePerm(ctx, 'tasks');
+      const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'tasks', 'onlyAssigned', ctx);
 
       const conn = await db.getDb();
       if (!conn) {
@@ -66,8 +53,7 @@ export const tasksRouter = router({
         if (input?.status) tasks = tasks.filter((t: any) => t.status === input.status);
         if (input?.taskType) tasks = tasks.filter((t: any) => t.taskType === input.taskType);
 
-        // For designers: show tasks assigned to them OR unassigned tasks
-        if (isDesigner && !isAdminOrManager) {
+        if (onlyAssigned) {
           tasks = tasks.filter((t: any) =>
             t.assignedTo === ctx.user.id || t.assignedTo === null || t.assignedTo === undefined
           );
@@ -82,9 +68,7 @@ export const tasksRouter = router({
       if (input?.status) whereClauses.push(eq(projectTasks.status, input.status));
       if (input?.taskType) whereClauses.push(eq(projectTasks.taskType, input.taskType));
 
-      // For designers: show tasks assigned to them OR unassigned tasks
-      // Admins/managers see all tasks regardless of assignment
-      if (isDesigner && !isAdminOrManager) {
+      if (onlyAssigned) {
         const { or, isNull } = await import("drizzle-orm");
         whereClauses.push(
           or(
@@ -114,10 +98,10 @@ export const tasksRouter = router({
       taskType: z.enum(["task", "phase"]).default("task")
     }))
     .mutation(async ({ input, ctx }) => {
-      await ensureTasksPerm(ctx);
+      await ensurePerm(ctx, 'tasks');
 
-      // Only admin and project_manager can CREATE tasks
-      const canCreate = ['admin', 'project_manager'].includes(ctx.user.role);
+      // Check create permission (role default or override)
+      const canCreate = await hasModifier(ctx.user.id, ctx.user.role, 'tasks', 'create', ctx);
       if (!canCreate) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك إنشاء مهام - صلاحية المشاهدة فقط' });
       }
@@ -193,7 +177,12 @@ export const tasksRouter = router({
       taskType: z.enum(["task", "phase"]).optional()
     }))
     .mutation(async ({ input, ctx }) => {
-      await ensureTasksPerm(ctx);
+      await ensurePerm(ctx, 'tasks');
+      // Check edit permission
+      const canEdit = await hasModifier(ctx.user.id, ctx.user.role, 'tasks', 'edit', ctx);
+      if (!canEdit) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك تعديل المهام' });
+      }
       const conn = await db.getDb();
       if (!conn) {
         // Demo mode fallback
@@ -280,12 +269,12 @@ export const tasksRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      await ensureTasksPerm(ctx);
+      await ensurePerm(ctx, 'tasks');
 
-      // Only admin and project_manager can DELETE tasks
-      const canDelete = ['admin', 'project_manager'].includes(ctx.user.role);
+      // Check delete permission
+      const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'tasks', 'delete', ctx);
       if (!canDelete) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف مهام - صلاحية المشاهدة فقط' });
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف مهام' });
       }
 
       const conn = await db.getDb();
@@ -302,7 +291,7 @@ export const tasksRouter = router({
     list: protectedProcedure
       .input(z.object({ taskId: z.number() }))
       .query(async ({ input, ctx }) => {
-        await ensureTasksPerm(ctx);
+        await ensurePerm(ctx, 'tasks');
         const conn = await db.getDb();
         if (!conn) return [];
         return await conn.select().from(taskComments).where(eq(taskComments.taskId, input.taskId));
@@ -310,7 +299,7 @@ export const tasksRouter = router({
     add: protectedProcedure
       .input(z.object({ taskId: z.number(), content: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
-        await ensureTasksPerm(ctx);
+        await ensurePerm(ctx, 'tasks');
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         await conn.insert(taskComments).values({
@@ -325,7 +314,7 @@ export const tasksRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        await ensureTasksPerm(ctx);
+        await ensurePerm(ctx, 'tasks');
         const conn = await db.getDb();
         if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
         await conn.delete(taskComments).where(eq(taskComments.id, input.id));

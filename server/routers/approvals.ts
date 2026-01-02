@@ -5,6 +5,7 @@ import { getDb, createAuditLog } from "../db";
 import { approvalRequests } from "../../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
+import { executeApprovalAction } from "../utils/approvalExecutor";
 
 // Only admin/finance_manager can review
 const reviewerProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -123,8 +124,18 @@ export const approvalsRouter = router({
                 })
                 .where(eq(approvalRequests.id, input.id));
 
-            // TODO: Execute the actual action based on request type
-            // This would involve calling the appropriate service
+            // Execute the action based on request type
+            try {
+                await executeApprovalAction(input.id, request, ctx);
+            } catch (error) {
+                // If execution fails, revert status to pending (or validation_failed)
+                // For now, we throw and transaction rollback would be ideal, but we don't have explicit transaction here.
+                // We will manually revert.
+                await db.update(approvalRequests)
+                    .set({ status: 'pending', reviewedBy: null, reviewedAt: null })
+                    .where(eq(approvalRequests.id, input.id));
+                throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `فشل تنفيذ الطلب: ${(error as any).message}` });
+            }
 
             await createAuditLog({
                 userId: ctx.user.id,
