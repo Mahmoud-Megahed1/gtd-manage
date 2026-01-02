@@ -86,13 +86,16 @@ export const PERMISSION_MATRIX: Record<string, RolePermissions> = {
 
     // 4️⃣ project_coordinator (منسق مشاريع)
     project_coordinator: {
-        projects: ['view'],
-        tasks: ['view', 'edit'],
+        clients: ['view'], // names only
+        projects: ['view', 'edit'],
+        tasks: ['view', 'create', 'edit'],
         forms: ['view'],
+        'forms.change_orders': ['view'],
         hr: ['view', 'create'], // بياناته + طلب إجازة
-        drawings: ['view'],
-        rfis: ['view'],
-        submittals: ['view'],
+        drawings: ['view', 'create', 'edit'],
+        rfis: ['view', 'create', 'edit'],
+        submittals: ['view', 'create', 'edit'],
+        approval_requests: ['view', 'create'],
     },
 
     // 5️⃣ architect (معماري)

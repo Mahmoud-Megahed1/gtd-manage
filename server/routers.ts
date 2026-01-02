@@ -174,8 +174,8 @@ function getDetailedPermissions(role: string): DetailedPermissions {
       projects: { ...readonlyPerms, edit: true },
       tasks: { ...ownPerms, edit: true, create: true },
       accounting: nonePerms,
-      clients: readonlyPerms,
-      forms: readonlyPerms,
+      clients: { ...readonlyPerms, view: true },
+      forms: { ...readonlyPerms, view: true },
       invoices: nonePerms,
       reports: nonePerms,
     },
@@ -340,7 +340,7 @@ async function ensurePerm(ctx: any, sectionKey: string) {
 
     // === إدارة المشاريع ===
     project_manager: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'projectReports', 'dashboard', 'clients', 'forms', 'generalReports', 'accounting'],
-    project_coordinator: ['projects', 'projectTasks', 'dashboard'],
+    project_coordinator: ['projects', 'projectTasks', 'dashboard', 'clients', 'forms', 'rfis', 'submittals', 'drawings', 'generalReports', 'approval_requests'],
 
     // === المهندسين والفنيين ===
     architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard'],
@@ -754,6 +754,14 @@ export const appRouter = router({
         const currentProject = await db.getProjectById(id);
         if (!currentProject) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'المشروع غير موجود' });
+        }
+
+        // Restrict Project Coordinator from modifying budget
+        if (ctx.user.role === 'project_coordinator' && data.budget !== undefined) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'ليس لديك صلاحية تعديل ميزانية المشروع'
+          });
         }
 
         await db.updateProject(id, data as any);
