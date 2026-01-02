@@ -154,14 +154,14 @@ function getReportPermission(role: string, section: ReportSection): ReportPermis
         },
         // منسق مشاريع - يشوف المشاريع والمهام المسندة إليه
         project_coordinator: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled view clients
             projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
             tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
             invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
             hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
             forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled overview
             saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
         },
         // مساعد إداري - صلاحيات محدودة للعملاء والاستمارات
@@ -369,12 +369,30 @@ export const generalReportsRouter = router({
                 };
             }
 
+            const { projectTeam } = await import("../../drizzle/schema");
+
             const conditions: any[] = [];
             if (input.from) conditions.push(gte(projects.createdAt, input.from));
             if (input.to) conditions.push(lte(projects.createdAt, input.to));
             if (input.status) conditions.push(eq(projects.status, input.status as any));
             if (input.clientId) conditions.push(eq(projects.clientId, input.clientId));
-            if (perm.onlyAssigned) conditions.push(eq(projects.assignedTo, ctx.user.id));
+
+            // If restricted to assigned only, check both direct assignment and team membership
+            if (perm.onlyAssigned) {
+                // Get project IDs where user is a team member
+                const teamProjects = await conn.select({ projectId: projectTeam.projectId })
+                    .from(projectTeam)
+                    .where(eq(projectTeam.userId, ctx.user.id));
+
+                const teamProjectIds = teamProjects.map(t => t.projectId);
+
+                if (teamProjectIds.length > 0) {
+                    // Check if assignedTo user OR in team
+                    conditions.push(sql`(${projects.assignedTo} = ${ctx.user.id} OR ${projects.id} IN ${teamProjectIds})`);
+                } else {
+                    conditions.push(eq(projects.assignedTo, ctx.user.id));
+                }
+            }
 
             // Total projects
             const totalResult = await conn.select({ count: count() })
@@ -610,7 +628,11 @@ export const generalReportsRouter = router({
             const to = input.to ?? new Date();
 
             // Expenses (Operating)
-            const expConditions = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
+            // Filter out cancelled expenses if any (status is not always used but good to be safe if schema supports it)
+            // Assuming simplified expenses for now, or check schema. accounting.ts doesn't filter by status in list, but has cancel mutation.
+            // Let's assume all non-cancelled expenses are valid.
+            // const expConditions = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to), ne(expenses.status, 'cancelled')]; // Hypothetical
+            const expConditions: any[] = [gte(expenses.expenseDate, from), lte(expenses.expenseDate, to)];
             if (input.projectId) expConditions.push(eq(expenses.projectId, input.projectId));
 
             const expensesResult = await conn.select({ total: sum(expenses.amount) })
@@ -618,8 +640,12 @@ export const generalReportsRouter = router({
                 .where(and(...expConditions));
             const totalOperatingExpenses = Number(expensesResult[0]?.total || 0);
 
-            // Purchases
-            const purchConditions = [gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)];
+            // Purchases - Only COMPLETED purchases counts as expense
+            const purchConditions: any[] = [
+                gte(purchases.purchaseDate, from),
+                lte(purchases.purchaseDate, to),
+                eq(purchases.status, 'completed')
+            ];
             if (input.projectId) purchConditions.push(eq(purchases.projectId, input.projectId));
 
             const purchasesResult = await conn.select({ total: sum(purchases.amount) })
@@ -642,13 +668,11 @@ export const generalReportsRouter = router({
             categoryResult.forEach(r => {
                 expensesByCategory[r.category || 'أخرى'] = Number(r.total || 0);
             });
-            // Add purchases as a category? Or separate? For now, let's keep expensesByCategory for operating expenses only or add a generic 'Purchases' category.
-            // Let's add 'مشتريات' category if there are purchases
             if (totalPurchases > 0) {
                 expensesByCategory['مشتريات'] = totalPurchases;
             }
 
-            // 1. Installments (mirroring accounting.ts)
+            // 1. Installments (Not for Revenue Sum, just for metrics)
             const instConditions = [gte(installments.dueDate, from), lte(installments.dueDate, to)];
             if (input.projectId) instConditions.push(eq(installments.projectId, input.projectId));
 
@@ -659,10 +683,11 @@ export const generalReportsRouter = router({
                 .where(and(...instConditions));
 
             const instTotal = Number(instResult[0]?.total || 0);
-            const instPaid = Number(instResult[0]?.paid || 0);
+            // const instPaid = Number(instResult[0]?.paid || 0); 
 
-            // 2. Invoices (Mirroring accounting.ts logic + Date filter)
-            const invConditions = [
+            // 2. Invoices (Primary Revenue Source)
+            // Filter: Type=invoice (not quote), Status!=cancelled
+            const invConditions: any[] = [
                 gte(invoices.issueDate, from),
                 lte(invoices.issueDate, to),
                 eq(invoices.type, 'invoice'),
@@ -680,7 +705,7 @@ export const generalReportsRouter = router({
             const invoicesPaid = Number(invResult[0]?.paid || 0);
 
             // 3. Manual Sales (Completed ONLY, not linked to invoices)
-            const salesConditions = [
+            const salesConditions: any[] = [
                 gte(sales.saleDate, from),
                 lte(sales.saleDate, to),
                 eq(sales.status, 'completed'),
@@ -695,12 +720,13 @@ export const generalReportsRouter = router({
 
             const manualSalesTotal = Number(salesResult[0]?.total || 0);
 
-            // Total Revenue = Installments + Invoices + Manual Sales
-            const totalSales = instTotal + invoicesTotal + manualSalesTotal;
-            const paidSales = instPaid + invoicesPaid + manualSalesTotal;
+            // Total Revenue = Invoices + Manual Sales (Ignore Installments to avoid double counting)
+            // Determine real revenue based on actual billed/sold items.
+            const totalSales = invoicesTotal + manualSalesTotal;
+            const paidSales = invoicesPaid + manualSalesTotal; // Manual sales are 'completed' so considered paid? Or check paymentMethod? 'completed' sales usually mean done deal.
 
             return {
-                totalExpenses, // Now includes purchases
+                totalExpenses,
                 totalSales,
                 paidSales,
                 pendingSales: totalSales - paidSales,

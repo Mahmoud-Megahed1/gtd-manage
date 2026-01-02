@@ -37,7 +37,6 @@ import TaskDetails from "./pages/TaskDetails";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
 import GeneralReports from "./pages/GeneralReports";
-import Approvals from "./pages/Approvals";
 
 function Router() {
   return (
@@ -71,7 +70,6 @@ function Router() {
       <Route path={"/settings"} component={Settings} />
       <Route path={"/reports"}>{() => <Redirect to="/accounting?tab=reports" />}</Route>
       <Route path={"/general-reports"} component={GeneralReports} />
-      <Route path={"/approvals"} component={Approvals} />
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/tasks"}>{() => <Redirect to="/projects" />}</Route>
       <Route path={"/tasks/:id"} component={TaskDetails} />

@@ -880,119 +880,14 @@ export default function Settings() {
             <ImportantFilesSection />
           </TabsContent>
 
-          {/* Approval Requests */}
-          <TabsContent value="approvals" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>طلبات الاعتماد</CardTitle>
-                <CardDescription>مراجعة واعتماد أو رفض طلبات المحاسبة</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ApprovalsSection />
-              </CardContent>
-            </Card>
-          </TabsContent>
+
         </Tabs>
       </div>
     </DashboardLayout>
   );
 }
 
-// Approvals Section Component
-function ApprovalsSection() {
-  const { data: pendingRequests, isLoading, refetch } = trpc.approvals.pending.useQuery();
-  const approveMutation = trpc.approvals.approve.useMutation({
-    onSuccess: () => {
-      toast.success("تمت الموافقة على الطلب");
-      refetch();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-  const rejectMutation = trpc.approvals.reject.useMutation({
-    onSuccess: () => {
-      toast.success("تم رفض الطلب");
-      refetch();
-    },
-    onError: (error) => toast.error(error.message),
-  });
 
-  const entityTypeLabels: Record<string, string> = {
-    expense: "مصروف",
-    sale: "مبيعات",
-    purchase: "مشتريات",
-    invoice: "فاتورة",
-    boq: "BOQ",
-    installment: "قسط",
-  };
-
-  const actionLabels: Record<string, string> = {
-    create: "إنشاء",
-    update: "تعديل",
-    delete: "حذف",
-    cancel: "إلغاء",
-    approve: "اعتماد",
-  };
-
-  if (isLoading) {
-    return <p className="text-center text-muted-foreground">جاري التحميل...</p>;
-  }
-
-  if (!pendingRequests || pendingRequests.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <Shield className="w-12 h-12 mx-auto mb-4 opacity-30" />
-        <p>لا توجد طلبات معلقة</p>
-      </div>
-    );
-  }
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>النوع</TableHead>
-          <TableHead>الإجراء</TableHead>
-          <TableHead>مقدم الطلب</TableHead>
-          <TableHead>التاريخ</TableHead>
-          <TableHead>الإجراءات</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {pendingRequests.map((request: any) => (
-          <TableRow key={request.id}>
-            <TableCell>{entityTypeLabels[request.entityType] || request.entityType}</TableCell>
-            <TableCell>{actionLabels[request.action] || request.action}</TableCell>
-            <TableCell>#{request.requestedBy}</TableCell>
-            <TableCell>{new Date(request.requestedAt).toLocaleDateString('ar-SA')}</TableCell>
-            <TableCell className="space-x-2 space-x-reverse">
-              <Button
-                size="sm"
-                variant="default"
-                disabled={approveMutation.isPending}
-                onClick={() => approveMutation.mutate({ id: request.id })}
-              >
-                موافقة
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={rejectMutation.isPending}
-                onClick={() => {
-                  const reason = prompt("سبب الرفض:");
-                  if (reason) {
-                    rejectMutation.mutate({ id: request.id, notes: reason });
-                  }
-                }}
-              >
-                رفض
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
 
 // Password Reset Requests Card Component
 function PasswordResetRequestsCard() {

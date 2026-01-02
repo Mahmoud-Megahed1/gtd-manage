@@ -110,13 +110,6 @@ const navItems: NavItem[] = [
     ]
   },
 
-  // طلبات الاعتماد - Approval Requests (Matrix: admin✅, project_coordinator✅)
-  {
-    title: "طلبات الاعتماد", href: "/approvals", icon: <Sparkles className="w-5 h-5" />, roles: [
-      "admin", "project_coordinator"
-    ]
-  },
-
   // مساعد AI - AI Assistant (Available for all users - permissions will be enforced in backend)
   {
     title: "مساعد AI",
@@ -191,7 +184,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       "/settings": "settings",
       "/ai-assistant": "ai_assistant", // Added specific permission key
       "/general-reports": "generalReports",
-      "/approvals": "approval_requests",
     };
     const permKey = keyMap[item.href];
 
