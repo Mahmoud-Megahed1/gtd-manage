@@ -247,7 +247,7 @@ export default function Dashboard() {
               )}
 
               {/* Accounting - for accountants and admins */}
-              {(currentUser?.role !== 'department_manager') && (permissions?.permissions.accounting.view || currentUser?.role === 'admin') && (
+              {(currentUser?.role !== 'department_manager' && currentUser?.role !== 'project_manager') && (permissions?.permissions.accounting.view || currentUser?.role === 'admin') && (
                 <Link href="/accounting">
                   <div className="flex flex-col items-center justify-center p-6 border border-border rounded-lg hover:bg-accent hover:border-primary transition-all cursor-pointer group">
                     <Calculator className="w-10 h-10 text-yellow-500 mb-3 group-hover:scale-110 transition-transform" />
