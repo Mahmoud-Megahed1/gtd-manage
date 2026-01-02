@@ -169,7 +169,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // If role doesn't allow, stop here
     if (!byRole) return false;
 
-    // Second check: user-specific permissions (can only restrict, not grant)
+    // Second check: user-specific permissions (can restrict OR grant)
     const keyMap: Record<string, string> = {
       "/dashboard": "dashboard",
       "/clients": "clients",
@@ -178,21 +178,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       "/change-orders": "change_orders",
       "/invoices": "invoices",
       "/forms": "forms",
-      "/accounting": "accounting",
+      "/accounting": "accounting", // Base accounting access
       "/hr": "hr",
       "/audit-logs": "audit",
       "/settings": "settings",
-      "/ai-assistant": "ai_assistant", // Added specific permission key
+      "/ai-assistant": "ai_assistant",
       "/general-reports": "generalReports",
     };
     const permKey = keyMap[item.href];
 
-    // Only check user perms if they exist and explicitly deny
-    // Default is true (allowed) if not specified
-    // Cast to any to avoid TS error since 'ai_assistant' is not in strictly typed PermissionResource yet
-    const byPerm = !mePermissions || (mePermissions as any)[permKey] !== false;
+    // Check if we have an explicit override from DB
+    // mePermissions comes from getMyPermissions -> includes DB overrides merged
+    const userPerm = mePermissions ? (mePermissions as any)[permKey] : undefined;
 
-    return byPerm;
+    // 1. Explicit GRANT: If DB says true, allow it (overrides role restriction)
+    if (userPerm === true) return true;
+
+    // 2. Explicit DENY: If DB says false, block it (overrides role allowance)
+    if (userPerm === false) return false;
+
+    // 3. Fallback to Role-based access
+    return byRole;
   });
 
   const getUserInitials = (name?: string | null) => {

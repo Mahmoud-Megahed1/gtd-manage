@@ -3,11 +3,39 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import {
-  expenses, boq, installments, sales, purchases, invoices,
+  expenses, boq, installments, sales, purchases, invoices, approvalRequests, userPermissions,
   InsertExpense, InsertBOQ, InsertInstallment, InsertSale, InsertPurchase
 } from "../../drizzle/schema";
 import { eq, and, gte, lte, desc, sum, sql, inArray, ne, isNull } from "drizzle-orm";
 import * as demo from "../_core/demoStore";
+
+// Helper to check for permission modifiers
+async function hasModifier(userId: number, role: string, resource: string, modifier: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  // 1. Check Custom Override in DB
+  const perms = await db.select().from(userPermissions).where(eq(userPermissions.userId, userId)).limit(1);
+  const record = perms[0]?.permissionsJson ? JSON.parse(perms[0].permissionsJson) : {};
+  const key = `${resource}.${modifier}`;
+
+  if (record.hasOwnProperty(key)) {
+    return !!record[key];
+  }
+
+  // 2. Check Role Defaults
+  if (modifier === 'autoApprove') {
+    if (['admin', 'finance_manager'].includes(role)) return true;
+    return false;
+  }
+
+  if (modifier === 'canViewFinancials') {
+    if (['admin', 'finance_manager', 'accountant', 'project_manager'].includes(role)) return true;
+    return false;
+  }
+
+  return false;
+}
 
 // Admin/Accountant procedure
 const accountingProcedure = protectedProcedure
@@ -21,7 +49,7 @@ const accountingProcedure = protectedProcedure
     const db = await getDb();
     if (!db) return next({ ctx });
     try {
-      const permsRow = await db.select().from((await import("../../drizzle/schema")).userPermissions).where(eq((await import("../../drizzle/schema")).userPermissions.userId, ctx.user.id)).limit(1);
+      const permsRow = await db.select().from(userPermissions).where(eq(userPermissions.userId, ctx.user.id)).limit(1);
       const record = permsRow[0]?.permissionsJson ? JSON.parse(permsRow[0].permissionsJson) : {};
       if (record.hasOwnProperty('accounting') && !record['accounting']) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
@@ -30,9 +58,10 @@ const accountingProcedure = protectedProcedure
     return next({ ctx });
   });
 
-// Admin/Finance Manager only - for mutations (accountant cannot modify directly)
+// Admin/Finance Manager/Accountant procedure
 const adminFinanceProcedure = accountingProcedure.use(({ ctx, next }) => {
-  const allowedRoles = ['admin', 'finance_manager'];
+  // Allow accountant, but specific actions will check for approval requirements
+  const allowedRoles = ['admin', 'finance_manager', 'accountant'];
   if (!allowedRoles.includes(ctx.user.role)) {
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -79,7 +108,7 @@ export const accountingRouter = router({
         amount: z.number(),
         expenseDate: z.string()
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) {
           demo.insert("expenses", {
@@ -92,13 +121,31 @@ export const accountingRouter = router({
           return { success: true };
         }
 
+        // Check for Auto-Approve permission
+        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove');
+        if (!canAutoApprove) {
+          await db.insert(approvalRequests).values({
+            entityType: 'expense', // Enum value
+            entityId: 0, // 0 for new creation requests? Or should we create a draft? Schema says entityId is int NOT NULL. 
+            // Usually creation requests don't have an ID yet. 
+            // Option 1: Create the entity with status 'pending' (if supported) and link.
+            // Option 2: requestData contains the payload, entityId is placeholder 0.
+            // Schema has status 'pending' default.
+            action: 'create',
+            requestData: JSON.stringify(input),
+            requestedBy: ctx.user.id,
+            status: 'pending'
+          });
+          return { success: true, message: 'تم إرسال طلب اعتماد المصروف' };
+        }
+
         await db.insert(expenses).values({
           projectId: input.projectId,
           category: input.category,
           description: input.description,
           amount: input.amount,
           expenseDate: new Date(input.expenseDate),
-          createdBy: 1 // TODO: use ctx.user.id
+          createdBy: ctx.user.id
         });
         return { success: true };
       }),
@@ -566,6 +613,21 @@ export const accountingRouter = router({
           });
           return { success: true };
         }
+
+        // Check for Auto-Approve permission
+        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove');
+        if (!canAutoApprove) {
+          await db.insert(approvalRequests).values({
+            entityType: 'sale',
+            entityId: 0,
+            action: 'create',
+            requestData: JSON.stringify(input),
+            requestedBy: ctx.user.id,
+            status: 'pending'
+          });
+          return { success: true, message: 'تم إرسال طلب اعتماد المبيعات' };
+        }
+
         const saleNumber = `SAL-${Date.now()}`;
         await db.insert(sales).values({
           saleNumber,
@@ -699,6 +761,21 @@ export const accountingRouter = router({
           });
           return { success: true };
         }
+
+        // Check for Auto-Approve permission
+        const canAutoApprove = await hasModifier(ctx.user.id, ctx.user.role, 'accounting', 'autoApprove');
+        if (!canAutoApprove) {
+          await db.insert(approvalRequests).values({
+            entityType: 'purchase',
+            entityId: 0,
+            action: 'create',
+            requestData: JSON.stringify(input),
+            requestedBy: ctx.user.id,
+            status: 'pending'
+          });
+          return { success: true, message: 'تم إرسال طلب اعتماد المشتريات' };
+        }
+
         const purchaseNumber = `PUR-${Date.now()}`;
         await db.insert(purchases).values({
           purchaseNumber,

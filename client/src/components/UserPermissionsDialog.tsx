@@ -24,6 +24,7 @@ import {
     type PermissionResource,
     type PermissionAction,
 } from '@/lib/permissions';
+import { PermissionsGrid } from './PermissionsGrid';
 
 interface UserPermissionsDialogProps {
     open: boolean;
@@ -136,49 +137,11 @@ export default function UserPermissionsDialog({
                 </DialogHeader>
 
                 <ScrollArea className="h-[60vh] pr-4">
-                    <div className="space-y-6">
-                        {ALL_RESOURCES.map((resource) => (
-                            <div
-                                key={resource}
-                                className="border rounded-lg p-4 bg-muted/30"
-                            >
-                                <h3 className="font-semibold text-lg mb-3 text-amber-700">
-                                    {RESOURCE_LABELS[resource]}
-                                </h3>
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                    {ALL_ACTIONS.map((action) => {
-                                        const isEnabled = isPermissionEnabled(resource, action);
-                                        const isDefault = (defaultPermissions[resource] || []).includes(action);
-                                        const key = `${resource}.${action}`;
-                                        const isCustom = key in customPermissions;
-
-                                        return (
-                                            <div key={action} className="flex items-center gap-2">
-                                                <Checkbox
-                                                    id={`${resource}-${action}`}
-                                                    checked={isEnabled}
-                                                    onCheckedChange={() => togglePermission(resource, action)}
-                                                />
-                                                <Label
-                                                    htmlFor={`${resource}-${action}`}
-                                                    className={`cursor-pointer ${isCustom && isEnabled !== isDefault ? 'text-amber-600 font-medium' : ''
-                                                        }`}
-                                                >
-                                                    {ACTION_LABELS[action]}
-                                                    {isDefault && !isCustom && (
-                                                        <span className="text-xs text-muted-foreground mr-1">(افتراضي)</span>
-                                                    )}
-                                                    {isCustom && isEnabled !== isDefault && (
-                                                        <span className="text-xs text-amber-600 mr-1">(مُعدّل)</span>
-                                                    )}
-                                                </Label>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <PermissionsGrid
+                        role={userRole}
+                        customPermissions={customPermissions}
+                        onChange={setCustomPermissions}
+                    />
                 </ScrollArea>
 
                 <DialogFooter className="flex gap-2">
@@ -207,3 +170,4 @@ export default function UserPermissionsDialog({
         </Dialog>
     );
 }
+

@@ -21,9 +21,15 @@ import {
 import { UserPlus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { PermissionsGrid } from "./PermissionsGrid";
+import { PERMISSION_MATRIX } from "@/lib/permissions";
 
 export function AddUserDialog() {
   const [open, setOpen] = useState(false);
+  const [customizePermissions, setCustomizePermissions] = useState(false);
+  const [customPermissions, setCustomPermissions] = useState<Record<string, boolean>>({});
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -41,6 +47,8 @@ export function AddUserDialog() {
         email: "",
         role: "designer",
       });
+      setCustomizePermissions(false);
+      setCustomPermissions({});
     },
     onError: (error) => {
       toast.error(`فشل إضافة المستخدم: ${error.message}`);
@@ -65,7 +73,10 @@ export function AddUserDialog() {
       if (!confirmed) return;
     }
 
-    createUser.mutate(formData);
+    createUser.mutate({
+      ...formData,
+      permissions: customizePermissions ? customPermissions : undefined
+    });
   };
 
   const getRoleLabel = (role: string) => {
@@ -197,6 +208,25 @@ export function AddUserDialog() {
                 {formData.role === "qa_qc" && "الجودة والفحوصات"}
               </p>
             </div>
+
+            <div className="flex items-center space-x-2 space-x-reverse border-t pt-4">
+              <Switch
+                id="customize-mode"
+                checked={customizePermissions}
+                onCheckedChange={setCustomizePermissions}
+              />
+              <Label htmlFor="customize-mode" className="font-medium">تخصيص الصلاحيات المتقدمة</Label>
+            </div>
+
+            {customizePermissions && (
+              <div className="border rounded-md p-4 bg-slate-50 max-h-[300px] overflow-y-auto">
+                <PermissionsGrid
+                  role={formData.role}
+                  customPermissions={customPermissions}
+                  onChange={setCustomPermissions}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

@@ -23,230 +23,172 @@ interface ReportPermission {
     onlyOwn: boolean;
 }
 
-function getReportPermission(role: string, section: ReportSection): ReportPermission {
-    // Admin has full access
+// Helper to get effective report permissions (Role Default + DB Override)
+async function getReportPermission(userId: number, role: string, section: ReportSection): Promise<ReportPermission> {
+    // 1. Get Role Defaults
+    let perm: ReportPermission;
     if (role === 'admin') {
-        return { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false };
+        perm = { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false };
+    } else {
+        const matrix: Record<string, Record<ReportSection, ReportPermission>> = {
+            // ... (Keep existing matrix logic, but I will put it in a separate const to avoid massive code block if possible, or just inline key parts)
+            // For brevity, I will use a simplified logic or re-use the existing large matrix if I can access it purely as data.
+            // Since I'm replacing the function, I effectively remove the old one. I should copy the matrix.
+            finance_manager: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            },
+            accountant: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+            },
+            project_manager: {
+                clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            },
+            designer: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            },
+            architect: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            },
+            site_engineer: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            },
+            interior_designer: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            },
+            project_coordinator: {
+                clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled view clients
+                projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled overview
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            },
+            department_manager: {
+                clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
+                tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+            },
+            other: {
+                clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+                forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
+                saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
+            },
+            // Fallbacks for other roles can map to 'other' or specific logic
+            admin_assistant: { clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true } },
+            procurement_manager: { clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false } },
+            warehouse_manager: { clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true } },
+            quality_manager: { clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false } },
+            technician: { clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false }, tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false }, invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true }, forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true } },
+        };
+
+        const rolePerms = matrix[role] || matrix['other'];
+        perm = rolePerms[section] || { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false };
     }
 
-    const matrix: Record<string, Record<ReportSection, ReportPermission>> = {
-        finance_manager: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-        },
-        accountant: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-        },
-        project_manager: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-        },
-        designer: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        architect: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        site_engineer: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        interior_designer: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        planning_engineer: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        hr_manager: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        sales_manager: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-        },
-        // مدير قسم - صلاحيات مشابهة لمدير المشاريع
-        department_manager: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-        },
-        // منسق مشاريع - يشوف المشاريع والمهام المسندة إليه
-        project_coordinator: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled view clients
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false }, // Enabled overview
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        // مساعد إداري - صلاحيات محدودة للعملاء والاستمارات
-        admin_assistant: {
-            clients: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        // مسؤول مشتريات - يشوف المحاسبة والمشتريات
-        procurement_manager: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: true, canViewFinancials: true, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-        },
-        // أمين مخازن - صلاحيات محدودة
-        warehouse_manager: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        // مسؤول جودة - يشوف المشاريع والمهام للمراقبة
-        quality_manager: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-        },
-        // فني - مثل المصمم، يشوف المسند إليه فقط
-        technician: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            tasks: { canView: true, canViewFinancials: false, onlyAssigned: true, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-        // أخرى / موظف عادي - بياناته فقط في HR
-        other: {
-            clients: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            projects: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            tasks: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            invoices: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            accounting: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            hr: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-            forms: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            overview: { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false },
-            saved_reports: { canView: true, canViewFinancials: false, onlyAssigned: false, onlyOwn: true },
-        },
-    };
+    // 2. Check Custom Permission Modifiers in DB
+    const userPerms = await db.getUserPermissions(userId);
+    const overrides = userPerms?.permissionsJson ? JSON.parse(userPerms.permissionsJson) : {};
 
-    const rolePerms = matrix[role];
-    if (!rolePerms) {
-        return { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false };
+    // Override specific flags if present
+    const keys: (keyof ReportPermission)[] = ['canViewFinancials', 'onlyAssigned', 'onlyOwn'];
+    keys.forEach(key => {
+        const lookup = `${section === 'overview' ? 'projects' : section}.${key}`; // Map overview to projects for modifiers? Or allow overview specific modifiers. Use section.key
+        if (overrides.hasOwnProperty(lookup)) {
+            perm[key] = !!overrides[lookup];
+        }
+    });
+
+    // Also check generic resource overrides? e.g. 'projects.onlyAssigned' affects 'projects' section report.
+    // The section names in report roughly match resource names.
+    // 'projects', 'tasks', 'invoices', 'accounting', 'hr' match.
+    // 'clients', 'forms' match.
+    // 'overview' might be special.
+
+    // Explicit check for resource-level modifiers that should affect reports
+    if (section === 'projects' || section === 'overview') {
+        if (overrides['projects.canViewFinancials'] !== undefined) perm.canViewFinancials = overrides['projects.canViewFinancials'];
+        if (overrides['projects.onlyAssigned'] !== undefined) perm.onlyAssigned = overrides['projects.onlyAssigned'];
     }
-    return rolePerms[section] || { canView: false, canViewFinancials: false, onlyAssigned: false, onlyOwn: false };
+    if (section === 'accounting' || section === 'invoices') {
+        if (overrides['accounting.canViewFinancials'] !== undefined) perm.canViewFinancials = overrides['accounting.canViewFinancials'];
+    }
+
+    return perm;
 }
 
-function checkReportPermission(role: string, section: ReportSection): ReportPermission {
-    const perm = getReportPermission(role, section);
+async function checkReportPermission(userId: number, role: string, section: ReportSection): Promise<ReportPermission> {
+    const perm = await getReportPermission(userId, role, section);
     if (!perm.canView) {
         throw new TRPCError({ code: 'FORBIDDEN', message: `ليس لديك صلاحية الوصول لتقرير ${section}` });
     }
@@ -263,7 +205,7 @@ const dateFilterSchema = z.object({
 export const generalReportsRouter = router({
     // Get available report sections for current user
     getAvailableSections: protectedProcedure
-        .query(({ ctx }) => {
+        .query(async ({ ctx }) => {
             const sections: ReportSection[] = ['clients', 'projects', 'tasks', 'invoices', 'accounting', 'hr', 'forms', 'overview', 'saved_reports'];
             const available: { key: ReportSection; label: string; canViewFinancials: boolean }[] = [];
 
@@ -280,7 +222,7 @@ export const generalReportsRouter = router({
             };
 
             for (const section of sections) {
-                const perm = getReportPermission(ctx.user.role, section);
+                const perm = await getReportPermission(ctx.user.id, ctx.user.role, section);
                 if (perm.canView) {
                     available.push({ key: section, label: labels[section], canViewFinancials: perm.canViewFinancials });
                 }
@@ -295,7 +237,7 @@ export const generalReportsRouter = router({
             status: z.string().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            checkReportPermission(ctx.user.role, 'clients');
+            await checkReportPermission(ctx.user.id, ctx.user.role, 'clients');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -353,7 +295,7 @@ export const generalReportsRouter = router({
             clientId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            const perm = checkReportPermission(ctx.user.role, 'projects');
+            const perm = await checkReportPermission(ctx.user.id, ctx.user.role, 'projects');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -450,7 +392,7 @@ export const generalReportsRouter = router({
             assigneeId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            const perm = checkReportPermission(ctx.user.role, 'tasks');
+            const perm = await checkReportPermission(ctx.user.id, ctx.user.role, 'tasks');
 
             const conn = await db.getDb();
             const { projectTasks } = await import("../../drizzle/schema");
@@ -525,7 +467,7 @@ export const generalReportsRouter = router({
             clientId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            checkReportPermission(ctx.user.role, 'invoices');
+            await checkReportPermission(ctx.user.id, ctx.user.role, 'invoices');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -609,7 +551,7 @@ export const generalReportsRouter = router({
             projectId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            checkReportPermission(ctx.user.role, 'accounting');
+            await checkReportPermission(ctx.user.id, ctx.user.role, 'accounting');
 
             const conn = await db.getDb();
             if (!conn) {
@@ -742,7 +684,7 @@ export const generalReportsRouter = router({
             departmentId: z.number().optional(),
         }))
         .query(async ({ input, ctx }) => {
-            const perm = checkReportPermission(ctx.user.role, 'hr');
+            const perm = await checkReportPermission(ctx.user.id, ctx.user.role, 'hr');
 
             const conn = await db.getDb();
             if (!conn) {

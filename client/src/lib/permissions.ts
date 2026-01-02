@@ -414,3 +414,84 @@ export const ALL_RESOURCES: PermissionResource[] = [
  * All available actions
  */
 export const ALL_ACTIONS: PermissionAction[] = ['view', 'create', 'edit', 'delete', 'approve'];
+
+/**
+ * Permission Modifiers - Granular flags to restrict/enhance access
+ */
+export type PermissionModifier = 'onlyAssigned' | 'canViewFinancials' | 'onlyOwn' | 'autoApprove';
+
+export const ALL_MODIFIERS: PermissionModifier[] = ['onlyAssigned', 'canViewFinancials', 'onlyOwn', 'autoApprove'];
+
+export const MODIFIER_LABELS: Record<PermissionModifier, string> = {
+    onlyAssigned: 'المسندة فقط',
+    canViewFinancials: 'عرض الماليات',
+    onlyOwn: 'البيانات الشخصية فقط',
+    autoApprove: 'اعتماد تلقائي',
+};
+
+/**
+ * Default Modifiers per Role
+ * Defines restrictions or enhancements enabled by default for specific roles
+ */
+export const DEFAULT_MODIFIERS: Record<string, Partial<Record<PermissionResource, PermissionModifier[]>>> = {
+    // Architects & Designers: Restricted to assigned projects, no financials
+    architect: {
+        projects: ['onlyAssigned'],
+        tasks: ['onlyAssigned'],
+    },
+    interior_designer: {
+        projects: ['onlyAssigned'],
+        tasks: ['onlyAssigned'],
+    },
+    designer: {
+        projects: ['onlyAssigned'],
+        tasks: ['onlyAssigned'],
+    },
+    site_engineer: {
+        projects: ['onlyAssigned'],
+        tasks: ['onlyAssigned'],
+    },
+
+    // Project Coordinator: Assigned + Financials hidden (unless overridden)
+    project_coordinator: {
+        projects: ['onlyAssigned'],
+        tasks: ['onlyAssigned'],
+    },
+
+    // Accountant: Cannot auto-approve (must request), can view financials
+    accountant: {
+        projects: ['canViewFinancials'],
+        accounting: ['canViewFinancials'],
+        // 'autoApprove' is missing, meaning they MUST request approval
+    },
+
+    // Managers: Can view financials, auto-approve
+    admin: {
+        projects: ['canViewFinancials', 'autoApprove'],
+        accounting: ['canViewFinancials', 'autoApprove'],
+        invoices: ['autoApprove'],
+    },
+    finance_manager: {
+        projects: ['canViewFinancials', 'autoApprove'],
+        accounting: ['canViewFinancials', 'autoApprove'],
+        invoices: ['autoApprove'],
+    },
+    project_manager: {
+        projects: ['canViewFinancials'],
+    }
+};
+
+/**
+ * Check if a role has a specific modifier enabled by default
+ */
+export function hasDefaultModifier(
+    role: string | undefined,
+    resource: PermissionResource,
+    modifier: PermissionModifier
+): boolean {
+    if (!role) return false;
+    const roleModifiers = DEFAULT_MODIFIERS[role];
+    if (!roleModifiers) return false;
+    const resourceModifiers = roleModifiers[resource];
+    return resourceModifiers ? resourceModifiers.includes(modifier) : false;
+}

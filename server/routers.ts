@@ -331,9 +331,39 @@ import { logAudit } from "./_core/audit";
 // Permission levels for granular access control
 
 async function ensurePerm(ctx: any, sectionKey: string) {
-  // SECURITY: Permission checks apply in ALL environments (removed dev bypass)
+  // SECURITY: Permission checks apply in ALL environments
   const role = ctx.user.role;
-  const allowedByRole: Record<string, string[]> = {
+
+  // 1. Check Custom Override in DB
+  const perms = await db.getUserPermissions(ctx.user.id);
+  const record = perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
+
+  // Check for explicit ALLOW or DENY
+  // Key format: "resource" (e.g. 'accounting') or "resource.action" (handled by different checks usually, but here checking section access)
+  // For section access, we usually look for 'resource.view' or just 'resource'
+
+  // If we have an explicit override for this section (boolean)
+  if (record.hasOwnProperty(sectionKey)) {
+    if (record[sectionKey]) {
+      return; // Explicitly ALLOWED
+    } else {
+      await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `User permission override denied access to "${sectionKey}"`, ctx);
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' }); // Explicitly DENIED
+    }
+  }
+
+  // Also check "resource.view" as a proxy for section access if "resource" key is missing
+  const viewKey = `${sectionKey}.view`;
+  if (record.hasOwnProperty(viewKey)) {
+    if (record[viewKey]) {
+      return; // Explicitly ALLOWED via view action
+    }
+    // If view is false, we don't necessarily deny section if there are other actions? 
+    // But usually view is required for section access.
+  }
+
+  // 2. Fallback to Role Defaults
+  const defaultAllowedByRole: Record<string, string[]> = {
     // === الإدارة العليا ===
     admin: ['*'],
     department_manager: ['projects', 'projectTasks', 'hr', 'reports', 'dashboard', 'clients', 'invoices', 'forms', 'generalReports'],
@@ -343,43 +373,77 @@ async function ensurePerm(ctx: any, sectionKey: string) {
     project_coordinator: ['projects', 'projectTasks', 'dashboard', 'clients', 'forms', 'rfis', 'submittals', 'drawings', 'generalReports', 'approval_requests'],
 
     // === المهندسين والفنيين ===
-    architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard'],
-    interior_designer: ['projects', 'drawings', 'dashboard'],
-    site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard'],
-    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard', 'generalReports'],
-    designer: ['projects', 'projectTasks', 'dashboard'],
-    technician: ['projectTasks', 'dashboard'],
+    architect: ['projects', 'drawings', 'rfis', 'submittals', 'dashboard', 'hr'], // Added HR based on matrix
+    interior_designer: ['projects', 'drawings', 'dashboard', 'hr'],
+    site_engineer: ['projects', 'projectTasks', 'rfis', 'submittals', 'drawings', 'dashboard', 'hr'],
+    planning_engineer: ['projects', 'projectTasks', 'projectReports', 'dashboard', 'generalReports', 'accounting', 'hr'], // Added accounting for reports
+    designer: ['projects', 'projectTasks', 'dashboard', 'hr'],
+    technician: ['projectTasks', 'dashboard', 'hr'],
 
     // === الإدارة المالية ===
-    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms', 'generalReports'],
-    accountant: ['accounting', 'reports', 'dashboard', 'invoices', 'generalReports'],
+    finance_manager: ['accounting', 'reports', 'dashboard', 'invoices', 'forms', 'generalReports', 'approval_requests'],
+    accountant: ['accounting', 'reports', 'dashboard', 'invoices', 'generalReports', 'approval_requests'],
 
     // === المبيعات ===
-    sales_manager: ['sales', 'clients', 'invoices', 'dashboard', 'forms', 'generalReports'],
+    sales_manager: ['sales', 'clients', 'invoices', 'dashboard', 'forms', 'generalReports', 'hr'],
 
     // === الموارد البشرية ===
-    hr_manager: ['hr', 'dashboard'],
+    hr_manager: ['hr', 'dashboard', 'users'],
     admin_assistant: ['hr', 'dashboard', 'forms', 'clients'],
 
     // === المشتريات والمخازن ===
-    procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard', 'generalReports'],
-    storekeeper: ['procurement', 'dashboard'],
-    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard', 'generalReports'],
+    procurement_officer: ['procurement', 'purchases', 'boq', 'dashboard', 'generalReports', 'hr'],
+    storekeeper: ['procurement', 'dashboard', 'hr'],
+    qa_qc: ['qaqc', 'submittals', 'rfis', 'dashboard', 'generalReports', 'hr'],
+
+    // === مشاهد ===
+    viewer: ['hr'],
   };
-  const allowedList = allowedByRole[role] || [];
+
+  const allowedList = defaultAllowedByRole[role] || [];
   const roleAllowed = allowedList.includes('*') || allowedList.includes(sectionKey);
+
   if (!roleAllowed) {
-    // Log denied access attempt for security audit
     await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `Role "${role}" attempted to access "${sectionKey}" - DENIED`, ctx);
     throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
   }
-  const perms = await db.getUserPermissions(ctx.user.id);
+}
+
+// Helper to check if user has a specific modifier enabled (default or overridden)
+async function hasModifier(userId: number, role: string, resource: string, modifier: string): Promise<boolean> {
+  // 1. Check Custom Override in DB
+  const perms = await db.getUserPermissions(userId);
   const record = perms?.permissionsJson ? JSON.parse(perms.permissionsJson) : {};
-  if (record.hasOwnProperty(sectionKey) && !record[sectionKey]) {
-    // Log denied access attempt due to user-specific restriction
-    await logAudit(ctx.user.id, 'ACCESS_DENIED', 'section', undefined, `User permission override denied access to "${sectionKey}"`, ctx);
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'Section access denied' });
+  const key = `${resource}.${modifier}`;
+
+  if (record.hasOwnProperty(key)) {
+    return !!record[key];
   }
+
+  // 2. Check Role Defaults (Hardcoded for now to match frontend DEFAULT_MODIFIERS)
+  // Architects/Designers/Site Engineers -> onlyAssigned
+  if (modifier === 'onlyAssigned') {
+    if (['architect', 'interior_designer', 'designer', 'site_engineer', 'project_coordinator', 'technician'].includes(role) &&
+      ['projects', 'tasks'].includes(resource)) {
+      return true;
+    }
+  }
+
+  // Admin/Managers -> canViewFinancials
+  if (modifier === 'canViewFinancials') {
+    if (['admin', 'finance_manager', 'project_manager'].includes(role)) return true;
+    if (role === 'accountant') return true;
+    // Others default to false
+    return false;
+  }
+
+  // Admin/Finance -> autoApprove
+  if (modifier === 'autoApprove') {
+    if (['admin', 'finance_manager'].includes(role)) return true;
+    return false;
+  }
+
+  return false;
 }
 
 // Helper to check if user can access a specific project (assigned to it or a team member)
@@ -409,15 +473,16 @@ async function canAccessProject(userId: number, projectId: number): Promise<bool
 
 // Helper to ensure user has access to a specific project for 'own' permission level
 async function ensureProjectAccess(ctx: any, projectId: number) {
-  const permLevel = getPermissionLevel(ctx.user.role, 'projects');
+  // Check if user has 'onlyAssigned' modifier for projects
+  const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned');
 
-  // Admin and full access can access any project
-  if (ctx.user.role === 'admin' || permLevel === 'full') {
+  // Admin always has access
+  if (ctx.user.role === 'admin') {
     return;
   }
 
-  // For 'own' permission level, check if user is assigned or team member
-  if (permLevel === 'own') {
+  // If restricted to assigned only, check access
+  if (onlyAssigned) {
     const hasAccess = await canAccessProject(ctx.user.id, projectId);
     if (!hasAccess) {
       throw new TRPCError({
@@ -464,8 +529,72 @@ export const appRouter = router({
     }),
 
     // Get current user's detailed permissions
-    getMyPermissions: protectedProcedure.query(({ ctx }) => {
+    getMyPermissions: protectedProcedure.query(async ({ ctx }) => {
       const perms = getDetailedPermissions(ctx.user.role);
+
+      // Fetch custom overrides from DB
+      try {
+        const conn = await db.getDb();
+        if (conn) {
+          const { userPermissions } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+
+          const [userPerm] = await conn.select().from(userPermissions).where(eq(userPermissions.userId, ctx.user.id));
+
+          if (userPerm && userPerm.permissionsJson) {
+            const overrides = JSON.parse(userPerm.permissionsJson);
+
+            // Apply overrides to the permission matrix
+            // Structure of overrides: { "resource.action": boolean, "resource.modifier": boolean }
+            Object.keys(overrides).forEach(key => {
+              const parts = key.split('.');
+              // Handle "resource.action" format (e.g., "projects.view")
+              if (parts.length === 2 && ['view', 'create', 'edit', 'delete', 'approve'].includes(parts[1])) {
+                const resource = parts[0] as any;
+                const action = parts[1] as any;
+                const isAllowed = overrides[key];
+
+                if (perms[resource]) {
+                  if (isAllowed) {
+                    // Add action if not present
+                    if (!perms[resource].includes(action)) {
+                      perms[resource].push(action);
+                    }
+                  } else {
+                    // Remove action if present
+                    perms[resource] = perms[resource].filter((a: any) => a !== action);
+                  }
+                } else if (isAllowed) {
+                  // Resource didn't exist in default matrix, create it
+                  perms[resource] = [action];
+                }
+              }
+              // Handle "resource.subresource.action" (e.g., "accounting.reports.view")
+              else if (parts.length === 3 && ['view', 'create', 'edit', 'delete', 'approve'].includes(parts[2])) {
+                const resource = `${parts[0]}.${parts[1]}` as any;
+                const action = parts[2] as any;
+                const isAllowed = overrides[key];
+                if (perms[resource]) {
+                  if (isAllowed) {
+                    if (!perms[resource].includes(action)) perms[resource].push(action);
+                  } else {
+                    perms[resource] = perms[resource].filter((a: any) => a !== action);
+                  }
+                } else if (isAllowed) {
+                  perms[resource] = [action];
+                }
+              }
+              // Modifiers are handled by specific logic in backend/frontend helpers
+              // But we should probably pass them through if the frontend needs usage.
+              // Currently frontend uses 'permissions' object which matches RolePermissions type.
+              // Modifiers aren't part of RolePermissions usually (it's action list).
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch user permissions", e);
+      }
+
       return {
         role: ctx.user.role,
         permissions: perms,
@@ -476,7 +605,8 @@ export const appRouter = router({
           accounting: getPermissionLevel(ctx.user.role, 'accounting'),
           clients: getPermissionLevel(ctx.user.role, 'clients'),
           dashboard: getPermissionLevel(ctx.user.role, 'dashboard'),
-        }
+        },
+        // We could verify permissionLevel too if we wanted "Own" overrides
       };
     }),
 
@@ -660,13 +790,15 @@ export const appRouter = router({
         await ensurePerm(ctx, 'projects');
         const permLevel = getPermissionLevel(ctx.user.role, 'projects');
 
-        // Check if user can view financials
-        const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
-        const isDesigner = designerRoles.includes(ctx.user.role);
+        // Check if user can view financials - Use custom modifier
+        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials');
 
         let projects;
         // For 'own' permission level, only show assigned projects
-        if (permLevel === 'own') {
+        // Also enforce if onlyAssigned modifier is present
+        const onlyAssigned = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'onlyAssigned');
+
+        if (permLevel === 'own' || onlyAssigned) {
           projects = await db.getProjectsForAssignee(ctx.user.id);
         } else {
           projects = await db.getAllProjects();
@@ -677,8 +809,8 @@ export const appRouter = router({
           projects = projects.filter((p: any) => p.clientId === input.clientId);
         }
 
-        // Strip budget for designers
-        if (isDesigner) {
+        // Strip budget if cannot view financials
+        if (!canViewFinancials) {
           return projects.map((p: any) => ({ ...p, budget: undefined }));
         }
 
@@ -839,9 +971,7 @@ export const appRouter = router({
         if (!project) throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
 
         // Check if user can view financials
-        const designerRoles = ['designer', 'architect', 'site_engineer', 'interior_designer', 'planning_engineer'];
-        const isDesigner = designerRoles.includes(ctx.user.role);
-        const canViewFinancials = !isDesigner;
+        const canViewFinancials = await hasModifier(ctx.user.id, ctx.user.role, 'projects', 'canViewFinancials');
 
         const [boq, expenses, installments, client, sales, projectInvoices] = await Promise.all([
           canViewFinancials ? db.getProjectBOQ(input.id) : Promise.resolve([]),
@@ -852,8 +982,8 @@ export const appRouter = router({
           canViewFinancials ? db.getProjectInvoices(input.id) : Promise.resolve([])
         ]);
 
-        // Strip budget from project for designers
-        const safeProject = isDesigner
+        // Strip budget from project if unauthorized
+        const safeProject = !canViewFinancials
           ? { ...project, budget: undefined }
           : project;
 
