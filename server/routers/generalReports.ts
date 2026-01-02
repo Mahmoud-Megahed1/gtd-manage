@@ -862,7 +862,7 @@ export const generalReportsRouter = router({
                 };
             }
 
-            const from = input.from ?? new Date(new Date().getFullYear(), 0, 1);
+            const from = input.from ?? new Date(0);
             const to = input.to ?? new Date();
 
             // Counts
