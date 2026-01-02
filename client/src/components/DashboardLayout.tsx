@@ -106,7 +106,14 @@ const navItems: NavItem[] = [
   {
     title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, roles: [
       "admin", "finance_manager", "accountant", "department_manager", "project_manager",
-      "planning_engineer", "sales_manager", "procurement_officer", "qa_qc"
+      "planning_engineer", "sales_manager", "procurement_officer", "qa_qc", "project_coordinator"
+    ]
+  },
+
+  // طلبات الاعتماد - Approval Requests (Matrix: admin✅, project_coordinator✅)
+  {
+    title: "طلبات الاعتماد", href: "/approvals", icon: <Sparkles className="w-5 h-5" />, roles: [
+      "admin", "project_coordinator"
     ]
   },
 
@@ -183,6 +190,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       "/audit-logs": "audit",
       "/settings": "settings",
       "/ai-assistant": "ai_assistant", // Added specific permission key
+      "/general-reports": "generalReports",
+      "/approvals": "approval_requests",
     };
     const permKey = keyMap[item.href];
 
