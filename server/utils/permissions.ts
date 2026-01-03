@@ -116,6 +116,12 @@ export async function ensurePerm(ctx: any, sectionKey: string) {
 // Helper to check if user has a specific modifier enabled (default or overridden)
 // Uses caching to avoid redundant DB queries
 export async function hasModifier(userId: number, role: string, resource: string, modifier: string, ctx?: any): Promise<boolean> {
+    // ADMIN BYPASS: Admin always has full access to standard actions
+    if (role === 'admin' && ['view', 'create', 'edit', 'delete', 'approve', 'submit', 'viewFinancials'].includes(modifier)) {
+        console.log(`[hasModifier] ADMIN BYPASS: role=${role}, resource=${resource}, modifier=${modifier} => TRUE`);
+        return true;
+    }
+
     // 1. Check Custom Override in DB (use cache if ctx available)
     let record: Record<string, boolean> = {};
 
