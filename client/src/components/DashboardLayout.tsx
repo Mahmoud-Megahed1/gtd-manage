@@ -74,8 +74,6 @@ const navItems: NavItem[] = [
   // المحاسبة - Accounting
   { title: "المحاسبة", href: "/accounting", icon: <Calculator className="w-5 h-5" />, resource: 'accounting' },
 
-  // الرسومات - Drawings
-  { title: "الرسومات", href: "/drawings", icon: <FileText className="w-5 h-5" />, resource: 'drawings' }, // Assuming drawings resource exists or maps to something
 
   // التقارير - Reports
   { title: "التقارير العامة", href: "/general-reports", icon: <BarChart3 className="w-5 h-5" />, resource: 'accounting.reports' as any },

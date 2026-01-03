@@ -1010,78 +1010,7 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-  drawings: router({
-    list: protectedProcedure
-      .input(z.object({ projectId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
-        const conn = await db.getDb();
-        if (!conn) return [];
-        const { drawings, drawingVersions } = await import("../drizzle/schema");
-        const rows = await conn.select().from(drawings).where(eq(drawings.projectId, input.projectId)).orderBy(desc(drawings.createdAt));
-        return rows;
-      }),
-    create: protectedProcedure
-      .input(z.object({ projectId: z.number(), drawingCode: z.string(), title: z.string(), discipline: z.string().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
-        const conn = await db.getDb();
-        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        const { drawings } = await import("../drizzle/schema");
-        await conn.insert(drawings).values({
-          projectId: input.projectId,
-          drawingCode: input.drawingCode,
-          title: input.title,
-          discipline: input.discipline,
-          status: "draft"
-        } as any);
-        await logAudit(ctx.user.id, 'CREATE_DRAWING', 'project', input.projectId, input.drawingCode, ctx);
-        return { success: true };
-      }),
-    addVersion: protectedProcedure
-      .input(z.object({ drawingId: z.number(), version: z.string(), fileUrl: z.string(), notes: z.string().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
-        const conn = await db.getDb();
-        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        const { drawingVersions, drawings } = await import("../drizzle/schema");
-        const res = await conn.insert(drawingVersions).values({
-          drawingId: input.drawingId,
-          version: input.version,
-          fileUrl: input.fileUrl,
-          notes: input.notes,
-          createdBy: ctx.user.id
-        } as any);
-        const [latest] = await conn.select().from(drawingVersions).where(eq(drawingVersions.drawingId, input.drawingId)).orderBy(desc(drawingVersions.createdAt)).limit(1);
-        if (latest) {
-          await conn.update(drawings).set({ currentVersionId: latest.id, status: "issued" }).where(eq(drawings.id, input.drawingId));
-        }
-        await logAudit(ctx.user.id, 'ADD_DRAWING_VERSION', 'drawing', input.drawingId, input.version, ctx);
-        return { success: true };
-      }),
-    versions: protectedProcedure
-      .input(z.object({ drawingId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
-        const conn = await db.getDb();
-        if (!conn) return [];
-        const { drawingVersions } = await import("../drizzle/schema");
-        return await conn.select().from(drawingVersions).where(eq(drawingVersions.drawingId, input.drawingId)).orderBy(desc(drawingVersions.createdAt));
-      }),
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input, ctx }) => {
-        await ensurePerm(ctx, 'projects');
-        const canDelete = await hasModifier(ctx.user.id, ctx.user.role, 'drawings', 'delete', ctx);
-        if (!canDelete) throw new TRPCError({ code: 'FORBIDDEN', message: 'لا يمكنك حذف الرسومات' });
-        const conn = await db.getDb();
-        if (!conn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        const { drawings } = await import("../drizzle/schema");
-        await conn.delete(drawings).where(eq(drawings.id, input.id));
-        await logAudit(ctx.user.id, 'DELETE_DRAWING', 'drawing', input.id, undefined, ctx);
-        return { success: true };
-      }),
-  }),
+  // drawings router removed
   projectReports: router({
     baselineVsActual: protectedProcedure
       .input(z.object({ projectId: z.number() }))

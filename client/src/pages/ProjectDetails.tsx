@@ -66,7 +66,7 @@ export default function ProjectDetails() {
   const hasFinancials = project?.projectType === 'execution' || project?.projectType === 'design_execution';
   const showFinancials = canViewFinancials && hasFinancials;
 
-  const { data: projectFiles, refetch: refetchFiles } = trpc.drawings.list.useQuery({ projectId });
+
 
   // Permission check for financial data
   // Moved up to use hook
@@ -80,7 +80,7 @@ export default function ProjectDetails() {
 
   const { data: rfis } = trpc.rfi.list.useQuery({ projectId });
   const { data: submittals } = trpc.submittals.list.useQuery({ projectId });
-  const { data: drawings } = trpc.drawings.list.useQuery({ projectId });
+
   const { data: baseline } = trpc.projectReports.baselineVsActual.useQuery({ projectId });
   const { data: procurement } = trpc.projectReports.procurementTracker.useQuery({ projectId });
 
@@ -118,27 +118,9 @@ export default function ProjectDetails() {
       toast.success("تم حذف الـ Submittal");
     }
   });
-  const createDrawing = trpc.drawings.create.useMutation({
-    onSuccess: () => utils.drawings.list.invalidate({ projectId })
-  });
-  const addDrawingVersion = trpc.drawings.addVersion.useMutation({
-    onSuccess: () => {
-      utils.drawings.list.invalidate({ projectId });
-      if (openVersionsId) utils.drawings.versions.invalidate({ drawingId: openVersionsId });
-    }
-  });
-  const deleteDrawing = trpc.drawings.delete.useMutation({
-    onSuccess: () => {
-      utils.drawings.list.invalidate({ projectId });
-      toast.success("تم حذف الرسم");
-    }
-  });
+
   const uploadFile = trpc.files.upload.useMutation();
-  const [openVersionsId, setOpenVersionsId] = useState<number | null>(null);
-  const { data: openVersions } = trpc.drawings.versions.useQuery(
-    { drawingId: openVersionsId || 0 },
-    { enabled: !!openVersionsId }
-  );
+
   // Team management
   const { data: teamMembers } = trpc.projects.listTeam.useQuery({ projectId });
 
@@ -1226,102 +1208,7 @@ export default function ProjectDetails() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Drawings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <form
-                className="grid md:grid-cols-4 gap-2 p-3 border rounded"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget as any;
-                  const drawingCode = form.code.value;
-                  const title = form.title.value;
-                  const discipline = form.discipline.value;
-                  if (!drawingCode || !title) return;
-                  await createDrawing.mutateAsync({ projectId, drawingCode, title, discipline });
-                  form.reset();
-                }}
-              >
-                <Input name="code" placeholder="الكود" />
-                <Input name="title" placeholder="العنوان" />
-                <Input name="discipline" placeholder="التخصص" />
-                <Button type="submit" variant="outline">إضافة</Button>
-              </form>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>الكود</TableHead>
-                    <TableHead>العنوان</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead className="text-left">نسخة جديدة</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(drawings || []).map((d: any) => (
-                    <TableRow key={d.id}>
-                      <TableCell>{d.drawingCode}</TableCell>
-                      <TableCell>{d.title}</TableCell>
-                      <TableCell>{d.status}</TableCell>
-                      <TableCell className="text-left">
-                        <div className="flex items-center gap-2 justify-end">
-                          <Input type="text" placeholder="الإصدار" id={`ver-${d.id}`} />
-                          <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            const verInput = document.getElementById(`ver-${d.id}`) as HTMLInputElement;
-                            const version = verInput?.value || "v1";
-                            const reader = new FileReader();
-                            reader.onload = async () => {
-                              const base64 = (reader.result as string).split(",")[1];
-                              const res = await uploadFile.mutateAsync({
-                                entityType: "drawing",
-                                entityId: d.id,
-                                fileName: file.name,
-                                fileData: base64,
-                                mimeType: file.type
-                              });
-                              await addDrawingVersion.mutateAsync({ drawingId: d.id, version, fileUrl: res.url });
-                            };
-                            reader.readAsDataURL(file);
-                          }} />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setOpenVersionsId(openVersionsId === d.id ? null : d.id)}
-                          >
-                            عرض النسخ
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => deleteDrawing.mutate({ id: d.id })}>
-                            حذف
-                          </Button>
-                        </div>
-                        {openVersionsId === d.id && (
-                          <div className="mt-2 border-t pt-2">
-                            {(openVersions || []).length === 0 ? (
-                              <p className="text-sm text-muted-foreground">لا توجد نسخ</p>
-                            ) : (
-                              <div className="space-y-1">
-                                {(openVersions || []).map((v: any) => (
-                                  <div key={v.id} className="flex items-center justify-between text-sm">
-                                    <span>{v.version}</span>
-                                    <a href={v.fileUrl} target="_blank" rel="noreferrer" className="text-primary">فتح</a>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+
       </div >
     </DashboardLayout >
   );
