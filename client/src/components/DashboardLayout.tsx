@@ -54,7 +54,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   // Dashboard - visible to all
-  { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, resource: 'dashboard' },
+  { title: "لوحة التحكم", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
 
   // المشاريع - Projects
   { title: "المشاريع", href: "/projects", icon: <FolderKanban className="w-5 h-5" />, resource: 'projects' },
