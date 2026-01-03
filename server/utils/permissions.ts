@@ -200,6 +200,7 @@ export type DetailedPermissions = {
     forms: SubPermissions;
     invoices: SubPermissions;
     reports: SubPermissions;
+    users: SubPermissions;
 };
 
 export function getPermissionLevel(role: string, section: string): PermissionLevel {
@@ -209,10 +210,10 @@ export function getPermissionLevel(role: string, section: string): PermissionLev
     // Define permission matrix: role -> section -> level
     const permissionMatrix: Record<string, Record<string, PermissionLevel>> = {
         // HR Manager - full access to HR
-        hr_manager: { hr: 'full', dashboard: 'full' },
+        hr_manager: { hr: 'full', dashboard: 'full', users: 'full' },
         // Finance roles
-        finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly' },
-        accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own' },
+        finance_manager: { accounting: 'full', reports: 'full', dashboard: 'full', hr: 'own', projects: 'readonly', invoices: 'full' },
+        accountant: { accounting: 'readonly', reports: 'readonly', dashboard: 'readonly', projects: 'readonly', hr: 'own', invoices: 'full' },
         // Project roles
         project_manager: {
             projects: 'full',
@@ -256,7 +257,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
     const nonePerms: SubPermissions = { view: false, viewOwn: false, viewFinancials: false, create: false, edit: false, delete: false, approve: false, submit: false };
 
     if (role === 'admin') {
-        return { hr: fullPerms, projects: fullPerms, tasks: fullPerms, accounting: fullPerms, clients: fullPerms, forms: fullPerms, invoices: fullPerms, reports: fullPerms };
+        return { hr: fullPerms, projects: fullPerms, tasks: fullPerms, accounting: fullPerms, clients: fullPerms, forms: fullPerms, invoices: fullPerms, reports: fullPerms, users: fullPerms };
     }
 
     const rolePermsMap: Record<string, DetailedPermissions> = {
@@ -269,6 +270,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: readonlyPerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: fullPerms,
         },
         finance_manager: {
             hr: ownPerms,
@@ -279,6 +281,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: fullPerms,
             reports: fullPerms,
+            users: nonePerms,
         },
         accountant: {
             hr: ownPerms,
@@ -289,6 +292,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: { ...readonlyPerms, create: true },
             reports: readonlyPerms,
+            users: nonePerms,
         },
         department_manager: {
             hr: ownPerms,
@@ -299,6 +303,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: { ...fullPerms, delete: false },
             invoices: readonlyPerms,
             reports: { ...readonlyPerms, create: true },
+            users: nonePerms,
         },
         project_manager: {
             hr: ownPerms,
@@ -309,6 +314,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: { ...fullPerms, delete: false },
             invoices: nonePerms,
             reports: { ...readonlyPerms, create: true },
+            users: nonePerms,
         },
         project_coordinator: {
             hr: ownPerms,
@@ -319,6 +325,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: { ...readonlyPerms, view: true },
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         architect: {
             hr: { ...ownPerms, submit: true },
@@ -329,6 +336,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         interior_designer: {
             hr: { ...ownPerms, submit: true },
@@ -339,6 +347,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         site_engineer: {
             hr: { ...ownPerms, submit: true },
@@ -349,6 +358,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         planning_engineer: {
             hr: { ...ownPerms, submit: true },
@@ -359,6 +369,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: readonlyPerms,
+            users: nonePerms,
         },
         designer: {
             hr: { ...ownPerms, submit: true },
@@ -369,6 +380,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         technician: {
             hr: { ...ownPerms, submit: true },
@@ -379,6 +391,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         sales_manager: {
             hr: ownPerms,
@@ -389,6 +402,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: fullPerms,
             invoices: fullPerms,
             reports: { ...readonlyPerms, create: true },
+            users: nonePerms,
         },
         admin_assistant: {
             hr: ownPerms,
@@ -399,6 +413,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: fullPerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         procurement_officer: {
             hr: ownPerms,
@@ -409,6 +424,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: readonlyPerms,
+            users: nonePerms,
         },
         storekeeper: {
             hr: ownPerms,
@@ -419,6 +435,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         qa_qc: {
             hr: ownPerms,
@@ -429,6 +446,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: readonlyPerms,
+            users: nonePerms,
         },
         document_controller: {
             hr: ownPerms,
@@ -439,6 +457,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: fullPerms,
             invoices: nonePerms,
             reports: readonlyPerms,
+            users: nonePerms,
         },
         employee: {
             hr: { ...ownPerms, submit: true },
@@ -449,6 +468,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         },
         viewer: {
             hr: ownPerms,
@@ -459,6 +479,7 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
             forms: nonePerms,
             invoices: nonePerms,
             reports: nonePerms,
+            users: nonePerms,
         }
     };
 
