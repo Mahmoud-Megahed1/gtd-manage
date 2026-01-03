@@ -66,7 +66,8 @@ export default function ProjectDetails() {
   const hasFinancials = project?.projectType === 'execution' || project?.projectType === 'design_execution';
   const showFinancials = canViewFinancials && hasFinancials;
 
-
+  // Project files (attachments)
+  const { data: projectFiles, refetch: refetchFiles } = trpc.files.list.useQuery({ entityType: 'project', entityId: projectId });
 
   // Permission check for financial data
   // Moved up to use hook
