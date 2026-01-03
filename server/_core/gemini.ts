@@ -28,7 +28,7 @@ export const MODEL_DISPLAY_NAMES: Record<GeminiModelType, string> = {
  * Get the Gemini API key from DB or environment
  * @throws Error if key is not configured
  */
-async function getApiKey(): Promise<string> {
+export async function getApiKey(): Promise<string> {
     // 1. Check DB for encrypted key (Admin overrides)
     try {
         const encryptedKey = await getAppSetting('GEMINI_API_KEY');
