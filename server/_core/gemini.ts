@@ -115,7 +115,7 @@ export async function invokeGemini(params: {
             throw new Error('تم حظر المحتوى. يرجى إعادة صياغة السؤال.');
         }
 
-        throw new Error('حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. يرجى المحاولة لاحقاً.');
+        throw new Error(`حدث خطأ أثناء الاتصال بالذكاء الاصطناعي: ${error.message}`);
     }
 }
 
