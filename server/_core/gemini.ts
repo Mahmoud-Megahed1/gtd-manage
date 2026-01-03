@@ -63,6 +63,17 @@ export interface ChatMessage {
  * @param params - The invocation parameters
  * @returns The AI response text
  */
+// Rate limit error codes and messages
+const isRateLimitError = (error: any) => {
+    return error.status === 429 ||
+        error.message?.includes('429') ||
+        error.message?.includes('quota') ||
+        error.message?.includes('resource exhausted');
+};
+
+/**
+ * Invoke Gemini with retries and fallback
+ */
 export async function invokeGemini(params: {
     prompt: string;
     modelType?: GeminiModelType;
@@ -74,49 +85,72 @@ export async function invokeGemini(params: {
     const apiKey = await getApiKey();
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    const modelName = MODEL_NAMES[modelType];
-    console.log(`⚙️ Gemini: Using model ${modelName}`);
+    // Helper to run a specific model with retries
+    const runGeneration = async (currentModelName: string, retries = 2): Promise<string> => {
+        try {
+            console.log(`⚙️ Gemini: Using model ${currentModelName} (Retries left: ${retries})`);
 
-    const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: systemPrompt,
-    });
+            const model = genAI.getGenerativeModel({
+                model: currentModelName,
+                systemInstruction: systemPrompt,
+            });
+
+            // Build conversation history for context
+            let history = conversationHistory.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.content }],
+            }));
+
+            // Gemini API requires the first message to be from 'user'
+            while (history.length > 0 && history[0].role === 'model') {
+                history.shift();
+            }
+
+            const chat = model.startChat({
+                history: history as any,
+            });
+
+            const result = await chat.sendMessage(prompt);
+            const response = result.response;
+            const text = response.text();
+
+            console.log(`✅ Gemini: Response received (${text.length} chars)`);
+            return text;
+
+        } catch (error: any) {
+            console.warn(`⚠️ Gemini Error with ${currentModelName}:`, error.message);
+
+            if (isRateLimitError(error) && retries > 0) {
+                console.log(`⏳ Rate limit hit, waiting 2s before retry...`);
+                await new Promise(r => setTimeout(r, 2000));
+                return runGeneration(currentModelName, retries - 1);
+            }
+            throw error;
+        }
+    };
+
+    const requestedModel = MODEL_NAMES[modelType];
 
     try {
-        // Build conversation history for context
-        let history = conversationHistory.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.content }],
-        }));
-
-        // Gemini API requires the first message to be from 'user'
-        // Remove any leading 'model' messages
-        while (history.length > 0 && history[0].role === 'model') {
-            history.shift();
+        return await runGeneration(requestedModel);
+    } catch (error: any) {
+        // If Lite model fails with rate limit, try standard Flash as fallback
+        if (isRateLimitError(error) && modelType === 'flash') {
+            console.log('🔄 Lite model exhausted, failing over to standard Flash...');
+            try {
+                // Fallback to standard 2.0 Flash
+                return await runGeneration('gemini-2.0-flash');
+            } catch (fallbackError: any) {
+                console.error('❌ Flash Fallback also failed:', fallbackError.message);
+                throw new Error('تم تجاوز حد الاستخدام لجميع النماذج. يرجى المحاولة لاحقاً.');
+            }
         }
 
-        // Start chat with history
-        const chat = model.startChat({
-            history: history as any,
-        });
+        // Generic error handling
+        console.error('❌ Gemini Fatal Error:', error.message || error);
 
-        // Send the current prompt
-        const result = await chat.sendMessage(prompt);
-        const response = result.response;
-        const text = response.text();
-
-        console.log(`✅ Gemini: Response received (${text.length} chars)`);
-        return text;
-
-    } catch (error: any) {
-        console.error('❌ Gemini Error:', error.message || error);
-
-        // Handle specific errors
         if (error.message?.includes('API key')) {
             throw new Error('مفتاح API غير صالح. يرجى التحقق من الإعدادات.');
-        }
-        if (error.message?.includes('quota')) {
-            throw new Error('تم تجاوز حد الاستخدام. يرجى المحاولة لاحقاً.');
         }
         if (error.message?.includes('blocked')) {
             throw new Error('تم حظر المحتوى. يرجى إعادة صياغة السؤال.');
@@ -131,11 +165,8 @@ export async function invokeGemini(params: {
  */
 export async function isGeminiConfigured(): Promise<boolean> {
     try {
-        // Check DB
         const dbKey = await getAppSetting('GEMINI_API_KEY');
         if (dbKey) return true;
-
-        // Check Env
         return Boolean(process.env.GEMINI_API_KEY);
     } catch {
         return false;
