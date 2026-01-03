@@ -12,8 +12,9 @@ export type GeminiModelType = 'flash' | 'pro' | 'exp';
 
 // Model name mapping
 const MODEL_NAMES: Record<GeminiModelType, string> = {
-    flash: 'gemini-2.0-flash',
-    pro: 'gemini-2.0-flash', // Using 2.0 flash as it's available and generally superior
+    // Lite model is faster and has fewer rate limits for free tier
+    flash: 'gemini-2.0-flash-lite-preview-02-05',
+    pro: 'gemini-2.0-flash',
     exp: 'gemini-2.0-flash-exp',
 };
 

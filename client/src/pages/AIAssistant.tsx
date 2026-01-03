@@ -243,9 +243,9 @@ export default function AIAssistant() {
                     onChange={(e) => setSelectedModel(e.target.value as any)}
                     disabled={isChatLoading}
                   >
-                    <option value="flash">⚡ Gemini 1.5 Flash (سريع - للمهام اليومية)</option>
-                    <option value="pro">🧠 Gemini 1.5 Pro (ذكي - للتحليل العميق)</option>
-                    <option value="exp">🚀 Gemini 2.0 Exp (تجريبي - الأحدث)</option>
+                    <option value="flash">⚡ Gemini 2.0 Flash Lite (سريع - مستحسن)</option>
+                    <option value="pro">🧠 Gemini 2.0 Flash (متقدم)</option>
+                    <option value="exp">🚀 Gemini 2.0 Experimental (تجريبي)</option>
                   </select>
                 </div>
               </CardHeader>
