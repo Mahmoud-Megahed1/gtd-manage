@@ -18,22 +18,22 @@ async function listModels() {
         // Let's rely on standard REST if SDK doesn't facilitate easy listing in this version,
         // OR just try to create a model and run a simple prompt.
 
-        console.log("Attempting to generate content with 'gemini-1.5-flash'...");
+        console.log("Attempting to generate content with 'gemini-1.5-flash-001'...");
         try {
-            const m = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const m = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-001' });
             await m.generateContent("Test");
-            console.log("SUCCESS: gemini-1.5-flash is working.");
+            console.log("SUCCESS: gemini-1.5-flash-001 is working.");
         } catch (e: any) {
-            console.log("FAILED gemini-1.5-flash:", e.message);
+            console.log("FAILED gemini-1.5-flash-001:", e.message);
         }
 
-        console.log("Attempting to generate content with 'gemini-pro'...");
+        console.log("Attempting to generate content with 'gemini-1.5-pro-001'...");
         try {
-            const m = genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const m = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-001' });
             await m.generateContent("Test");
-            console.log("SUCCESS: gemini-pro is working.");
+            console.log("SUCCESS: gemini-1.5-pro-001 is working.");
         } catch (e: any) {
-            console.log("FAILED gemini-pro:", e.message);
+            console.log("FAILED gemini-1.5-pro-001:", e.message);
         }
 
     } catch (error: any) {
