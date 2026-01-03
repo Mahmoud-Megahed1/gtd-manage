@@ -12,10 +12,10 @@ export type GeminiModelType = 'flash' | 'pro' | 'exp';
 
 // Model name mapping
 const MODEL_NAMES: Record<GeminiModelType, string> = {
-    // legacy/stable aliases that are more likely to have free tier quota
+    // Only flash is available for free tier currently
     flash: 'gemini-flash-latest',
-    pro: 'gemini-pro-latest',
-    exp: 'gemini-2.0-flash-exp',
+    pro: 'gemini-flash-latest', // Fallback to flash
+    exp: 'gemini-flash-latest', // Fallback to flash
 };
 
 // Model display names (Arabic)

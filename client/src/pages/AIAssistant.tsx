@@ -42,7 +42,8 @@ export default function AIAssistant() {
     { role: "assistant", content: "مرحباً! أنا مساعد الذكاء الاصطناعي. كيف يمكنني مساعدتك؟" },
   ]);
   const [input, setInput] = useState("");
-  const [selectedModel, setSelectedModel] = useState<"flash" | "pro" | "exp">("flash");
+  // Fixed model
+  const selectedModel = "flash";
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
 
@@ -236,17 +237,11 @@ export default function AIAssistant() {
                     </CardDescription>
                   </div>
 
-                  {/* Model Selector */}
-                  <select
-                    className="p-2 border rounded-md text-sm bg-background w-[280px]"
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value as any)}
-                    disabled={isChatLoading}
-                  >
-                    <option value="flash">⚡ Gemini Flash (الأحدث - مستقر)</option>
-                    <option value="pro">🧠 Gemini Pro (الأحدث - ذكي)</option>
-                    <option value="exp">🚀 Gemini 2.0 Experimental (تجريبي)</option>
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200 font-medium">
+                      ⚡ Gemini Flash (الأحدث)
+                    </span>
+                  </div>
                 </div>
               </CardHeader>
 
