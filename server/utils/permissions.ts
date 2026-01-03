@@ -483,5 +483,5 @@ export function getDetailedPermissions(role: string): DetailedPermissions {
         }
     };
 
-    return rolePermsMap[role] || { hr: nonePerms, projects: nonePerms, tasks: nonePerms, accounting: nonePerms, clients: nonePerms, forms: nonePerms, invoices: nonePerms, reports: nonePerms };
+    return rolePermsMap[role] || { hr: nonePerms, projects: nonePerms, tasks: nonePerms, accounting: nonePerms, clients: nonePerms, forms: nonePerms, invoices: nonePerms, reports: nonePerms, users: nonePerms };
 }
