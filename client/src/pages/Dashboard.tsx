@@ -143,16 +143,6 @@ export default function Dashboard() {
       });
     }
 
-    // Drawings - for architects and interior designers
-    if (canView('drawings')) {
-      actions.push({
-        href: "/drawings",
-        icon: <Image className="w-10 h-10 text-indigo-500 mb-3 group-hover:scale-110 transition-transform" />,
-        title: "الرسومات",
-        subtitle: "رسومات المشاريع",
-        show: true,
-      });
-    }
 
     // Clients - only for those with clients access
     if (canView('clients')) {
