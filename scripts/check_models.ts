@@ -18,22 +18,21 @@ async function listModels() {
         // Let's rely on standard REST if SDK doesn't facilitate easy listing in this version,
         // OR just try to create a model and run a simple prompt.
 
-        console.log("Attempting to generate content with 'gemini-1.5-flash-001'...");
-        try {
-            const m = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-001' });
-            await m.generateContent("Test");
-            console.log("SUCCESS: gemini-1.5-flash-001 is working.");
-        } catch (e: any) {
-            console.log("FAILED gemini-1.5-flash-001:", e.message);
-        }
+        console.log("Listing available models via API...");
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
 
-        console.log("Attempting to generate content with 'gemini-1.5-pro-001'...");
-        try {
-            const m = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-001' });
-            await m.generateContent("Test");
-            console.log("SUCCESS: gemini-1.5-pro-001 is working.");
-        } catch (e: any) {
-            console.log("FAILED gemini-1.5-pro-001:", e.message);
+        if (!response.ok) {
+            console.log(`Failed to list models: ${response.status} ${response.statusText}`);
+            const text = await response.text();
+            console.log("Response:", text);
+        } else {
+            const data = await response.json();
+            console.log("Available Models for this Key:");
+            data.models?.forEach((m: any) => {
+                if (m.name.includes('gemini')) {
+                    console.log(`- ${m.name} (Supported: ${m.supportedGenerationMethods?.join(', ')})`);
+                }
+            });
         }
 
     } catch (error: any) {
