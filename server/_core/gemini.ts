@@ -83,10 +83,16 @@ export async function invokeGemini(params: {
 
     try {
         // Build conversation history for context
-        const history = conversationHistory.map(msg => ({
+        let history = conversationHistory.map(msg => ({
             role: msg.role === 'user' ? 'user' : 'model',
             parts: [{ text: msg.content }],
         }));
+
+        // Gemini API requires the first message to be from 'user'
+        // Remove any leading 'model' messages
+        while (history.length > 0 && history[0].role === 'model') {
+            history.shift();
+        }
 
         // Start chat with history
         const chat = model.startChat({
